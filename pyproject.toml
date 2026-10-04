@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ticket-radar"
+version = "0.1.0"
+description = "多平台余票监控与提醒框架：只读轮询、低频限流、只提醒不代下单"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["ticket", "monitor", "railway", "12306", "notification", "asyncio"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "httpx>=0.27",
+    "typer>=0.12",
+    "pydantic>=2.7",
+    "PyYAML>=6.0",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+# 可选的浏览器登录助手（radar login）。不装也能用，只是得自己从浏览器取 Cookie。
+# 用系统已装的 Edge，不额外下载 Chromium。
+browser = [
+    "playwright>=1.40",
+]
+
+[project.scripts]
+radar = "radar.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/yourname/ticket-radar"
+Issues = "https://github.com/yourname/ticket-radar/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["radar"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

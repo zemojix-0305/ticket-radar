@@ -1,0 +1,44 @@
+# 运行数据：余票快照与变更历史，不要提交
+# 注意用 data/* 而不是 data/，否则 !data/.gitkeep 这条否定规则不生效
+data/*
+!data/.gitkeep
+*.db
+*.db-wal
+*.db-shm
+
+# 本地配置：含 cookie / sendkey，绝不提交
+tasks.yaml
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# 本机便捷脚本：含机器专属的 python 绝对路径，不进仓库
+run-monitor.cmd
+login.cmd
+onboard.cmd
+
+# 双击启动脚本留下的日志（login.log / monitor.log / onboard.log）
+*.log
+
+# 工具
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

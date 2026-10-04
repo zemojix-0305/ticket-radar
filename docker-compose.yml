@@ -1,0 +1,18 @@
+services:
+  radar:
+    build: .
+    image: ticket-radar:latest
+    container_name: ticket-radar
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./tasks.yaml:/app/tasks.yaml:ro
+      - ./data:/app/data
+    # 常驻监控。想单次跑一遍改成：command: ["run", "-c", "/app/tasks.yaml", "--once"]
+    command: ["run", "-c", "/app/tasks.yaml"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

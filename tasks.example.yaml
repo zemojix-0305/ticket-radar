@@ -1,0 +1,356 @@
+# ticket-radar 任务配置示例
+#
+# 用法：
+#   cp .env.example .env          # 填密钥（可选，但接平台基本都要）
+#   cp tasks.example.yaml tasks.yaml
+#   radar adapters                # 看看有哪些平台可用
+#   radar probe <url>             # 接新平台：先看清接口返回结构
+#   radar check -c tasks.yaml     # 单次查询，只打印不推送，用来调通配置
+#   radar run   -c tasks.yaml     # 常驻监控，检测到余票变化才推送
+#
+# 所有 ${XXX} 都会被同名环境变量替换，所以本文件可以直接提交到仓库。
+#
+# 默认只有 12306 那个任务开着——它不需要任何凭据，clone 下来就能跑通。
+# 其余平台都设成 enabled: false，填好凭据、用 radar check 调通之后再打开。
+
+storage:
+  path: ./data/radar.db
+
+# ---------------------------------------------------------------------------
+# 通知渠道：可同时配多个，检测到余票会全部推一遍
+# ---------------------------------------------------------------------------
+notify:
+  # 至少开一个渠道，否则余票变化只会写进数据库，不会通知到你。
+  #
+  # 怎么选：跑 `radar channels`，会列出全部渠道的免费额度和准备成本。
+  #
+  # 默认只开 ntfy —— 唯一「不用注册、不用 API Key」的渠道，
+  # clone 下来填一个 topic 名就能收到推送。
+  - type: ntfy
+    enabled: true
+    options:
+      # 必填。相当于频道名兼密码：别人猜到就能订阅你的通知，
+      # 所以务必换成一段随机字符串，例如 ntfy-radar-a7f3k9x2m5
+      topic: ${NTFY_TOPIC}
+      # server: https://ntfy.sh     # 默认公共实例；自建后改成自己的地址
+      priority: high                # min/low/default/high/urgent
+      # tags: rotating_light        # 通知图标（emoji 短代码）
+
+  # iOS 用户可改用 Bark：走苹果 APNs，比 ntfy 更即时，可穿透勿扰模式。
+  - type: bark
+    enabled: false
+    options:
+      key: ${BARK_KEY}              # Bark App 首页的设备码，也可粘贴整条推送地址
+      # group: 余票
+      # level: timeSensitive
+
+  # 微信直达，但**必须实名认证**；免费额度由平台说了算，所以不作为默认。
+  - type: pushplus
+    enabled: false
+    options:
+      token: ${PUSHPLUS_TOKEN}
+      # 模板默认 markdown、发送渠道默认 wechat（微信服务号），一般不用改。
+
+  - type: serverchan
+    # 免费版每天只有 5 条，做余票监控偏少；不用就保持 false
+    enabled: false
+    options:
+      sendkey: ${SERVERCHAN_SENDKEY}
+
+  - type: dingtalk
+    enabled: false
+    options:
+      webhook: ${DINGTALK_WEBHOOK}
+      secret: ${DINGTALK_SECRET}      # 安全设置选「加签」时必填
+
+  - type: wecom
+    enabled: false
+    options:
+      webhook: ${WECOM_WEBHOOK}
+
+  - type: telegram
+    enabled: false
+    options:
+      bot_token: ${TELEGRAM_BOT_TOKEN}
+      chat_id: ${TELEGRAM_CHAT_ID}
+
+  - type: smtp
+    enabled: false
+    options:
+      host: ${SMTP_HOST}
+      port: 465
+      user: ${SMTP_USER}
+      password: ${SMTP_PASSWORD}
+      sender: ${SMTP_USER}
+      to:
+        - ${SMTP_TO}
+
+# ---------------------------------------------------------------------------
+# 凭据：任务通过 credentials: <key> 引用。真实值都放 .env，不进仓库。
+# ---------------------------------------------------------------------------
+credentials:
+  rail_anon:
+    # 留空即匿名查询。填了完整 Cookie 串成功率更高。
+    cookie: ${RAIL12306_COOKIE}
+
+  amadeus:
+    client_id: ${AMADEUS_CLIENT_ID}
+    client_secret: ${AMADEUS_CLIENT_SECRET}
+    # 留空走 Test 环境（免费、不限量、数据是缓存的）。
+    # 正式环境要签约，填 https://api.amadeus.com
+    host: ${AMADEUS_HOST}
+
+  damai:
+    cookie: ${DAMAI_COOKIE}
+
+  # 猫眼和摩天轮的接口是**公开的**（实测匿名可用），下面两行留着只是
+  # 「填了也会带上」。不填完全能跑——别为了它们去折腾 F12。
+  maoyan:
+    cookie: ${MAOYAN_COOKIE}
+
+  moretickets:
+    cookie: ${MORETICKETS_COOKIE}
+
+  fenwandao:
+    cookie: ${FENWANDAO_COOKIE}
+
+# ---------------------------------------------------------------------------
+# 监控任务
+# ---------------------------------------------------------------------------
+tasks:
+  # =========================================================================
+  # 1. 铁路 12306 —— 唯一开箱即用的任务
+  # =========================================================================
+  - id: jinghu-morning
+    name: 京沪高铁 早班车
+    adapter: rail12306
+    enabled: true
+    # 合规下限 60 秒，写小于 60 会直接报错。这是刻意设计的硬约束。
+    interval_seconds: 300
+    jitter_seconds: 30
+    credentials: rail_anon
+    # 余票出现时点这个链接跳官方渠道自己下单
+    link: https://www.12306.cn/index/
+    params:
+      # 支持 YYYY-MM-DD、today、tomorrow、"+3"（3 天后）。
+      # 建议加引号：YAML 会把不引号的 +7 解析成整数 7。
+      # 相对日期跨过午夜会指向新的一天，届时程序会自动丢弃旧基准、
+      # 静默重建一次基线（避免把「换了一天」误报成「放票了」）。
+      # 要连续盯同一天（例如等某场演出开票），就写绝对日期。
+      date: "+7"
+      from: 北京南
+      to: 上海虹桥
+
+    watch:
+      # 只关心二等座和一等座；留空列表表示全部席别
+      seat_types: ["二等座", "一等座"]
+      # 至少 1 张才提醒
+      min_count: 1
+      # 只盯这几趟车；留空表示全部。支持前缀通配，如 "G1*"
+      train_codes: ["G1", "G3", "G5", "G7", "G9"]
+      # 只看某个发车时段。左闭右开：[06:00, 12:00) 就是「上午出发」。
+      # 想表达「上午出发」优先用这两行，别去数车次号——车次表每天会变，
+      # 写死的白名单会漏掉临时加开的车，而那往往正是会放票的那趟。
+      # 时刻必须写成 HH:MM（写成 6:00 会被自动补零，写错直接报错）。
+      # depart_after: "06:00"
+      # depart_before: "12:00"
+      # 默认只推「余票出现」。可选：appeared / increased / decreased / sold_out / new_train
+      notify_on: ["appeared"]
+
+  # =========================================================================
+  # 2. 机票（Amadeus 正规开放 API）
+  #    最推荐扩展的方向：官方接口、有文档、不会因前端改版失效。
+  #    注册：https://developers.amadeus.com 建 App 拿 Key/Secret → 填 .env
+  # =========================================================================
+  - id: pek-sha
+    name: 北京 → 上海 机票
+    adapter: amadeus
+    enabled: false
+    interval_seconds: 900
+    jitter_seconds: 60
+    credentials: amadeus
+    link: https://www.amadeus.com/
+    params:
+      from: PEK             # 机场三字码，不是城市名
+      to: SHA
+      date: "+14"
+      adults: 1
+      currency: CNY
+      max: 20
+      # 可选：ECONOMY / PREMIUM_ECONOMY / BUSINESS / FIRST
+      # travel_class: ECONOMY
+    watch:
+      seat_types: ["经济舱"]
+      min_count: 1
+      # 余座变多也提醒（放票/退票）
+      notify_on: ["appeared", "increased"]
+
+  # =========================================================================
+  # 3. 大麦（演出票）—— 需要登录 Cookie，因为要算 mtop 签名
+  #
+  #    取 Cookie：浏览器登录大麦 → F12 → Application → Cookies →
+  #    把 _m_h5_tk / _m_h5_tk_enc / _m_h5_tk_user 等整条复制进 .env 的 DAMAI_COOKIE
+  #
+  #    找 item_id：演出详情页 URL 里的 id= 后面那串数字
+  #    接口名如失效，用 radar probe 校正后写进 params.api
+  # =========================================================================
+  - id: damai-demo
+    name: 大麦 演出余票
+    adapter: damai
+    enabled: false
+    interval_seconds: 600
+    jitter_seconds: 60
+    credentials: damai
+    link: https://detail.damai.cn/
+    params:
+      item_id: "替换成演出详情页 URL 里的 id"
+      # 默认 mtop.damai.wireless.project.getprojectdetail，
+      # 接口变了就用 radar probe 拿到新的 api 名覆盖这里
+      # api: mtop.damai.wireless.project.getprojectdetail
+    watch:
+      # 演出票的「席别」就是票档名，如「380元看台」
+      seat_types: []
+      min_count: 1
+      notify_on: ["appeared"]
+
+  # =========================================================================
+  # 4. 猫眼（演出票）—— **不需要登录**（2026-09-30 实测）
+  #
+  #    数据网关在 m.dianping.com/myshow（不是 maoyan.com），只认一个
+  #    sellChannel=7，没有签名、没有 token、不用 Cookie。
+  #
+  #    拿 performance_id 不用点 F12：
+  #      radar find maoyan 陈粒
+  #
+  #    ⚠️ 能拿到的是「项目级售票状态」（在售中 / 预售 / 已售罄…），不是票档余量。
+  #       另外列表接口的状态是搜索索引里的旧值，详情才是权威——适配器只信详情。
+  # =========================================================================
+  - id: maoyan-demo
+    name: 猫眼 我的心水演出
+    adapter: maoyan
+    enabled: false
+    interval_seconds: 600
+    jitter_seconds: 60
+    link: https://show.maoyan.com/
+    params:
+      performance_id: "501675"     # radar find maoyan 陈粒
+      # 也可以只给关键词，让它每轮自己搜（多一次请求，不推荐）：
+      # keyword: "陈粒"
+      # 只在候选里挑某城的（仅 keyword 模式生效）：city: 广州
+    watch:
+      seat_types: []
+      min_count: 1
+      notify_on: ["appeared"]
+
+  # =========================================================================
+  # 5. 摩天轮票务（二手票挂单）—— **同样不需要登录**
+  #
+  #    网关 unify.moretickets.com/user/foundation，**只认 POST + JSON**；
+  #    同一个地址用 GET 会拿到一个 111 字节空壳（statusCode 12123），
+  #    那是「姿势不对」，不是平台故障。
+  #
+  #    拿 tour_id：radar find moretickets Jay Chou
+  #
+  #    ⚠️ 它是**二手票**平台：票是第三方卖家挂单，上下架极频繁，通知会比较吵。
+  #       而且只有部分城市挂得上票，「某站没挂单」是常态，不是配置错。
+  #       params.city 用城市名填（匹的是 regionName，如 "Guangzhou, CN"）。
+  # =========================================================================
+  - id: moretickets-demo
+    name: 摩天轮 巡演挂单
+    adapter: moretickets
+    enabled: false
+    interval_seconds: 900
+    jitter_seconds: 60
+    link: https://moretickets.com/
+    params:
+      tour_id: "6a2a300f941d1b00014a8828"   # radar find moretickets Jay Chou
+      # 巡演横跨多城时强烈建议填，否则每个城市售罄都会推一条
+      city: 广州
+    watch:
+      seat_types: []
+      # 二手挂单噪声大，抬高门槛
+      min_count: 2
+      notify_on: ["appeared"]
+
+  # =========================================================================
+  # 6. 纷玩岛 —— 保留但接不了（默认关闭，仅用于说明现状）
+  #    2026-09 实地查证：官网 www.fenwandao.com 的证书/连接都是坏的，
+  #    真实域名 livelab.com.cn 上只有一个静态 App 下载页，没有任何数据接口。
+  #    它的票只在 App 和微信小程序里卖，小程序接口带 wx 签名参数，
+  #    浏览器拿不到可复用 URL —— 本项目不做签名逆向，所以这家接不了。
+  #    适配器保留：哪天它上线网页版票务页，配一下就能直接用。
+  #    想盯演出票，改用下面的【猫眼】或【大麦】。
+  # =========================================================================
+  - id: fenwandao-demo
+    name: 纷玩岛 演出票（目前无网页端，跑不起来）
+    adapter: fenwandao
+    enabled: false
+    interval_seconds: 900
+    jitter_seconds: 60
+    credentials: fenwandao
+    params:
+      url: "https://（纷玩岛暂无网页端接口，此处留空即可）"
+      items_path: data.list
+      seat_name: [priceName, skuName, name]
+      seat_status: [status, stock, remainNum]
+    watch:
+      seat_types: []
+      min_count: 1
+      notify_on: ["appeared"]
+
+  # =========================================================================
+  # 7. 通用适配器 json-api —— 接任意「返回 JSON 的接口」
+  #
+  #    这就是「加平台不用写代码」的意思：任何平台，只要能拿到一个返回
+  #    余量的 HTTP 接口，把 URL 和字段路径填进来就能监控。
+  #    URL 里的 {xxx} 会用 params 里的同名键展开。
+  #
+  #    接一个全新平台的标准流程：
+  #      1) radar probe "<接口URL>" --cookie-env XXX_COOKIE
+  #      2) 从打印出的结构树里抄字段路径
+  #      3) 填进下面这段，radar check 验证
+  # =========================================================================
+  - id: custom-api-demo
+    name: 通用 JSON 接口示例
+    adapter: json-api
+    enabled: false
+    interval_seconds: 600
+    jitter_seconds: 60
+    # 借哪个凭据块来放 Cookie/Key。json-api 是通用兜底，这里只是占位——
+    # 换成你自己的凭据块名即可（用不到就留着，空值不影响运行）。
+    credentials: maoyan
+    link: https://example.com/
+    params:
+      # {item_id} 会被 url_vars 里的同名键替换
+      url: "https://api.example.com/items/{item_id}/tickets"
+      method: GET
+      # URL 占位符的值。注意：它和 items_path 那类「字段路径」是两个命名空间，
+      # 别写成同一个键——url_vars.item_id 是「ID 的值」，
+      # 下面的 item_id 是「从响应哪个字段取 ID」。
+      url_vars:
+        item_id: "12345"
+      query:
+        date: "+7"
+      headers:
+        Referer: "https://example.com/"
+      # 从哪里取「可售单元」数组
+      items_path: data.list
+      # 去重键：按顺序取第一个非空候选路径
+      item_id: [id, skuId]
+      item_label: [name, title]
+      item_fields:
+        depart_time: showTime
+        from_station: venue
+      # 票档：相对每个单元的路径；留空表示单元自身就是票档
+      seats_path: ""
+      seat_name: [priceName, name]
+      seat_status: [status, remainNum, stock]
+      # 状态词表（可选）。不填用内置默认：
+      #   有票：有 / 充足 / 可购买 / 可售 / 在售 / true
+      #   无票：无 / 售罄 / 缺货 / 不可售 / 0 / false
+      # available_values: ["可购买", "有票"]
+      # sold_out_values: ["售罄", "缺货"]
+    watch:
+      seat_types: []
+      min_count: 1
+      notify_on: ["appeared"]

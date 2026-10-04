@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: 测试（全部离线，不访问任何票务平台）
+        run: pytest -q
+
+      - name: CLI 冒烟测试
+        run: |
+          python -m radar version
+          python -m radar adapters
+
+  compliance:
+    name: 合规护栏
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+
+      - name: 断言轮询间隔下限未被下调
+        run: |
+          python - <<'PY'
+          import sys
+          from radar.config import MIN_INTERVAL_SECONDS
+          from pydantic import ValidationError
+          from radar.config import TaskConfig
+
+          assert MIN_INTERVAL_SECONDS >= 60, "合规下限被下调了！"
+          try:
+              TaskConfig(id="x", adapter="rail12306", interval_seconds=5)
+          except ValidationError:
+              pass
+          else:
+              sys.exit("低于下限的间隔没有被拒绝——护栏失效了！")
+
+          from radar.adapters import available_adapters, create_adapter
+          names = available_adapters()
+          assert names, "适配器注册表空了"
+          for name in names:
+              a = create_adapter(name)
+              assert a.min_interval >= 60, f"{name} 的平台最小间隔被下调了！"
+          print(f"合规护栏完好，覆盖 {len(names)} 个适配器：{', '.join(names)}")
+          PY
