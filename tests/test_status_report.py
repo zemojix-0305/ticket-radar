@@ -154,7 +154,7 @@ def test_status_block_truncates_long_lists():
     text = _flat(lines)
 
     assert f"有票：{MAX_STATUS_ITEMS + 3}/{MAX_STATUS_ITEMS + 3} 项" in text
-    assert f"另有 3 项" in text
+    assert "另有 3 项" in text
     # 省略提示必须告诉用户「去哪儿看全部」，只说「未列出」等于让人无从下手
     assert "radar status" in text
     # 结论行要加粗：手机上先看到的应该是「有票还是没票」，不是一屏车次

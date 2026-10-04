@@ -49,6 +49,7 @@ import httpx
 
 from ..config import TaskConfig
 from ..models import SeatAvailability, Snapshot, TrainState
+from ..geo import city_matches
 from .base import HEALTH_BROKEN, HEALTH_OK, Adapter, AdapterError, Capability
 from .registry import register
 
@@ -166,7 +167,10 @@ def parse_sessions(
             # 也没法按城市过滤。所以取更具体的 regionName，country 兜底。
             country = str(row.get("cityName") or "").strip()
             place = region or country
-            if city and not any(city in part for part in (region, country)):
+            # 用 geo.city_matches 而不是 `city in part`：平台返回的是
+            # "Guangzhou, CN"，用户说的是「广州」，子串匹配永远不成立——
+            # 那样配了 city 参数的任务会一条场次都抓不到，而且不报错。
+            if city and not city_matches(place, city):
                 continue
 
             seat = _seat_of(row, place)

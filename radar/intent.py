@@ -352,9 +352,7 @@ def parse_intent(text: str) -> ParsedIntent:
         category = FLIGHT
     elif platform == "rail12306" or route_from:
         category = TRAIN
-    elif platform in ("damai", "maoyan", "moretickets"):
-        category = SHOW
-    elif any(hint in raw for hint in _SHOW_HINTS):
+    elif platform in ("damai", "maoyan", "moretickets") or any(hint in raw for hint in _SHOW_HINTS):
         category = SHOW
     elif any(hint in raw for hint in _TRAIN_HINTS):
         category = TRAIN

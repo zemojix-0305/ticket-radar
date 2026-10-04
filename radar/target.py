@@ -30,7 +30,6 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import logging
-import re
 from typing import Any
 
 import httpx
@@ -38,6 +37,12 @@ import httpx
 from .adapters import create_adapter
 from .capability import TRAIN, Requirement, route
 from .config import TaskConfig, WatchRule
+
+# 城市匹配逻辑住在 radar.geo：moretickets 适配器按城市过滤场次时也要用，
+# 而本模块已经 import 了 radar.adapters，反向引用会成环，所以往上抽一层。
+# 下面保留 _ 前缀别名，只是为了让本模块内部少写几个字。
+from .geo import city_matches as _city_matches
+from .geo import normalize_city as _normalize_city
 from .intent import PLATFORM_ID_KEY, ParsedIntent
 
 log = logging.getLogger(__name__)
@@ -113,60 +118,6 @@ class ResolveResult:
         if len(self.targets) > 12:
             return "too_many"
         return "found"
-
-
-#: 中文城市 -> 各地平台常见的英文/拼音写法。
-#:
-#: 为什么需要：猫眼返回「广州」，摩天轮返回「Shenzhen, CN」。
-#: 用户嘴里说的是中文，不做归一化就**永远匹配不上摩天轮的城市**，
-#: 于是「陈粒深圳场」会把香港的场次也列出来——看起来像找到了，
-#: 实际上没找到。
-_CITY_ALIASES: dict[str, tuple[str, ...]] = {
-    "深圳": ("shenzhen",),
-    "香港": ("hongkong", "hong kong"),
-    "广州": ("guangzhou",),
-    "上海": ("shanghai",),
-    "北京": ("beijing", "peking"),
-    "澳门": ("macau", "macao"),
-    "台北": ("taipei",),
-    "东京": ("tokyo",),
-    "大阪": ("osaka",),
-    "首尔": ("seoul", "soul"),
-    "曼谷": ("bangkok",),
-    "新加坡": ("singapore",),
-    "伦敦": ("london",),
-    "纽约": ("newyork", "new york"),
-    "洛杉矶": ("losangeles", "los angeles"),
-    "成都": ("chengdu",),
-    "杭州": ("hangzhou",),
-    "重庆": ("chongqing",),
-}
-
-
-def _normalize_city(raw: str) -> str:
-    """把平台返回的地点串归一化成可比较的小写串。
-
-    「HongKong, CN」→「hongkongcn」，「广州」→「广州」。
-
-    **必须保留汉字**。踩过的坑：原来只保留 ``[a-z]``，结果「广州」被清成
-    空串，于是猫眼明明返回了「广州」却被判成「不在广州」——筛选逻辑
-    静默地一个都匹配不上，还不报错，只是让用户以为没这场。
-    """
-    return re.sub(r"[^a-z0-9一-鿿]", "", (raw or "").lower())
-
-
-def _city_matches(target_city: str, want: str) -> bool:
-    """目标所在城市是不是用户要的那个。"""
-    if not want:
-        return True
-    if not target_city:
-        return False
-    aliases = _CITY_ALIASES.get(want, ())
-    for alias in (want, *aliases):
-        if _normalize_city(alias) and _normalize_city(alias) in target_city:
-            return True
-    # 中文城市名直接包含（猫眼返回「广州」这种）
-    return want in target_city
 
 
 # --- 候选构造 ---------------------------------------------------------------
