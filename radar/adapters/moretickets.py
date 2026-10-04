@@ -48,8 +48,8 @@ from typing import Any
 import httpx
 
 from ..config import TaskConfig
-from ..models import SeatAvailability, Snapshot, TrainState
 from ..geo import city_matches
+from ..models import SeatAvailability, Snapshot, TrainState
 from .base import HEALTH_BROKEN, HEALTH_OK, Adapter, AdapterError, Capability
 from .registry import register
 

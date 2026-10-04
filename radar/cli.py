@@ -2126,6 +2126,180 @@ def ask(
 
 
 # ---------------------------------------------------------------------------
+# watch
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def watch(
+    text: Annotated[str, typer.Argument(help="用一句话或一条链接说出你想盯什么")],
+    config: ConfigOpt = Path("tasks.yaml"),
+    pick: Annotated[
+        int | None, typer.Option("--pick", help="多个候选时选第 N 个（从 1 开始）")
+    ] = None,
+    interval: Annotated[
+        int | None, typer.Option("--interval", help="轮询间隔秒数；不给就按平台选一个稳妥的")
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="只打印要写的内容，不动文件")
+    ] = False,
+) -> None:
+    """一句话 → 找到场次 → 验证 → 写进配置。
+
+    这是 ``radar ask --search`` 的完整版：定位完之后直接把任务写进
+    tasks.yaml，你不用碰 YAML。
+
+    它只做这些事：解析需求、搜平台、消歧、真抓一次验证、追加一条任务。
+    **不会**自动启动监控——``radar run`` 是常驻进程，替你启动会让命令
+    看起来像卡住了。想直接跑就 ``radar watch ... && radar run``。
+
+    写入是**文本插入**，你原有的注释和配置一个字都不动；重复 id 会被拒绝。
+    """
+    import httpx
+
+    from .capability import route
+    from .intent import parse_intent
+    from .target import _city_matches as _city_ok
+    from .target import resolve, verify
+    from .watcher import append_task, build_task_block, suggest_interval
+
+    parsed = parse_intent(text)
+    routing = route(parsed.requirement())
+
+    console.print(f"[bold]需求：[/bold]{parsed.raw}")
+    detail = "　".join(
+        x
+        for x in (
+            f"关键词 {parsed.keyword}" if parsed.keyword else "",
+            f"城市 {parsed.city}" if parsed.city else "",
+            f"线路 {parsed.route_from}→{parsed.route_to}"
+            if parsed.route_from and parsed.route_to
+            else "",
+            f"日期 {parsed.date}" if parsed.date else "",
+        )
+        if x
+    )
+    if detail:
+        console.print(f"[dim]{detail}[/dim]")
+    console.print(f"{routing.explain()}\n")
+
+    outcome = {"ok": False, "target": None, "note": ""}
+
+    async def _run() -> None:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(25.0)) as client:
+            resolved = await resolve(client, parsed)
+            for note in resolved.notes:
+                console.print(f"[cyan]· {note}[/cyan]")
+
+            if not resolved.targets:
+                if resolved.rejected:
+                    console.print(
+                        f"\n[yellow]搜到过 {len(resolved.rejected)} 条，但没有一条同时满足"
+                        "演出名和城市。[/yellow]"
+                    )
+                    for t in resolved.rejected[:5]:
+                        why = []
+                        if parsed.city and not _city_ok(t.city, parsed.city):
+                            why.append(f"不在{parsed.city}")
+                        if parsed.keyword and parsed.keyword.lower() not in t.label.lower():
+                            why.append(f"名字不含「{parsed.keyword}」")
+                        console.print(f"  · {t.platform}　{t.label}　{'、'.join(why)}")
+                    console.print(
+                        "\n[dim]演出名在平台上是外文时，用 `radar find` 直接拿 id 再看这段。[/dim]"
+                    )
+                else:
+                    console.print("[yellow]没定位到目标。换个说法，或贴一条详情页链接。[/yellow]")
+                return
+
+            if len(resolved.targets) > 1:
+                st = Table(title=f"候选场次（{len(resolved.targets)} 个）")
+                st.add_column("#", style="bold")
+                st.add_column("平台")
+                st.add_column("场次")
+                st.add_column("地点")
+                st.add_column("时间")
+                st.add_column("票价")
+                for i, t in enumerate(resolved.targets, 1):
+                    st.add_row(str(i), t.platform, t.label, t.place, t.when, t.price or "—")
+                console.print(st)
+
+            chosen = None
+            if pick is not None:
+                if 1 <= pick <= len(resolved.targets):
+                    chosen = resolved.targets[pick - 1]
+                else:
+                    err_console.print(f"[yellow]--pick 要在 1~{len(resolved.targets)} 之间[/yellow]")
+                    return
+            elif resolved.unique:
+                chosen = resolved.targets[0]
+
+            if chosen is None:
+                console.print(
+                    f"\n[yellow]{len(resolved.targets)} 个候选，得先说是哪个。[/yellow]"
+                    f"加 --pick N（1~{len(resolved.targets)}）再跑一次。"
+                )
+                return
+
+            console.print(f"\n[bold]选中：[/bold]{chosen.title}")
+            ok, note = await verify(client, chosen)
+            if not ok:
+                err_console.print(f"[red]验证失败：{note}[/red]")
+                err_console.print(
+                    "[yellow]没有写进配置。id 可能是错的（平台搜索索引会滞后），"
+                    "或者场次已经结束。[/yellow]"
+                )
+                return
+            console.print(f"[green]{note}[/green]")
+            outcome["ok"] = True
+            outcome["target"] = chosen
+            outcome["note"] = note
+
+    try:
+        with contextlib.suppress(KeyboardInterrupt):
+            asyncio.run(_run())
+    except Exception as exc:
+        err_console.print(f"[red]定位失败：{exc}[/red]")
+        return
+
+    target = outcome["target"]
+    if not outcome["ok"] or target is None:
+        return
+
+    gap = interval or suggest_interval(parsed, target)
+    block, task_id = build_task_block(target, interval=gap)
+
+    console.print(f"\n[bold]将追加到 {config}：[/bold]")
+    console.print(f"[dim]{block}[/dim]")
+
+    if dry_run:
+        console.print("[dim]--dry-run：没有写文件。[/dim]")
+        return
+
+    path = Path(config)
+    if not path.exists():
+        err_console.print(f"[yellow]{config} 不存在，先跑 `radar init` 生成。[/yellow]")
+        raise typer.Exit(code=1)
+
+    result = append_task(
+        path.read_text(encoding="utf-8"), block, task_id, path=str(path)
+    )
+    if not result.ok:
+        err_console.print(f"[red]没写入：{result.reason}[/red]")
+        if result.line:
+            err_console.print(f"  已在第 {result.line} 行找到同名任务")
+        raise typer.Exit(code=1)
+
+    path.write_text(result.text, encoding="utf-8")
+    console.print(f"\n[green]已写入 {path} 第 {result.line} 行[/green]（id: {task_id}）")
+    console.print("原有的注释和配置都没动。")
+    console.print(
+        f"\n下一步：\n"
+        f"  radar check -c {config} --only {task_id}   # 先跑一次确认\n"
+        f"  radar run   -c {config}                    # 开始监控"
+    )
+
+
+# ---------------------------------------------------------------------------
 # serve
 # ---------------------------------------------------------------------------
 
