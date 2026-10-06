@@ -220,7 +220,7 @@ tasks:
   #    sellChannel=7，没有签名、没有 token、不用 Cookie。
   #
   #    拿 performance_id 不用点 F12：
-  #      radar find maoyan 陈粒
+  #      radar find maoyan 汪苏泷
   #
   #    ⚠️ 能拿到的是「项目级售票状态」（在售中 / 预售 / 已售罄…），不是票档余量。
   #       另外列表接口的状态是搜索索引里的旧值，详情才是权威——适配器只信详情。
@@ -233,9 +233,9 @@ tasks:
     jitter_seconds: 60
     link: https://show.maoyan.com/
     params:
-      performance_id: "501675"     # radar find maoyan 陈粒
+      performance_id: "509862"     # 汪苏泷·阜阳斑马音乐节（2026-11-21/22）
       # 也可以只给关键词，让它每轮自己搜（多一次请求，不推荐）：
-      # keyword: "陈粒"
+      # keyword: "汪苏泷"
       # 只在候选里挑某城的（仅 keyword 模式生效）：city: 广州
     watch:
       seat_types: []
