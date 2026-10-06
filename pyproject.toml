@@ -38,8 +38,8 @@ browser = [
 radar = "radar.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/yourname/ticket-radar"
-Issues = "https://github.com/yourname/ticket-radar/issues"
+Homepage = "https://github.com/zemojix-0305/ticket-radar"
+Issues = "https://github.com/zemojix-0305/ticket-radar/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["radar"]
