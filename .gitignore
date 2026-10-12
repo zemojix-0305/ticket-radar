@@ -42,3 +42,6 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# 微信开发者工具生成的本机私有配置（每人不同，不进仓库）
+project.private.config.json
