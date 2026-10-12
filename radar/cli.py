@@ -1337,6 +1337,8 @@ def notify_test(config: ConfigOpt = Path("tasks.yaml")) -> None:
                     "本工具只做余票提醒，不会替你下单——"
                     "收到提醒后请自行前往官方渠道购买。"
                 ),
+                # 让需要「场次/任务名」字段的渠道（如微信订阅消息）也能填出内容
+                extra={"task_name": "测试任务"},
             )
             from .notifier import NotifierHub
 

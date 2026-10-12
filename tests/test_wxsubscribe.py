@@ -211,6 +211,23 @@ def test_real_template_field_mapping():
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", data["time7"]["value"])
 
 
+def test_empty_field_falls_back_to_placeholder():
+    """占位符取不到值时不能发空字符串——微信会直接拒发（47003）。
+
+    实测踩过：notify-test 的消息没有 task 名，thing8 变成空串，
+    整条推送直接失败。所以空值要兜底成一个占位符。
+    """
+    notifier = WxSubscribeNotifier(VALID_OPTS)
+    data = notifier._build_data(Message(title="标题", body="正文"))
+    # 默认映射只用了 title/body，这里额外验证 task 取不到值的情况
+    opts = {**VALID_OPTS, "fields": {"thing1": "{task}", "thing2": "{title}"}}
+    notifier2 = WxSubscribeNotifier(opts)
+    data2 = notifier2._build_data(Message(title="标题", body="正文"))
+
+    assert data2["thing1"]["value"].strip()  # 不能是空串
+    assert data["thing1"]["value"] == "标题"
+
+
 def test_build_notifiers_skips_empty_wxsubscribe(caplog):
     """示例配置里 enabled 但凭据为空 → 静默跳过，这是开源项目的常态。"""
     cfg = AppConfig(notify=[NotifyConfig(type="wxsubscribe", options={})])

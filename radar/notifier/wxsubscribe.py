@@ -47,6 +47,9 @@ SEND_URL = "https://api.weixin.qq.com/cgi-bin/message/subscribe/send"
 #: thing / character 类型字段的最大长度（微信硬限制，超长直接报 47003）
 THING_MAX = 20
 
+#: 占位符取不到值时的兜底。微信不接受空字符串字段，空了直接 47003。
+_EMPTY_FIELD = "—"
+
 _CODE_HINTS: dict[int, str] = {
     40001: "app_secret 不对，或已被重置——去 mp.weixin.qq.com「开发设置」重新生成",
     40013: "app_id 不对，检查是否少了或多了字符",
@@ -146,7 +149,7 @@ class WxSubscribeNotifier(Notifier):
             value = _render(template, ctx)
             # 微信约定：字段名以 time 开头的是时间类型，不能截断
             if not key.lower().startswith("time"):
-                value = _clip(value)
+                value = _clip(value) if value.strip() else _EMPTY_FIELD
             data[key] = {"value": value}
         return data
 

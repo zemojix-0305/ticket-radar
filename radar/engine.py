@@ -228,6 +228,7 @@ def format_auth_message(task: TaskConfig, detail: str) -> Message:
             "其它任务不受影响。"
         ),
         url=task.link,
+        extra={"task_name": task.display_name},
     )
 
 
@@ -243,6 +244,7 @@ def format_selfcheck_message(task: TaskConfig, report: SelfCheckReport) -> Messa
             "其它任务不受影响。"
         ),
         url=task.link,
+        extra={"task_name": task.display_name},
     )
 
 
@@ -385,7 +387,14 @@ def format_message(task: TaskConfig, changes: Sequence[Change], snapshot: Snapsh
         lines.append(f"[前往官方渠道自行下单]({task.link})")
 
     title = f"【余票提醒】{route} {head_kind}" if route else f"【余票提醒】{head_kind}"
-    return Message(title=title, body="\n".join(lines), url=task.link)
+    # extra 给渠道做字段映射用（微信订阅消息的「场次名称」等模板字段），
+    # 正文里已经写了任务名，渠道不必再从 Markdown 里捞。
+    return Message(
+        title=title,
+        body="\n".join(lines),
+        url=task.link,
+        extra={"task_name": task.display_name},
+    )
 
 
 class Monitor:
