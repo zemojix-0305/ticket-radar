@@ -1357,6 +1357,90 @@ def notify_test(config: ConfigOpt = Path("tasks.yaml")) -> None:
     asyncio.run(_run())
 
 
+@app.command()
+def wxbind(
+    code: Annotated[
+        str,
+        typer.Argument(help="小程序「我的」页面上显示的一次性登录 code（5 分钟有效）"),
+    ],
+    app_id: Annotated[
+        str | None, typer.Option("--app-id", help="小程序 AppID，默认读 .env 的 WX_APPID")
+    ] = None,
+    secret: Annotated[
+        str | None,
+        typer.Option("--secret", help="小程序 AppSecret，默认读 .env 的 WX_APPSECRET"),
+    ] = None,
+) -> None:
+    """用小程序登录 code 换 openid，并自动写进 .env。
+
+    openid 是「推送给谁」的唯一标识。微信不允许后台直接查用户列表，
+    只能由小程序端 ``wx.login`` 拿一个一次性 code，再由本命令去换。
+    这样就不必开通云开发——省掉一个环境 ID 和一堆配置。
+    """
+    _setup_logging(False)
+    env = _credential_env()
+    app_id = (app_id or env.get("WX_APPID", "")).strip()
+    secret = (secret or env.get("WX_APPSECRET", "")).strip()
+
+    if not app_id or not secret:
+        err_console.print(
+            "[red]缺少 WX_APPID 或 WX_APPSECRET。[/red]\n"
+            "先在 .env 里填好，或用 --app-id / --secret 直接传入。"
+        )
+        raise typer.Exit(code=1)
+
+    with httpx.Client(timeout=httpx.Timeout(20.0)) as client:
+        resp = client.get(
+            "https://api.weixin.qq.com/sns/jscode2session",
+            params={
+                "appid": app_id,
+                "secret": secret,
+                "js_code": code.strip(),
+                "grant_type": "authorization_code",
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    errcode = int(data.get("errcode", 0))
+    if errcode != 0:
+        hints = {
+            40013: "AppID 不对，检查是否与后台一致",
+            40029: "code 无效——只能用一次、5 分钟内有效，回小程序重新点一下",
+            40125: "AppSecret 不对",
+            40163: "code 已被用过，回小程序重新获取一个",
+            41008: "code 是空的，把小程序上显示的那一串完整复制过来",
+        }
+        hint = hints.get(errcode, data.get("errmsg", ""))
+        err_console.print(f"[red]换取 openid 失败（errcode={errcode}）：{hint}[/red]")
+        raise typer.Exit(code=1)
+
+    openid = data.get("openid", "").strip()
+    if not openid:
+        err_console.print("[red]响应里没有 openid，原始返回：%s[/red]" % data)
+        raise typer.Exit(code=1)
+
+    # 写回 .env：已存在就替换，不存在就追加。保留原有换行风格。
+    path = Path(_env_path())
+    lines = path.read_text(encoding="utf-8").split("\n") if path.exists() else []
+    replaced = False
+    for i, line in enumerate(lines):
+        if line.startswith("WX_OPEN_ID="):
+            lines[i] = f"WX_OPEN_ID={openid}" + ("\r" if line.endswith("\r") else "")
+            replaced = True
+            break
+    if not replaced:
+        lines.append(f"WX_OPEN_ID={openid}")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+    console.print(f"[green]openid 已写入 {path}：{openid}[/green]")
+    console.print(
+        "\n下一步：\n"
+        "  1. 在小程序「我的」页面点「允许通知」——一次性订阅要点一次才有一条额度\n"
+        "  2. 回到电脑跑 [bold]radar notify-test[/bold]，你的微信应该能收到一条测试推送"
+    )
+
+
 # ---------------------------------------------------------------------------
 # preview
 # ---------------------------------------------------------------------------

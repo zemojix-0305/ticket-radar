@@ -90,6 +90,11 @@ Page({
 
   // --- 添加任务 ---------------------------------------------------------
   openAdd() { this.setData({ showAdd: true }); },
+
+  // 跳「我的」页：拿登录 code、申请订阅通知额度
+  goMine() {
+    wx.navigateTo({ url: '/pages/mine/mine' });
+  },
   closeAdd() { this.setData({ showAdd: false }); },
   onPlatform(e) { this.setData({ platformIndex: Number(e.detail.value) }); },
   onInput(e) {

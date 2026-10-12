@@ -2,6 +2,7 @@
 .head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 2px;}
 .title{font-size:20px;font-weight:600;color:#1F2329;}
 .mini{font-size:13px;color:#185FA5;background:#E6F1FB;padding:4px 12px;border-radius:14px;line-height:1.6;}
+.head-acts{display:flex;gap:8px;}
 .at{padding:0 16px 6px;}
 .left{flex:1;min-width:0;}
 .name{display:block;font-size:15px;color:#1F2329;font-weight:500;}

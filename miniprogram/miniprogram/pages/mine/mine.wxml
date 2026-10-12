@@ -1,0 +1,56 @@
+<!-- 「我的」页：拿 code 换 openid + 申请订阅额度 -->
+<view class="wrap">
+  <view class="head">
+    <text class="title">绑定微信推送</text>
+  </view>
+
+  <view class="card" wx:if="{{err}}">
+    <text class="bad-text">{{err}}</text>
+  </view>
+
+  <!-- 第 1 步：拿 code -->
+  <view class="card">
+    <view class="step-title">
+      <text class="no">1</text>
+      <text>复制登录 code</text>
+    </view>
+    <view class="code-box" wx:if="{{code}}">
+      <text class="code" user-select="true">{{code}}</text>
+    </view>
+    <text class="muted" wx:else>正在获取…</text>
+    <view class="acts">
+      <button class="primary" bindtap="copyCode" wx:if="{{code}}">复制 code</button>
+      <button class="ghost" bindtap="refreshCode">换一个</button>
+    </view>
+    <text class="hint">
+      在电脑上跑：radar wxbind {{code ? '粘贴这里' : '<code>'}}
+    </text>
+    <text class="hint">code 只能用一次，5 分钟过期。</text>
+  </view>
+
+  <!-- 第 2 步：订阅 -->
+  <view class="card">
+    <view class="step-title">
+      <text class="no">2</text>
+      <text>允许接收通知</text>
+    </view>
+    <text class="muted">
+      个人主体只能「一次性订阅」：点一次「允许」换来一条推送额度，
+      额度用完再点一次就行。
+    </text>
+    <view class="acts">
+      <button class="primary" bindtap="requestSubscribe">
+        {{authorized ? '再领一条额度' : '允许通知'}}
+      </button>
+    </view>
+    <text class="ok" wx:if="{{authorized}}">{{authMsg}}</text>
+    <text class="warn" wx:elif="{{authMsg}}">{{authMsg}}</text>
+  </view>
+
+  <view class="card">
+    <text class="muted">
+      本工具只做余票提醒，不替你下单。数据只存在你自己的机器上，
+      code 与 openid 也不经过任何第三方。
+    </text>
+  </view>
+</view>

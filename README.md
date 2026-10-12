@@ -269,6 +269,7 @@ async def enrich_prices(self, snapshot, task, client, train_codes):
 | `radar sniff <页面地址>` | 用已存的登录态打开页面，列出它调用的数据接口（找票档接口用） |
 | `radar find <平台> <关键词>` | **搜演出拿到 id**（猫眼 `performance_id` / 摩天轮 `tour_id`），不用碰 F12 |
 | `radar channels` | **列出通知渠道的免费额度与准备成本**，并显示当前配置状态 |
+| `radar wxbind <code>` | **用小程序登录 code 换 openid 并写进 `.env`**，配微信订阅消息时用（无需云开发） |
 | `radar probe <url>` | **打印接口的 JSON 结构树**，接新平台的第一步 |
 | `radar infer raw.json` | **让 AI 推断字段路径**（可选，需配 `LLM_API_KEY`） |
 | `radar models` | 列出 LLM 网关的可用模型 |
@@ -764,6 +765,7 @@ Key/Secret 填进 `.env`。Test 环境免费且不限量，数据是缓存的（
 | serverchan | **仅 5 条/天** | ✅ | 扫码 | ✗ |
 | telegram | 免费 | ✗ | 自备网络环境 | ✗ |
 | smtp | 看邮箱 | ✗ | 邮箱授权码 | ✗ |
+| **wxsubscribe** | 免费（按授权条数） | ✅ | 注册小程序 + 申请模板 | ✗ |
 
 ### 为什么默认是 ntfy
 
@@ -796,6 +798,51 @@ iOS 用户可以考虑 `bark`——它走苹果 APNs，比 ntfy 更即时，
 如果只是想要「手机响一声」，`wecom`（企业微信）和 `dingtalk` 更稳：
 建个只有自己的群、加个机器人，永久免费、额度宽松，
 缺点是消息落在群里而不是私聊。
+
+### 微信原生推送：wxsubscribe
+
+不想经过任何第三方、也不想实名，就用**微信官方的订阅消息**——
+个人主体的小程序就能申请，消息直接进微信「服务通知」，最像一条普通微信消息。
+
+代价是**一次性订阅**：在小程序里点一次「允许通知」只换来一条推送额度。
+额度用完再发会得到 `43101`，这不是故障，是微信的规则；
+余票监控的场景里，收到提醒后顺手再点一次授权就够了。
+
+准备四样东西（AppID / AppSecret / 模板 ID / 自己的 openid）：
+
+```bash
+# 1. 注册一个小程序（个人主体即可）→ 开发 → 开发管理 → 开发设置
+#    拿到 AppID 和 AppSecret，并在「订阅消息」里选一个模板，
+#    记下「我的模板」里的模板 ID（priTmplId）和它的字段名
+#    这几个值填进 .env：WX_APPID / WX_APPSECRET / WX_TEMPLATE_ID
+
+# 2. 打开小程序「我的」页面，点一下「复制 code」，
+#    回电脑执行（code 只能用一次、5 分钟有效）：
+radar wxbind 粘贴刚才的code
+#    → openid 会自动写进 .env 的 WX_OPEN_ID，不用开通云开发
+
+# 3. 在小程序里点「允许通知」领一条额度，然后验证：
+radar notify-test
+```
+
+配置里的 `fields` 必须与你申请的模板字段**完全对应**，
+字段名写错或内容超长会报 `47003`：
+
+```yaml
+- type: wxsubscribe
+  enabled: true
+  options:
+    app_id: ${WX_APPID}
+    app_secret: ${WX_APPSECRET}
+    template_id: ${WX_TEMPLATE_ID}
+    open_id: ${WX_OPEN_ID}
+    fields:                 # ← 换成你自己模板的字段名
+      thing6: "{title}"     # 演出名称 / 车票名称
+      thing8: "{task}"      # 场次名称
+      time7: "{time}"       # 放票时间（time 类型自动填当前时刻）
+      thing5: "radar"       # 放票机构
+      thing4: "{body}"      # 温馨提示（正文）
+```
 
 > 没配任何渠道也能跑：余票变化照常写进本地数据库，只是不推送。
 > 想先观察一段时间，用 `radar run --no-notify` 就行。

@@ -169,6 +169,48 @@ def test_custom_field_keys():
     assert "thing5" in seen["data"] and "thing9" in seen["data"]
 
 
+def test_real_template_field_mapping():
+    """真实模板的五个字段（thing6/thing8/time7/thing5/thing4）都要填对。
+
+    time 开头的是时间类型：不能截断，且必须是 YYYY-MM-DD HH:MM:SS。
+    """
+    import re
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "cgi-bin/token" in request.url.path:
+            return httpx.Response(200, json={"access_token": "TK", "expires_in": 7200})
+        return httpx.Response(200, json={"errcode": 0})
+
+    opts = {
+        **VALID_OPTS,
+        "fields": {
+            "thing6": "{title}",
+            "thing8": "{task}",
+            "time7": "{time}",
+            "thing5": "radar",
+            "thing4": "{body}",
+        },
+    }
+    notifier = WxSubscribeNotifier(opts, httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+
+    msg = Message(
+        title="汪苏泷合肥站",
+        body="**内场** 有票，共 12 张",
+        extra={"task_name": "2026-11-02 周六 19:30"},
+    )
+    data = notifier._build_data(msg)
+
+    assert set(data) == {"thing6", "thing8", "time7", "thing5", "thing4"}
+    assert data["thing6"]["value"] == "汪苏泷合肥站"
+    assert data["thing8"]["value"] == "2026-11-02 周六 19:30"
+    assert data["thing5"]["value"] == "radar"
+    # 正文的 Markdown 要降级，且截断到 20 字
+    assert "**" not in data["thing4"]["value"]
+    assert len(data["thing4"]["value"]) <= 20
+    # time 字段不截断，且是标准格式
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", data["time7"]["value"])
+
+
 def test_build_notifiers_skips_empty_wxsubscribe(caplog):
     """示例配置里 enabled 但凭据为空 → 静默跳过，这是开源项目的常态。"""
     cfg = AppConfig(notify=[NotifyConfig(type="wxsubscribe", options={})])

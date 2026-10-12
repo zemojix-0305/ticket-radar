@@ -3,7 +3,10 @@
 
   <view class="head">
     <text class="title">余票监控</text>
-    <button class="mini" bindtap="openAdd">＋ 加任务</button>
+    <view class="head-acts">
+      <button class="mini" bindtap="goMine">绑定推送</button>
+      <button class="mini" bindtap="openAdd">＋ 加任务</button>
+    </view>
   </view>
 
   <view class="dim at" wx:if="{{at}}">更新于 {{at}}</view>

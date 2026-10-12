@@ -84,10 +84,17 @@ notify:
       app_id: ${WX_APPID}             # wx 开头 18 位
       app_secret: ${WX_APPSECRET}     # 「开发设置」里生成，只显示一次
       template_id: ${WX_TEMPLATE_ID}  # 「订阅消息→我的模板」里的模板 ID
-      open_id: ${WX_OPEN_ID}          # 你自己的 openid（小程序里查看）
-      # 下面两个是模板字段名，默认 thing1/thing2，按申请模板时的实际 key 改
-      # field_title: thing1           # 「演出/车票名称」字段
-      # field_body: thing2            # 「温馨提示」字段
+      open_id: ${WX_OPEN_ID}          # 你自己的 openid：`radar wxbind <code>` 自动填
+      # 字段映射：左边必须与「订阅消息→我的模板」里的字段名完全一致，
+      # 右边可用占位符 {title} {body} {task} {time}。
+      # 下面是本项目自带的「余票提醒」模板（thing6/thing8/time7/thing5/thing4），
+      # 换成你自己的模板时照着改即可——字段名写错会报 47003。
+      fields:
+        thing6: "{title}"             # 演出名称 / 车票名称
+        thing8: "{task}"              # 场次名称
+        time7: "{time}"               # 放票时间（time 类型，自动按标准时间格式填）
+        thing5: "radar"               # 放票机构
+        thing4: "{body}"              # 温馨提示（正文，Markdown 会自动降级）
       # page: pages/index/index       # 点消息进入的小程序页面
 
   - type: smtp

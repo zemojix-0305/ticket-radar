@@ -1,0 +1,17 @@
+.wrap{padding-bottom:24px;}
+.head{padding:14px 16px 2px;}
+.title{font-size:20px;font-weight:600;color:#1F2329;}
+.card{background:#fff;border-radius:12px;margin:12px 12px 0;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.step-title{display:flex;align-items:center;margin-bottom:10px;font-size:15px;font-weight:600;color:#1F2329;}
+.no{width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;background:#185FA5;color:#fff;font-size:12px;margin-right:8px;}
+.code-box{background:#F5F6F7;border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+.code{font-size:13px;color:#1F2329;word-break:break-all;display:block;}
+.muted{font-size:13px;color:#6B7280;display:block;}
+.hint{display:block;font-size:12px;color:#9CA3AF;margin-top:8px;}
+.ok{display:block;font-size:13px;color:#0F7B3D;margin-top:8px;}
+.warn{display:block;font-size:13px;color:#B42318;margin-top:8px;}
+.bad-text{font-size:13px;color:#B42318;display:block;}
+.acts{display:flex;gap:10px;margin-top:12px;}
+.acts button{flex:1;border-radius:8px;font-size:15px;}
+.ghost{background:#F5F6F7;color:#6B7280;}
+.primary{background:#185FA5;color:#fff;}
