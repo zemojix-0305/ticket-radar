@@ -269,6 +269,7 @@ class NotifyConfig(BaseModel):
         "serverchan",
         "telegram",
         "smtp",
+        "wxsubscribe",
     ]
     enabled: bool = True
     options: dict[str, Any] = Field(default_factory=dict)

@@ -10,6 +10,9 @@
 3. **免费额度受限或需实名**
    ``pushplus``（200 条/天，需实名）/ ``serverchan``（仅 5 条/天）
    ``telegram``（需自备网络环境）/ ``smtp``（自己邮箱）
+4. **微信原生，个人主体可用**
+   ``wxsubscribe`` —— 小程序订阅消息，直达微信「服务通知」，
+   但一次性订阅 = 授权一次只能收一条，适合「收到提醒再续一枪」的用法
 """
 
 from __future__ import annotations
@@ -30,6 +33,7 @@ from .registry import (
 from .serverchan import ServerChanNotifier
 from .telegram import TelegramNotifier
 from .wecom import WeComNotifier
+from .wxsubscribe import WxSubscribeNotifier
 
 # 触发注册
 _ = (
@@ -41,6 +45,7 @@ _ = (
     TelegramNotifier,
     WeComNotifier,
     SmtpNotifier,
+    WxSubscribeNotifier,
 )
 
 __all__ = [
@@ -57,6 +62,7 @@ __all__ = [
     "SmtpNotifier",
     "TelegramNotifier",
     "WeComNotifier",
+    "WxSubscribeNotifier",
     "build_notifiers",
     "list_notifiers",
     "register_notifier",

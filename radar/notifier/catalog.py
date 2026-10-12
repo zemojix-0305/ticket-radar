@@ -82,6 +82,14 @@ CHANNELS: tuple[ChannelInfo, ...] = (
         note="免费版额度太小（每天 5 条），余票监控容易不够用；扩容要订阅。",
     ),
     ChannelInfo(
+        name="wxsubscribe",
+        quota="免费，无明确总量限制（每次发送消耗一条授权）",
+        wechat=True,
+        needs="注册小程序 + 申请订阅消息模板 + 自己的 openid",
+        note="微信官方原生通道，个人主体即可用，无实名/无第三方平台。"
+        "代价是「一次性订阅」：授权一次只能收一条，收到提醒后要再点一次授权续额度。",
+    ),
+    ChannelInfo(
         name="telegram",
         quota="免费无明确上限",
         wechat=False,

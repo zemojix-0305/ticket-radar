@@ -74,6 +74,22 @@ notify:
       bot_token: ${TELEGRAM_BOT_TOKEN}
       chat_id: ${TELEGRAM_CHAT_ID}
 
+  # 微信小程序订阅消息：微信官方原生通道，个人主体免费可用，
+  # 无需实名、不经过任何第三方。代价是「一次性订阅」——
+  # 在小程序里点一次「允许通知」只换来一条推送，收到后要再点一次续额度。
+  # 准备步骤见 README「微信订阅消息」一节（radar channels 也可查看）。
+  - type: wxsubscribe
+    enabled: false
+    options:
+      app_id: ${WX_APPID}             # wx 开头 18 位
+      app_secret: ${WX_APPSECRET}     # 「开发设置」里生成，只显示一次
+      template_id: ${WX_TEMPLATE_ID}  # 「订阅消息→我的模板」里的模板 ID
+      open_id: ${WX_OPEN_ID}          # 你自己的 openid（小程序里查看）
+      # 下面两个是模板字段名，默认 thing1/thing2，按申请模板时的实际 key 改
+      # field_title: thing1           # 「演出/车票名称」字段
+      # field_body: thing2            # 「温馨提示」字段
+      # page: pages/index/index       # 点消息进入的小程序页面
+
   - type: smtp
     enabled: false
     options:
