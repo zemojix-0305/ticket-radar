@@ -38,13 +38,27 @@
       个人主体只能「一次性订阅」：点一次「允许」换来一条推送额度，
       额度用完再点一次就行。
     </text>
+
+    <view class="credit" wx:if="{{credit > 0}}">
+      <text class="credit-num">{{credit}}</text>
+      <text class="credit-label">条已领（本地记账）</text>
+    </view>
+
     <view class="acts">
       <button class="primary" bindtap="requestSubscribe">
         {{authorized ? '再领一条额度' : '允许通知'}}
       </button>
+      <button class="ghost" bindtap="requestSubscribeBatch" disabled="{{batching}}">
+        {{batching ? '领取中…' : '连领 5 条'}}
+      </button>
     </view>
     <text class="ok" wx:if="{{authorized}}">{{authMsg}}</text>
     <text class="warn" wx:elif="{{authMsg}}">{{authMsg}}</text>
+
+    <text class="hint">
+      小技巧：弹窗里勾上「总是保持以上选择，不再询问」，
+      之后再点就不用反复确认了，额度照加。
+    </text>
   </view>
 
   <view class="card">

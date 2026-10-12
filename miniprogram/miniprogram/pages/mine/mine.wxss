@@ -15,3 +15,7 @@
 .acts button{flex:1;border-radius:8px;font-size:15px;}
 .ghost{background:#F5F6F7;color:#6B7280;}
 .primary{background:#185FA5;color:#fff;}
+.acts .primary{flex:1.2;}
+.credit{display:flex;align-items:baseline;gap:6px;margin-top:12px;padding:10px 12px;background:#EDF4FC;border-radius:8px;}
+.credit-num{font-size:22px;font-weight:700;color:#185FA5;line-height:1;}
+.credit-label{font-size:12px;color:#6B7280;}
