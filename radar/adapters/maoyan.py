@@ -47,9 +47,21 @@
 * 搜索接口的列表项 → ``ticketStatus: 2``（预售）
 * 详情接口        → ``ticketStatus: 3``（在售中）
 
-详情是权威的（站点详情页自己就用它）。列表那份是搜索索引里的旧值。
-所以本适配器**只信详情接口**：即使配置里给了关键词，也要先从列表拿到 id，
-再回头请求一次详情。多一次请求是值得的，读旧状态会让整条提醒链失效。
+所以本适配器**以详情接口为主**：即使配置里给了关键词，也要先从列表拿到 id，
+再回头请求一次详情。列表那份可能是搜索索引里的旧值。
+
+但「主」不等于「唯一」。issue #1（2026-10-12）补充了一个我漏掉的信号：
+``stockOut``（缺货标记）。他的观察是列表项 ``stockOut=true``（缺货），
+而详情 ``stockOut=false``。这跟上面的结论方向相反——
+
+两次观察都说得通，因为它们判的不是一件事：
+
+* ``ticketStatus`` 是**项目级**：这个巡演「还在卖吗」
+* ``stockOut``     是**场次级**：你要的那场「还有货吗」
+
+巡演横跨十几个城市，某个城市卖完了，项目级依然是「在售中」，
+但你要买的那场确实没货了。**通知是关于某一场的，所以两者冲突时以
+``stockOut`` 为准**（``True`` 时判缺货），详见 :func:`parse_detail`。
 """
 
 from __future__ import annotations
@@ -229,10 +241,28 @@ def parse_detail(data: Any) -> TrainState:
             "如果猫眼新增了状态值，把官方文案补进 TICKET_STATUS_LABELS 即可。"
         )
 
-    available = label in AVAILABLE_LABELS
+    # ``stockOut`` 是缺货标记，和 ``ticketStatus`` 是两个独立信号，
+    # 而且**会打架**。issue #1 反馈的就是这个（2026-10-12）：
+    # 同一个演出的列表项 stockOut=true（缺货），详情 stockOut=false（不缺货）。
+    #
+    # 为什么冲突时按「缺货」处理：
+    #   - ``ticketStatus=3``（在售中）只说明「这个项目还在卖」，
+    #     巡演往往横跨十几个城市，其中一个城市卖完了，项目级别依然是「在售中」；
+    #   - ``stockOut=true`` 是更具体的信号，它说的是「你要的那场没货了」。
+    #     你收到的通知是关于**某一场**的，那么以它为准。
+    #
+    # 而且这符合本项目一贯的取舍：宁可漏报也不误报。漏报只是少推一条，
+    # 误报是让人守着个假消息白等——后者更糟。
+    stock_out = row.get("stockOut")
+    conflict = stock_out is True and label in AVAILABLE_LABELS
+
+    available = label in AVAILABLE_LABELS and not conflict
+    # 冲突时把两个信号都摆出来，不静默取一个——猫眼自己数据不一致，
+    # 藏起来只会让人以为程序判断错了。
+    raw = f"{label}·缺货标记" if conflict else label
     seat = SeatAvailability(
         seat_type=SEAT_NAME,
-        raw=label,
+        raw=raw,
         count=None if available else 0,
         available=available,
     )

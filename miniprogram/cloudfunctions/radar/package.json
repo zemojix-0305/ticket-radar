@@ -1,0 +1,8 @@
+{
+  "name": "radar",
+  "version": "1.0.0",
+  "description": "ticket-radar 微信云函数：轮询 12306 / 猫眼 / 摩天轮",
+  "main": "index.js",
+  "engines": { "node": ">=16" },
+  "dependencies": {}
+}

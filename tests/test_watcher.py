@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import yaml
 
+from radar.intent import parse_intent
 from radar.target import Target
 from radar.watcher import (
     append_task,
@@ -22,7 +23,6 @@ from radar.watcher import (
     find_tasks_insert_point,
     suggest_interval,
 )
-from radar.intent import parse_intent
 
 SAMPLE = """# 我的配置，上面这段注释不能丢
 storage:

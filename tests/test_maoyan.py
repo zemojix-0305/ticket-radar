@@ -385,3 +385,59 @@ def test_search_performances_is_usable_without_a_task():
     rows = asyncio.run(go())
     assert rows and rows[0]["performanceId"] == 501675
     assert "%E9%99%88%E7%B2%92" in captured[0]
+
+
+# --- issue #1：ticketStatus 与 stockOut 打架 --------------------------------
+#
+# 反馈者的观察：列表项 stockOut=true（缺货），详情 stockOut=false（不缺货），
+# 而详情 ticketStatus=3（在售中）。他实测认为列表的 stockOut 更准。
+#
+# 结论（见 maoyan 模块 docstring）：两个信号判的不是一件事——
+# ticketStatus 是项目级「这个巡演还在卖吗」，stockOut 是场次级
+# 「你要的那场还有货吗」。通知是关于某一场的，所以冲突时以 stockOut 为准。
+
+
+def test_stock_out_overrides_onsale_status():
+    """issue #1 的核心场景：在售中 + 缺货标记 → 判缺货。
+
+    反过来判的话，用户会收到一条「有票了」的通知，点进去发现是空的。
+    """
+    seat = parse_detail(_detail_payload(3, stockOut=True)).seats[SEAT_NAME]
+    assert seat.available is False
+    assert seat.count == 0
+
+
+def test_conflict_is_visible_in_raw_not_silent():
+    """两个信号打架时要把分歧显示出来。
+
+    猫眼自己数据不一致，藏起来只会让人以为是程序判断错了。
+    """
+    seat = parse_detail(_detail_payload(3, stockOut=True)).seats[SEAT_NAME]
+    assert "缺货" in seat.raw
+    assert "在售中" in seat.raw
+
+
+def test_onsale_without_stock_out_still_available():
+    """没有 stockOut 字段时按原逻辑判——不能因为新逻辑让老数据全变缺货。"""
+    seat = parse_detail(_detail_payload(3, stockOut=False)).seats[SEAT_NAME]
+    assert seat.available is True
+
+
+def test_missing_stock_out_field_falls_back_gracefully():
+    """字段整个不存在（平台改了结构）也不能崩，退回只看 ticketStatus。"""
+    payload = _detail_payload(3)
+    payload["data"].pop("stockOut", None)
+    seat = parse_detail(payload).seats[SEAT_NAME]
+    assert seat.available is True
+
+
+def test_stock_out_does_not_resurrect_sold_out():
+    """stockOut=false 也救不回「已售罄」——两个信号要同时满足才算有票。"""
+    seat = parse_detail(_detail_payload(4, stockOut=False)).seats[SEAT_NAME]
+    assert seat.available is False
+
+
+def test_upcoming_sale_with_stock_out_false_still_not_available():
+    """「即将开售」即使 stockOut=false 也不能算有票——那时还买不了。"""
+    seat = parse_detail(_detail_payload(1, stockOut=False)).seats[SEAT_NAME]
+    assert seat.available is False

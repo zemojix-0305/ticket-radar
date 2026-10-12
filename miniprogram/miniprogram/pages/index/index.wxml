@@ -1,0 +1,91 @@
+<!-- 看板页 -->
+<view class="wrap">
+
+  <view class="head">
+    <text class="title">余票监控</text>
+    <button class="mini" bindtap="openAdd">＋ 加任务</button>
+  </view>
+
+  <view class="dim at" wx:if="{{at}}">更新于 {{at}}</view>
+
+  <view class="card" wx:if="{{fail}}">
+    <view class="bad-text">{{fail}}</view>
+  </view>
+
+  <view class="card" wx:if="{{loading && !states.length}}">
+    <text class="muted">正在读状态…</text>
+  </view>
+
+  <view class="card empty" wx:if="{{!loading && !states.length && !fail}}">
+    <text class="muted">还没有任务。点右上角「＋ 加任务」，或到云开发控制台的 radar_tasks 集合里加。</text>
+  </view>
+
+  <!-- 任务卡片 -->
+  <view class="card" wx:for="{{states}}" wx:key="_id">
+    <view class="row" bindtap="toggle" data-id="{{item._id}}">
+      <view class="left">
+        <text class="name">{{item.name}}</text>
+        <text class="dim sub">{{item.platform}}　{{item.when}}</text>
+      </view>
+      <text class="tag {{item.headClass}}">{{item.head}}</text>
+    </view>
+
+    <!-- 抓取失败要说清是哪一类，否则用户只会以为程序死了 -->
+    <view class="err" wx:if="{{!item.ok}}">
+      <text class="bad-text">{{item.error}}</text>
+      <text class="dim" wx:if="{{item.error_kind === 'blocked'}}">这通常意味着云函数的 IP 被平台风控了——不是小程序的问题。</text>
+    </view>
+
+    <view wx:if="{{expanded[item._id]}}">
+      <view class="item" wx:for="{{item.show}}" wx:for-item="it" wx:key="label">
+        <text class="i-label">{{it.label}}</text>
+        <text class="dim">{{it.when}}</text>
+        <text class="dim">{{it.status}}</text>
+      </view>
+      <text class="dim" wx:if="{{item.more}}">…… 另有 {{item.more}} 条</text>
+    </view>
+  </view>
+
+  <view style="height:40px;"></view>
+</view>
+
+<!-- 添加任务的底部弹层 -->
+<view class="mask" wx:if="{{showAdd}}" bindtap="closeAdd"></view>
+<view class="sheet" wx:if="{{showAdd}}">
+  <view class="sheet-title">加一个任务</view>
+
+  <view class="field">
+    <text class="lbl">平台</text>
+    <picker mode="selector" range="{{platforms}}" range-key="label" bindchange="onPlatform">
+      <view class="pick">{{platforms[platformIndex].label}} ▾</view>
+    </picker>
+  </view>
+  <text class="hint">{{platforms[platformIndex].hint}}</text>
+
+  <view class="field">
+    <text class="lbl">名称</text>
+    <input class="inp" placeholder="可留空" value="{{form.name}}" data-k="name" bindinput="onInput" />
+  </view>
+
+  <view class="field">
+    <text class="lbl">{{platforms[platformIndex].key === 'rail12306' ? '线路' : 'ID'}}</text>
+    <input class="inp" placeholder="填在这里" value="{{form.id}}" data-k="id" bindinput="onInput" />
+  </view>
+
+  <view class="field" wx:if="{{platforms[platformIndex].key === 'moretickets'}}">
+    <text class="lbl">城市</text>
+    <input class="inp" placeholder="可留空，例：广州" value="{{form.city}}" data-k="city" bindinput="onInput" />
+  </view>
+
+  <view class="field" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
+    <text class="lbl">日期</text>
+    <picker mode="date" value="{{form.date}}" bindchange="onDate">
+      <view class="pick">{{form.date || '点这里选'}}</view>
+    </picker>
+  </view>
+
+  <view class="acts">
+    <button class="ghost" bindtap="closeAdd">取消</button>
+    <button class="primary" bindtap="submitAdd">添加</button>
+  </view>
+</view>
