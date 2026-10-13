@@ -13,6 +13,7 @@ const USER_KEY = 'radar_user_profile';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '/vant/toast/toast';
+import { request } from '../utils/api';
 
 function makeUid() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -144,8 +145,7 @@ Page({
   // 云函数发推送时从这里扣额度；本地 storage 只是显示缓存。
   // 同步失败不打断用户：下次领额度时会按云端实际值覆盖回来。
   syncQuotaToCloud(n) {
-    wx.cloud
-      .callFunction({ name: 'radar', data: { action: 'grantSub', n: n } })
+      request({ action: 'grantSub', n: n })
       .then((r) => {
         const res = r.result || {};
         if (res.ok && typeof res.quota === 'number') {

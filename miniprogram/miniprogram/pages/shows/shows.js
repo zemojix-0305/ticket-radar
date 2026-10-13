@@ -11,6 +11,7 @@ const CREDIT_KEY = 'wx_subscribe_credit';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '/vant/toast/toast';
+import { request } from '../utils/api';
 import Dialog from '/vant/dialog/dialog';
 
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。
@@ -140,10 +141,7 @@ Page({
     if (this.data.hotLoading) return;
     this.setData({ hotLoading: true, hotFail: '' });
     wx.cloud
-      .callFunction({
-        name: 'radar',
-        data: { action: 'find', keyword: '', platform: p.key, limit: 10 },
-      })
+request({ action: 'find', keyword: '', platform: p.key, limit: 10 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -181,10 +179,7 @@ Page({
     this.setData({ searching: true, fail: '', rows: [], searched: true });
 
     wx.cloud
-      .callFunction({
-        name: 'radar',
-        data: { action: 'find', keyword: kw, platform: p.key, limit: 20 },
-      })
+request({ action: 'find', keyword: kw, platform: p.key, limit: 20 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -207,10 +202,7 @@ Page({
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
     wx.cloud
-      .callFunction({
-        name: 'radar',
-        data: { action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 },
-      })
+request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');

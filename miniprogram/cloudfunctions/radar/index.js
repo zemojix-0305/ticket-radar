@@ -1385,7 +1385,7 @@ const PLATFORM_PROBE = {
   damai: () => `${DAMAI_DETAIL}?id=889142177842`,
   bilibili: () =>
     `${BILI_SHOW}/api/ticket/project/listV2?version=134&platform=web&page=1&pagesize=5&ptype=100104&area=0&keyword=${encodeURIComponent('演唱会')}`,
-  piaoxingqiu: () => `${PXQ_API}/api/v1/web/content/index`,
+  piaoxingqiu: () => `${PXQ_M}/cyy_gatewayapi/home/pub/v3/show/recommend`,
 };
 
 function errorKind(e) {
@@ -1444,7 +1444,9 @@ async function handleAction(event, action, db) {
     if (action === 'probe') {
       const out = { checked_at: new Date().toISOString(), platforms: {} };
       for (const name of Object.keys(PLATFORM_PROBE)) {
-        const url = PLATFORM_PROBE[name];
+        const probe = PLATFORM_PROBE[name];
+        // 值是 thunk（延迟求值的 URL 模板串），不是字符串——要先调用
+        const url = typeof probe === 'function' ? probe() : probe;
         if (!url) {
           out.platforms[name] = { ok: null, note: 'POST 接口，跳过（用 poll 测）' };
           continue;
@@ -1469,14 +1471,30 @@ async function handleAction(event, action, db) {
 
     // --- 轮询 ---------------------------------------------------------
     if (action === 'poll') {
-      const { data: tasks } = await db.collection(DB_TASKS).where({ enabled: true }).get();
+      // 无状态模式（第二十轮，Vercel 免费架构）：tasks 与上一轮状态由客户端
+      // （小程序本地 storage）随请求传入，服务端只查平台、算回流、返回结果，
+      // 不落任何库。event.tasks 缺省时仍读云数据库（云函数模式保持兼容）。
+      let tasks;
+      if (Array.isArray(event.tasks)) {
+        tasks = event.tasks;
+      } else {
+        const t = await db.collection(DB_TASKS).where({ enabled: true }).get();
+        tasks = (t && t.data) || [];
+      }
+      const prevStates = (event.prevStates && typeof event.prevStates === 'object') ? event.prevStates : null;
       const now = new Date().toISOString();
       const results = [];
       for (const task of tasks || []) {
         // 先读上一轮状态再覆盖写：回流判定、history 曲线都要拿它当基线。
-        // 文档不存在时 get 会抛错，catch 成 null（第一次跑没有基线，正常）。
-        const prevRes = await db.collection(DB_STATE).doc(task._id).get().catch(() => null);
-        const prev = (prevRes && prevRes.data) || null;
+        // 无状态模式下基线来自 event.prevStates[task._id]；云函数模式读数据库。
+        let prev = null;
+        if (prevStates) {
+          prev = prevStates[task._id] || null;
+        } else {
+          // 文档不存在时 get 会抛错，catch 成 null（第一次跑没有基线，正常）。
+          const prevRes = await db.collection(DB_STATE).doc(task._id).get().catch(() => null);
+          prev = (prevRes && prevRes.data) || null;
+        }
 
         const fn = PLATFORMS[task.adapter];
         const rec = {

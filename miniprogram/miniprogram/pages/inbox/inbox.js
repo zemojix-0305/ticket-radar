@@ -1,4 +1,5 @@
 // 「消息」页：回答竞品 FAQ 里那两条最常见的抱怨——
+import { request } from '../utils/api';
 //   「为什么别人收到通知而你收不到」「为什么收到却看不到票」。
 //
 // 这里不能列微信发出去的服务通知——微信不把订阅消息回传给小程序。
@@ -70,8 +71,7 @@ Page({
 
   pullStates() {
     const self = this;
-    wx.cloud
-      .callFunction({ name: 'radar', data: { action: 'query' } })
+      request({ action: 'query' })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');

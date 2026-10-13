@@ -1,4 +1,5 @@
 // 「历史」页：两个 tab——历史曲线 + 推送记录。
+import { request } from '../utils/api';
 //
 // 历史曲线存在的理由：竞品的讨论区全是人在互相问「有回流吗」「什么价位好抢」
 // 「什么时候二开」——那些问题本来该由产品回答。我们手里有每次抓取的记录，
@@ -163,8 +164,7 @@ Page({
 
   pullStates() {
     const self = this;
-    return wx.cloud
-      .callFunction({ name: 'radar', data: { action: 'query' } })
+      request({ action: 'query' })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -206,8 +206,7 @@ Page({
   refresh() {
     const self = this;
     self.setData({ loading: true, fail: '' });
-    return wx.cloud
-      .callFunction({ name: 'radar', data: { action: 'query' } })
+      request({ action: 'query' })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');

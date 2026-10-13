@@ -1,5 +1,6 @@
 // 演出详情页：云函数 detail action 拉场次×票档，「盯这场」写 radar_tasks。
 import Toast from '/vant/toast/toast';
+import { request } from '../utils/api';
 import Dialog from '/vant/dialog/dialog';
 
 const CREDIT_KEY = 'radar_credit';
@@ -39,11 +40,7 @@ Page({
 
   loadDetail() {
     this.setData({ loading: true, error: '' });
-    wx.cloud
-      .callFunction({
-        name: 'radar',
-        data: { action: 'detail', platform: this.data.platform, id: this.data.id },
-      })
+request({ action: 'detail', platform: this.data.platform, id: this.data.id })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -89,7 +86,6 @@ Page({
     }
     const docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
     this.setData({ adding: true });
-    wx.cloud
       .database()
       .collection('radar_tasks')
       .doc(docId)

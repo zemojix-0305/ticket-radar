@@ -1,5 +1,6 @@
 // 监控页：首屏回答三个问题——我在盯几个、现在有没有票、上次什么时候查的。
 import Toast from '/vant/toast/toast';
+import { request } from '../utils/api';
 import Dialog from '/vant/dialog/dialog';
 //
 // 两条原则（跟 Python 那边保持一致）：
@@ -118,7 +119,7 @@ Page({
     const self = this;
     self.setData({ loading: true, fail: '' });
     return wx.cloud
-      .callFunction({ name: 'radar', data: { action: 'query' } })
+      request({ action: 'query' })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');

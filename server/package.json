@@ -1,0 +1,11 @@
+{
+  "name": "ticket-radar-api",
+  "version": "1.0.0",
+  "description": "ticket-radar 无状态查询服务（Vercel 免费额度，零依赖）",
+  "main": "api.js",
+  "engines": { "node": ">=16" },
+  "dependencies": {},
+  "scripts": {
+    "start": "node api.js"
+  }
+}

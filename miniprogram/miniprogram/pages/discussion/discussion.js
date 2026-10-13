@@ -7,6 +7,7 @@
 // 顶部盖一个小夹子/图钉——素材在 images/board/，工具脚本 tools/cut_board_assets.py。
 
 import Toast from '/vant/toast/toast';
+import { request } from '../utils/api';
 import Dialog from '/vant/dialog/dialog';
 
 const USER_KEY = 'radar_user_profile';
@@ -117,10 +118,7 @@ Page({
     const typeFilter = this.data.currentTab ? typeMap[this.data.currentTab] : '';
 
     self.setData({ loading: true, fail: '' });
-    return wx.cloud
-      .callFunction({
-        name: 'radar',
-        data: { action: 'listPosts', keyword: kw, offset, limit: PAGE_SIZE },
+      request({ action: 'listPosts', keyword: kw, offset, limit: PAGE_SIZE },
       })
       .then((res) => {
         const r = res.result || {};
@@ -216,8 +214,7 @@ Page({
     const idx = Number(e.currentTarget.dataset.index);
     if (idx >= 0 && idx < this.data.posts.length) {
       this.setData({ zoomIdx: idx });
-    }
-  },
+    }),
 
   closeZoom() {
     this.setData({ zoomIdx: -1 });
@@ -236,10 +233,7 @@ Page({
       .slice(0, 3);
     const typeLabels = ['', '问题反馈', '建议留言', '求助求助'];
 
-    wx.cloud
-      .callFunction({
-        name: 'radar',
-        data: {
+request({
           action: 'createPost',
           content,
           tags,
@@ -247,8 +241,7 @@ Page({
           sticker: this.data.postSticker,
           nickname: u.nickname || '匿名狐友',
           avatar: u.avatar || '',
-        },
-      })
+        })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '发布失败');
