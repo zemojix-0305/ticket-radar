@@ -53,8 +53,8 @@
   flex-shrink: 0;
 }
 .hero-add::after { border: none; }
-.hero-plus { font-size: 22px; color: #fff; }
-.hero-add-t { font-size: 11px; color: #fff; }
+.hero-plus { font-size: 22px; color: var(--on-brand); }
+.hero-add-t { font-size: 11px; color: var(--on-brand); }
 
 /* ---------- 失败卡片 ---------- */
 .fail { padding: 16px; }
@@ -73,7 +73,7 @@
 .task { display: flex; }
 .task-bar { width: 4px; flex-shrink: 0; }
 .task-bar-ok { background: var(--ok); }
-.task-bar-none { background: #DCDEE2; }
+.task-bar-none { background: var(--bar-idle); }
 .task-bar-bad { background: var(--bad); }
 .task-body { flex: 1; min-width: 0; padding: 14px 16px; }
 .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }

@@ -53,10 +53,10 @@
   padding: 0 16px;
   border-radius: 19px;
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
   font-size: 15px;
 }
-.search-btn.disabled { background: #C9CDD4; }
+.search-btn.disabled { background: var(--disabled); }
 
 /* ---------- 结果行 ---------- */
 .row-card {

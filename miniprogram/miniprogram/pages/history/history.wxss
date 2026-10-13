@@ -35,7 +35,7 @@
   background: var(--brand-line);
 }
 /* 零余票的采样用浅灰，一眼能看出「断档」在哪 */
-.spark-b.zero { background: #E4E6EA; }
+.spark-b.zero { background: var(--bar-idle); }
 .spark-ph {
   height: 58px;
   margin: 16px 0 4px;

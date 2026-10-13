@@ -8,14 +8,14 @@
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarBackgroundColor": "#F5F1E8",
     "navigationBarTitleText": "余票监控",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
-    "color": "#9CA3AF",
-    "selectedColor": "#185FA5",
-    "backgroundColor": "#FFFFFF",
+    "color": "#86827A",
+    "selectedColor": "#4F6E80",
+    "backgroundColor": "#FFFDF8",
     "borderStyle": "white",
     "list": [
       {

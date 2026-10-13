@@ -1,46 +1,70 @@
 /* ==========================================================================
    全局设计令牌 + 通用组件
    --------------------------------------------------------------------------
-   为什么所有颜色都写在这里的变量里：
-   换整套配色只改这一个文件，不用满项目找硬编码色值。
-   要换主色时同步跑一次 `python tools/make_tabicons.py --brand "#xxxxxx"`，
-   tabBar 图标会跟着重出，否则图标和界面会对不上。
+   风格参考：手绘纸质 / 便签卡片 / 低饱和莫兰迪色系。
+   但有两处刻意没有跟着参考图走，理由写在下面——
+
+   1. 状态色不跟着变灰。「有票」必须是全场最抓眼的东西，
+      抢票场景下用户扫一眼就要知道有没有票。柔和 ≠ 模糊。
+
+   2. 不用花体字。小程序内嵌字体要额外下载（体积 + 首屏变慢），
+      而挤在一起的票务信息用花体更难读。手账感靠色温、圆角和留白撑，
+      不靠字形。
+
+   配色的对比度全部用 tools/check_palette.py 校验过（WCAG AA）。
+   低饱和色直接抄参考图会有一半不达标——浅米纸上想既柔和又清楚，
+   唯一的办法是**保留低饱和、压低明度**：色相不动，深一度。
+
+   要换配色：只改下面这一段变量，然后跑
+     python tools/make_tabicons.py --brand "<新主色>" --idle "<新灰>"
    ========================================================================== */
 page {
-  /* 品牌色——主色，用于选中态、主按钮、强调文字 */
-  --brand: #185FA5;
-  --brand-weak: #E6F1FB;
-  --brand-line: #B5D4F4;
+  /* 底与面：纸底偏暖，卡片是暖白而不是纯白——纯白在米色上会很刺眼 */
+  --bg: #F5F1E8;
+  --card: #FFFDF8;
 
-  /* 语义色——状态永远用语义色，不要拿主色代替，
-     否则用户分不清「有票了」和「这是个按钮」 */
-  --ok: #0F7B3D;          /* 有票 */
-  --ok-weak: #E1F5EE;
-  --none: #6B7280;        /* 无票 / 售罄 */
-  --none-weak: #F1F2F4;
-  --bad: #B42318;         /* 抓取失败 */
-  --bad-weak: #FEE4E2;
-  --warn: #854F0B;        /* 需要用户处理：额度不足、任务要过期 */
-  --warn-weak: #FAEEDA;
+  /* 主色：雾霾蓝 */
+  --brand: #4F6E80;
+  --brand-weak: #E9EFF1;
+  --brand-line: #C3D2D8;
 
-  /* 中性色 */
-  --bg: #F4F5F7;
-  --card: #FFFFFF;
-  --t1: #1F2329;
-  --t2: #6B7280;
-  --t3: #9CA3AF;
-  --line: rgba(0, 0, 0, 0.08);
+  /* 语义色。ok 是暖绿、none 是冷灰蓝——刻意反色相，
+     亮度几乎一样但一眼能分，色弱用户也不受影响 */
+  --ok: #4F7A3D;
+  --ok-weak: #E9F0E2;
+  --none: #6B7076;
+  --none-weak: #EBEDEF;
+  --bad: #A94E3E;
+  --bad-weak: #F8E8E3;
+  --warn: #8F6417;
+  --warn-weak: #F6EEDF;
 
-  /* 圆角与间距 */
-  --r: 14px;
-  --r-sm: 8px;
+  /* 文字：深灰褐，不用纯黑 */
+  --t1: #3D3A34;
+  --t2: #6E6A61;
+  --t3: #767268;
+  --line: rgba(61, 58, 52, 0.09);
+
+  /* 圆角比常规更大更软，这是「便签感」的主要来源 */
+  --r: 18px;
+  --r-sm: 10px;
   --gut: 12px;
 
+  /* 主色之上的文字用暖白而不是纯白，纯白在雾霾蓝上会显脏 */
+  --on-brand: #FFFDF8;
+  --disabled: #B8B4AA;
+  /* 卡片左侧那条竖线是装饰，用比文字更浅的颜色，免得抢状态标签的戏 */
+  --bar-idle: #CFCAC0;
+
+  /* 阴影用暖色，不用黑色透明——黑色阴影在米色纸上会显脏 */
+  --shadow: 0 2px 10px rgba(90, 78, 58, 0.055);
+
   background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Helvetica Neue", "Microsoft YaHei", sans-serif;
   font-size: 14px;
   color: var(--t1);
+  letter-spacing: 0.2px;
 }
 
 /* ---------- 卡片 ---------- */
@@ -49,25 +73,28 @@ page {
   border-radius: var(--r);
   margin: var(--gut);
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
-.card-pad { padding: 14px 16px; }
+.card-pad { padding: 16px 18px; }
 
 /* ---------- 文字 ---------- */
+/* 字重只用 400/500。手账感来自字色和间距，更粗的字会立刻变回工具风 */
 .t1 { font-size: 16px; font-weight: 500; color: var(--t1); }
 .t2 { font-size: 13px; color: var(--t2); }
 .t3 { font-size: 12px; color: var(--t3); }
 .num {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.1;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
 }
 
 /* ---------- 状态标签 ----------
-   状态一律「颜色 + 文字」，不靠颜色单独传达信息（色盲也要读得懂） */
+   状态一律「颜色 + 文字」，不靠颜色单独传达信息 */
 .tag {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 20px;
   font-size: 12px;
   line-height: 18px;
@@ -84,41 +111,34 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: var(--r-sm);
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 21px;
   font-size: 15px;
   line-height: 1;
 }
 .btn::after { border: none; }
-.btn-primary { background: var(--brand); color: #fff; }
-.btn-primary[disabled] { background: #C9CDD4; color: #fff; }
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-primary[disabled] { background: var(--disabled); color: var(--on-brand); }
 .btn-ghost { background: var(--none-weak); color: var(--t2); }
 
 /* ---------- 空状态 ----------
    空状态必须给出下一步动作，只写「暂无数据」是偷懒 */
-.empty {
-  padding: 44px 32px;
-  text-align: center;
-}
+.empty { padding: 44px 32px; text-align: center; }
 .empty-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 14px;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
   border-radius: 50%;
   background: var(--brand-weak);
+  box-shadow: inset 0 0 0 1px var(--brand-line);
 }
-.empty-title {
-  font-size: 15px;
-  color: var(--t1);
-  margin-bottom: 6px;
-}
-.empty-sub { font-size: 13px; color: var(--t3); line-height: 1.6; }
+.empty-title { font-size: 15px; color: var(--t1); margin-bottom: 7px; }
+.empty-sub { font-size: 13px; color: var(--t3); line-height: 1.75; }
 
 /* ---------- 骨架屏 ---------- */
-/* 等待时给形状而不是转圈：用户知道「马上有内容，长这样」 */
 .sk {
-  background: linear-gradient(90deg, #ECEEF1 25%, #F5F6F8 37%, #ECEEF1 63%);
+  background: linear-gradient(90deg, #EDE9E0 25%, #F5F2EB 37%, #EDE9E0 63%);
   background-size: 400% 100%;
   animation: sk-shine 1.4s ease infinite;
   border-radius: 4px;
@@ -132,7 +152,7 @@ page {
 .mask {
   position: fixed;
   left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(61, 58, 52, 0.4);
   z-index: 90;
 }
 .sheet {
@@ -140,37 +160,38 @@ page {
   left: 0; right: 0; bottom: 0;
   z-index: 91;
   background: var(--card);
-  border-radius: 18px 18px 0 0;
-  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px rgba(90, 78, 58, 0.08);
 }
 .sheet-grab {
-  width: 32px; height: 4px; border-radius: 2px;
-  background: #DCDEE2; margin: -8px auto 12px;
+  width: 36px; height: 4px; border-radius: 2px;
+  background: #DDD8CE; margin: -8px auto 14px;
 }
 .sheet-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-.sheet-sub { font-size: 12px; color: var(--t3); margin-bottom: 14px; line-height: 1.6; }
+.sheet-sub { font-size: 12px; color: var(--t3); margin-bottom: 14px; line-height: 1.7; }
 
 /* ---------- 表单 ---------- */
-.field { margin-bottom: 12px; }
-.field-lbl { font-size: 13px; color: var(--t2); margin-bottom: 6px; }
+.field { margin-bottom: 14px; }
+.field-lbl { font-size: 13px; color: var(--t2); margin-bottom: 7px; }
 .input, .input-pick {
   width: 100%;
   box-sizing: border-box;
-  height: 42px;
-  padding: 0 12px;
-  background: var(--none-weak);
-  border-radius: var(--r-sm);
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg);
+  border-radius: 12px;
   font-size: 15px;
   color: var(--t1);
 }
-.input-pick { line-height: 42px; }
+.input-pick { line-height: 44px; }
 
 /* ---------- 分区标题 ---------- */
 .sec {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 18px 16px 8px;
+  padding: 20px 18px 8px;
 }
 .sec-title { font-size: 14px; font-weight: 500; color: var(--t1); }
 .sec-more { font-size: 12px; color: var(--t3); }
