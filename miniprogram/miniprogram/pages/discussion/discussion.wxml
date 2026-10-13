@@ -47,34 +47,26 @@
     <view class="stitch-hint">点击右下角 ✍ 发布</view>
   </view>
 
-  <!-- 帖子流 - 白板风格 -->
+  <!-- 帖子流 - 留言墙：手账便签 + 小夹子 -->
   <view class="post-board" wx:for="{{posts}}" wx:key="_id">
-    <!-- 图钉装饰 -->
-    <view class="pin"></view>
-
-    <view class="post-card">
-      <view class="post-head">
-        <image class="post-avatar" src="{{item.avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
-        <view class="post-meta">
-          <text class="post-name">{{item.nickname}}</text>
-          <text class="t3">{{item.rel}}</text>
+    <view class="note-wrap" style="transform: rotate({{item.rot}}deg);">
+      <!-- 便签纸背景（8 种轮换，含自带的小夹子） -->
+      <image class="note-bg" src="/images/board/note{{item.noteIdx}}.png" mode="widthFix" />
+      <!-- 顶部装饰小夹子（13 种轮换），盖在便签上沿 -->
+      <image class="note-clip" src="/images/board/clip{{item.clipIdx}}.png" mode="aspectFit" />
+      <view class="note-body">
+        <view class="note-head">
+          <image class="note-avatar" src="{{item.avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
+          <view class="post-meta">
+            <text class="note-name">{{item.nickname}}</text>
+            <text class="note-time">{{item.rel}}</text>
+          </view>
+          <view class="post-type-tag" wx:if="{{item.type}}">{{item.type}}</view>
         </view>
-        <view class="post-type-tag" wx:if="{{item.type}}">{{item.type}}</view>
-      </view>
-      <view class="post-body">{{item.content}}</view>
-
-      <!-- 标签 -->
-      <view class="post-tags" wx:if="{{item.tags && item.tags.length}}">
-        <text class="post-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
-      </view>
-
-      <!-- 底部互动 -->
-      <view class="post-footer">
-        <view class="post-actions">
-          <text class="action-btn press" hover-class="press-hover">👍 {{item.likes || 0}}</text>
-          <text class="action-btn press" hover-class="press-hover">💬 {{item.comments || 0}}</text>
+        <view class="note-text">{{item.content}}</view>
+        <view class="post-tags" wx:if="{{item.tags && item.tags.length}}">
+          <text class="post-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
         </view>
-        <text class="t3 post-time">{{item.timeStr}}</text>
       </view>
     </view>
   </view>

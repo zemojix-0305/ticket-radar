@@ -1,14 +1,33 @@
-// 「讨论区」：大家互相交流场次信息。
+// 「讨论区」：问题反馈白板 + 留言墙。
 //
 // 数据存在云数据库 radar_posts，字段：
-//   _id, openid, avatar, nickname, content, tags, createdAt, likes, replies
+//   _id, openid, avatar, nickname, content, tags, type, createdAt, likes, replies
 //
-// 发帖前要求拿到微信头像昵称（chooseAvatar + nickname input），
-// 这样讨论区就不会变成一堆「用户ABC123」在说话。
+// 留言墙视觉：每条帖子随机（按 _id 稳定）套一张手账便签做背景，
+// 顶部盖一个小夹子/图钉——素材在 images/board/，工具脚本 tools/cut_board_assets.py。
 
 const USER_KEY = 'radar_user_profile';
 const POSTS_DB = 'radar_posts';
 const PAGE_SIZE = 20;
+
+const NOTE_COUNT = 8;   // images/board/note1..8.png
+const CLIP_COUNT = 13;  // images/board/clip1..13.png
+
+// 把任意字符串 hash 成 0..n-1。同一个 _id 永远拿到同一个素材编号。
+function stableHash(str) {
+  let h = 0;
+  const s = String(str || '');
+  for (let i = 0; i < s.length; i += 1) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+function noteIndex(id) {
+  return (stableHash(id) % NOTE_COUNT) + 1;
+}
+function clipIndex(id) {
+  return (stableHash(id + 'c') % CLIP_COUNT) + 1;
+}
 
 function relTime(iso) {
   const t = Date.parse(String(iso || '').replace(' ', 'T'));
@@ -62,6 +81,9 @@ Page({
     const self = this;
     const offset = reset ? 0 : this.data.offset;
     const kw = (this.data.kw || '').trim();
+    // tab 筛选：0=全部，1/2/3 对应帖子上的 type 标签。云函数不过滤，前端筛。
+    const typeMap = ['', '问题反馈', '建议留言', '求助求助'];
+    const typeFilter = this.data.currentTab ? typeMap[this.data.currentTab] : '';
 
     self.setData({ loading: true, fail: '' });
     return wx.cloud
@@ -72,13 +94,20 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        const list = (r.posts || []).map((p) => Object.assign({}, p, { rel: relTime(p.createdAt) }));
+        let list = (r.posts || []).map((p) => Object.assign({}, p, {
+          rel: relTime(p.createdAt),
+          noteIdx: noteIndex(p._id),
+          clipIdx: clipIndex(p._id),
+          // 微旋转 -1.2°~1.2°：让便签墙不至于太机械
+          rot: ((stableHash(p._id + 'r') % 25) - 12) / 10,
+        }));
+        if (typeFilter) list = list.filter((p) => p.type === typeFilter);
         const posts = reset ? list : self.data.posts.concat(list);
         self.setData({
           posts,
           loading: false,
-          offset: offset + list.length,
-          hasMore: list.length >= PAGE_SIZE,
+          offset: offset + (r.posts || []).length,
+          hasMore: (r.posts || []).length >= PAGE_SIZE,
           searching: false,
         });
       })
