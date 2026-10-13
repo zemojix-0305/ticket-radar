@@ -6,6 +6,7 @@
     <view class="tape"></view>
     <view class="hero-l">
       <view class="hero-title-row">
+        <view class="bow"><view class="bow-k"></view></view>
         <view class="hero-title font-hand">正在盯的票</view>
         <image class="hero-stk" src="/images/board2/origami11.png" mode="aspectFit" />
       </view>
@@ -113,6 +114,7 @@
       <view class="task-topline {{item.barClass}}"></view>
       <view class="task-body">
         <view class="task-top" bindtap="toggle" data-id="{{item._id}}">
+          <image class="task-poster" wx:if="{{item.poster}}" src="{{item.poster}}" mode="aspectFill" lazy-load />
           <view class="task-l">
             <view class="task-name">{{item.name}}</view>
             <view class="task-sub">{{item.platform}}<text wx:if="{{item.sub2}}"> · {{item.sub2}}</text></view>

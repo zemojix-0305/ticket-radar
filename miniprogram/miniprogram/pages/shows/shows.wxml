@@ -5,6 +5,7 @@
   <view class="head">
     <view class="tape"></view>
     <view class="head-row">
+      <view class="bow"><view class="bow-k"></view></view>
       <view class="head-hand font-hand">今天想看什么</view>
       <image class="head-stk" src="/images/board2/origami11.png" mode="aspectFit" />
     </view>

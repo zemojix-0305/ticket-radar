@@ -82,7 +82,7 @@
 .ticket-slogan {
   margin-top: 34rpx;
   font-size: 26rpx;
-  color: #2456DB;
+  color: #BC3565;
   letter-spacing: 3rpx;
 }
 

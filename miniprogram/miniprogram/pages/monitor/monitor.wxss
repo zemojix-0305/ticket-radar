@@ -46,7 +46,7 @@
   border-radius: 22px;
   line-height: 1.15;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(36, 86, 219, 0.25);
+  box-shadow: 0 4px 12px rgba(188, 53, 101, 0.25);
 }
 .hero-add::after { border: none; }
 .hero-plus { font-size: 21px; color: #FFFFFF; }
@@ -270,6 +270,15 @@
 .task-topline.task-bar-bad { background: var(--bad); }
 .task-body { padding: 14px 16px 16px; }
 .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+/* 海报缩略图：竞品同款「卡片带图」。旧任务没有 poster 字段时 wx:if 自动隐藏 */
+.task-poster {
+  width: 46px;
+  height: 62px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-soft);
+}
 .task-l { flex: 1; min-width: 0; }
 .task-name {
   font-size: 16px;

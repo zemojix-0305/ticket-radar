@@ -20,6 +20,7 @@ const PLATFORMS = [
   { key: 'maoyan', label: '猫眼' },
   { key: 'moretickets', label: '摩天轮' },
   { key: 'damai', label: '大麦' },
+  { key: 'bilibili', label: 'B站' },
   { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
 ];
 
@@ -148,7 +149,8 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        const p = PLATFORMS[2];
+        // 别用 PLATFORMS[下标] 硬编码——平台列表一重排就会标错平台名（踩过）
+        const p = PLATFORMS.find((x) => x.key === 'rail12306');
         const rows = (r.rows || []).map((row) => this.normalize(row, p));
         this.setData({ rows, searching: false });
         if (rows.length) this.pushHistory(from + ' ' + to + ':rail12306');
@@ -259,6 +261,12 @@ Page({
       params = { tour_id: row.id };
     } else if (row.platform === 'maoyan') {
       params = { performance_id: row.id };
+    } else if (row.platform === 'damai') {
+      // 大麦：搜出来的是 itemId，轮询走详情页 SSR
+      params = { item_id: row.id };
+    } else if (row.platform === 'bilibili') {
+      // 会员购：project_id，轮询走 getV2 接口
+      params = { project_id: row.id };
     } else if (row.platform === 'rail12306') {
       // 12306 监控必须带上出发地/目的地/日期，不然轮询时不知道查哪条线
       params = { from: this.data.from, to: this.data.to, date: this.data.date };

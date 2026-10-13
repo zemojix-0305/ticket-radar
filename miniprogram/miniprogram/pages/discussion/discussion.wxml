@@ -9,6 +9,7 @@
       <view class="board-subtitle">FEEDBACK</view>
       <view class="board-line"></view>
     </view>
+    <view class="bow"><view class="bow-k"></view></view>
     <image class="board-stk" src="/images/board2/origami11.png" mode="aspectFit" />
   </view>
 

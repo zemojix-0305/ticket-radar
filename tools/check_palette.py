@@ -7,12 +7,12 @@ from __future__ import annotations
 
 #: 与 miniprogram/miniprogram/app.wxss 里的 page{} 同源，改一处记得改两处。
 #:
-#: 纯白极简风（第八轮，参考用户图 + 喜茶）。纯白底 + 细线分区；
-#: 唯一点缀色钴蓝 #2456DB（粉全删）；语义色：绿/灰/红/琥珀。
+#: 白底 coquette 风（第十四轮）。纯白底 + 细线分区；
+#: 唯一点缀色深玫瑰 #BC3565；语义色：绿/灰/红/琥珀。
 PALETTE = {
     "bg": "#FFFFFF",       # 纯白底
     "card": "#FFFFFF",     # 卡片同为白
-    "brand": "#2456DB",    # 钴蓝（唯一点缀色）
+    "brand": "#BC3565",    # 深玫瑰粉（coquette 唯一点缀色）
     "t1": "#1A1A1A",       # 正文
     "t2": "#6E6E73",       # 次要
     "t3": "#75757A",       # 提示
@@ -24,7 +24,7 @@ PALETTE = {
     "none-weak": "#F4F4F5",
     "bad-weak": "#FBEAE7",
     "warn-weak": "#FBF3DC",
-    "brand-weak": "#EDF1FE",
+    "brand-weak": "#FBE9EF",
 }
 
 #: (用途, 前景, 背景, 是否大字)。大字阈值 3.0，普通文本 4.5。

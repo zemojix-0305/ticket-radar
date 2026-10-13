@@ -51,7 +51,15 @@
 }
 
 /* ---------- 额度 ---------- */
-.quota { padding: 16px 18px; }
+.quota { padding: 16px 18px; position: relative; }
+/* coquette 蝴蝶结：额度卡右上角的小巧思 */
+.quota-bow {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  transform: rotate(9deg);
+  opacity: 0.9;
+}
 .quota-v { display: flex; align-items: baseline; margin-bottom: 14px; }
 .quota-n { color: var(--brand); }
 .acts { display: flex; gap: 10px; margin-top: 14px; }

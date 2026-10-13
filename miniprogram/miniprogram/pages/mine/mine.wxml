@@ -43,6 +43,7 @@
 
   <!-- 额度 -->
   <view class="card quota">
+    <view class="bow quota-bow"><view class="bow-k"></view></view>
     <view class="quota-v">
       <text class="num quota-n">{{credit}}</text>
       <text class="t2"> 条可收</text>

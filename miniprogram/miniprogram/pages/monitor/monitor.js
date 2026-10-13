@@ -8,6 +8,7 @@
 // 只能让用户自己看得见「我还剩几条」，否则推送突然不响会毫无头绪。
 const PLATFORMS = [
   { key: 'damai', label: '大麦', hint: '粘贴大麦分享链接；或去「搜演出」直接搜演出名', ph: '粘贴大麦分享链接' },
+  { key: 'bilibili', label: 'B站会员购', hint: '粘贴会员购演出链接；或去「搜演出」直接搜', ph: '粘贴会员购演出链接' },
   { key: 'maoyan', label: '猫眼', hint: '演出的 performance_id，在猫眼演出页地址栏里', ph: '例：509862' },
   { key: 'moretickets', label: '摩天轮', hint: '巡演的 tour_id，在摩天轮演出页地址栏里', ph: '例：67357b7a…' },
   { key: 'piaoxingqiu', label: '票星球', hint: '把票星球分享的演出链接粘贴进来', ph: '粘贴票星球演出链接' },
@@ -53,6 +54,7 @@ const LABEL = {
   moretickets: '摩天轮',
   rail12306: '12306',
   damai: '大麦',
+  bilibili: 'B站会员购',
   piaoxingqiu: '票星球',
   fenwandao: '纷玩岛',
 };
@@ -448,6 +450,10 @@ Page({
     } else if (p.key === 'damai' || p.key === 'piaoxingqiu') {
       // 大麦/票星球：粘贴的就是分享链接，云函数自己抠 id
       params = { url: f.id.trim() };
+    } else if (p.key === 'bilibili') {
+      // 会员购：纯数字直接当 project_id；带链接就整段传，云函数抠 id=xxx
+      const v = f.id.trim();
+      params = /^\d{5,}$/.test(v) ? { project_id: v } : { url: v };
     } else {
       const seg = f.id.trim().split(/\s*[-到>]\s*|\s+/).filter(Boolean);
       if (seg.length < 2) return wx.showToast({ title: '要填两个站名', icon: 'none' });

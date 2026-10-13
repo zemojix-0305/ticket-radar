@@ -834,6 +834,150 @@ async function findDamai(linkOrId) {
 }
 
 // ===========================================================================
+// 平台：B站会员购（show.bilibili.com，接口公开匿名可读——2026-10 实测打通）
+// ===========================================================================
+// 两条路径，全部匿名（不需要 SESSDATA 登录态——那是抢票脚本才需要的）：
+//   搜索: /api/ticket/project/listV2?version=134&platform=web&page=1&pagesize=20
+//         &ptype=100104&area=0&keyword=<词>     （ptype=100104 = 演出类目）
+//   详情: /api/ticket/project/getV2?version=134&id=<pid>&project_id=<pid>&requestSource=pcweb
+//   老接口 project/get 已废弃（永远回"请慢一点"），别再用。
+// 关键结构（实测）：
+//   · 价格单位是**分**（4800 = ¥48），展示时除以 100；
+//   · 票档状态用官方 sale_flag.display_name 原文（预售中/即将售罄/售罄…），
+//     不自己编映射表——官方改词我们自动跟着对；
+//   · available = clickable && is_sale===1 && 文案不含 售罄/缺货/结束；
+//   · 匿名请求最好带 buvid3（从 www.bilibili.com 首页拿，进程内缓存 1h），
+//     不带偶尔会被限频"请慢一点"。
+
+const BILI_SHOW = 'https://show.bilibili.com';
+// 进程级缓存匿名 cookie；云函数实例常驻时复用
+let biliCookie = '';
+let biliCookieTs = 0;
+
+async function biliWarm() {
+  if (biliCookie && Date.now() - biliCookieTs < 3600000) return biliCookie;
+  const r = await request('https://www.bilibili.com/', {
+    headers: { 'User-Agent': UA },
+    timeout: 15000,
+  });
+  const sc = r.headers['set-cookie'];
+  if (sc) {
+    biliCookie = sc.map((c) => c.split(';')[0]).join('; ');
+    biliCookieTs = Date.now();
+  }
+  return biliCookie;
+}
+
+function biliHeaders() {
+  const h = {
+    'User-Agent': UA,
+    Referer: 'https://show.bilibili.com/',
+    Accept: 'application/json, text/plain, */*',
+  };
+  if (biliCookie) h.Cookie = biliCookie;
+  return h;
+}
+
+/** B站会员购统一错误判断：新旧两套响应壳（errno/code/success）都罩住。 */
+function biliCheck(j) {
+  if (!j || typeof j !== 'object') throw new Error('会员购返回了空响应');
+  const bad =
+    j.success === false ||
+    (j.code != null && j.code !== 0) ||
+    (j.errno != null && j.errno !== 0);
+  if (bad) {
+    throw new Error('会员购返回：' + (j.message || j.msg || ('code=' + (j.code != null ? j.code : j.errno))));
+  }
+}
+
+/** 会员购关键词搜索 → 与 findMaoyan 同构的行结构。 */
+async function findBilibili(keyword, limit) {
+  const kw = String(keyword || '').trim();
+  if (!kw) throw new Error('会员购没有热门列表，输入关键词搜索');
+  await biliWarm().catch(() => {}); // buvid3 拿不到也照搜，匿名多半放行
+  const url =
+    `${BILI_SHOW}/api/ticket/project/listV2?version=134&platform=web&page=1` +
+    `&pagesize=${Math.min(Number(limit) || 20, 20)}&ptype=100104&area=0&keyword=${encodeURIComponent(kw)}`;
+  const j = await getJson(url, { headers: biliHeaders() });
+  biliCheck(j);
+  const rows = (j.data && j.data.result) || [];
+  return rows.map((r) => {
+    const cover = String(r.cover || '');
+    const flag = (r.sale_flag && r.sale_flag.display_name) || '';
+    const priceFen = r.price_low != null ? r.price_low : r.price;
+    return {
+      performanceId: String(r.project_id || r.id),
+      projectId: String(r.project_id || r.id),
+      name: r.project_name || r.name || r.words || ('会员购 #' + (r.project_id || r.id)),
+      city: r.city || '',
+      venue: '',
+      dateRange: r.performance_date || '',
+      price: priceFen != null ? '¥' + priceFen / 100 + ' 起' : '',
+      status: flag,
+      poster: cover ? (cover.startsWith('//') ? 'https:' + cover : cover) : '',
+    };
+  });
+}
+
+/**
+ * 抓一个会员购项目的当前状态：场次 × 票档 全展开。
+ * 和摩天轮 hasTicket 同构——每行一个可判定的 available，diffRestock 直接可用。
+ */
+async function pollBilibili(params) {
+  let pid = params.project_id || params.id || '';
+  if (!pid) {
+    const m = String(params.url || '').match(/id=(\d+)/);
+    if (m) pid = m[1];
+  }
+  if (!pid) throw new Error('缺少会员购 project_id——在 show.bilibili.com 演出页地址栏里找，或直接粘贴详情链接');
+
+  await biliWarm().catch(() => {});
+  const url =
+    `${BILI_SHOW}/api/ticket/project/getV2?version=134&id=${encodeURIComponent(pid)}` +
+    `&project_id=${encodeURIComponent(pid)}&requestSource=pcweb`;
+  const j = await getJson(url, { headers: biliHeaders() });
+  biliCheck(j);
+  const d = j.data || {};
+  const venue =
+    (d.venue_info && (d.venue_info.name || d.venue_info.venue_name)) ||
+    (d.place_info && (d.place_info.name || d.place_info.place_name)) ||
+    '';
+
+  const screens = Array.isArray(d.screen_list) ? d.screen_list : [];
+  const items = [];
+  for (const s of screens.slice(0, 20)) {
+    for (const t of s.ticket_list || []) {
+      const disp = (t.sale_flag && t.sale_flag.display_name) || '';
+      const soldOut = /售罄|缺货|结束|下架|停止|暂停/.test(disp);
+      const available = t.clickable === true && t.is_sale === 1 && !soldOut;
+      items.push({
+        label: (s.name || s.start_time_str || '场次') + ' ' + (t.desc || ''),
+        place: venue,
+        when: s.start_time_str || s.name || '',
+        status: disp || (available ? '可购' : '不可购'),
+        available: available,
+        count: available ? null : 0,
+        price: t.price != null ? '¥' + t.price / 100 : '',
+      });
+    }
+  }
+  if (!items.length) {
+    // 没挂出场次（或已全下架）：项目级信息当一条，官方状态原文兜底
+    const disp = (d.sale_flag && d.sale_flag.display_name) || '';
+    items.push({
+      label: d.name || ('会员购 #' + pid),
+      place: venue,
+      when: '',
+      status: disp || '详情见会员购',
+      available: d.is_sale === 1 && !/售罄|缺货|结束/.test(disp),
+      count: d.is_sale === 1 ? null : 0,
+      price: d.price_low != null ? '¥' + d.price_low / 100 + ' 起' : '',
+    });
+  }
+  return items;
+}
+
+// ===========================================================================
 // 平台：票星球（接口未完全打通——适配器先走通链路，部署后 probe 实测）
 // ===========================================================================
 //
@@ -939,13 +1083,14 @@ const PLATFORMS = {
   moretickets: pollMoretickets,
   rail12306: pollRail,
   damai: pollDamai,
+  bilibili: pollBilibili,
   piaoxingqiu: pollPiaoxingqiu,
 };
 
 // 平台中文名：推送消息里的「放票机构」字段用
 const LABEL_CN = {
   maoyan: '猫眼', moretickets: '摩天轮', rail12306: '12306',
-  damai: '大麦', piaoxingqiu: '票星球',
+  damai: '大麦', bilibili: 'B站会员购', piaoxingqiu: '票星球',
 };
 
 const PLATFORM_PROBE = {
@@ -953,6 +1098,8 @@ const PLATFORM_PROBE = {
   moretickets: null, // POST 接口，probe 走真实轮询
   rail12306: () => `${RAIL_BASE}/otn/leftTicket/init`,
   damai: () => `${DAMAI_DETAIL}?id=889142177842`,
+  bilibili: () =>
+    `${BILI_SHOW}/api/ticket/project/listV2?version=134&platform=web&page=1&pagesize=5&ptype=100104&area=0&keyword=${encodeURIComponent('演唱会')}`,
   piaoxingqiu: () => `${PXQ_API}/api/v1/web/content/index`,
 };
 
@@ -1049,6 +1196,8 @@ exports.main = async (event) => {
         const fn = PLATFORMS[task.adapter];
         const rec = {
           _id: task._id, platform: task.adapter, name: task.name || task._id,
+          // 海报 URL 建任务时存在 radar_tasks 里，这里透传给前端渲染监控卡缩略图
+          poster: task.poster || '',
           checked_at: now, ok: false, error: '', error_kind: '', items: [],
         };
         if (!fn) {
@@ -1149,9 +1298,13 @@ exports.main = async (event) => {
         return { ok: true, keyword, platform, rows };
       }
       // 大麦：链接/纯数字 id → 抓详情页；关键词 → mtop 无线搜索（2026-10 打通）。
-      // 票星球无公开搜索接口，keyword 此时承载的是「用户粘贴的链接」。
       if (platform === 'damai') {
         const rows = await findDamai(keyword);
+        return { ok: true, keyword, platform, rows };
+      }
+      // B站会员购：公开搜索接口（listV2），和大麦/猫眼一样直接打字搜
+      if (platform === 'bilibili') {
+        const rows = await findBilibili(keyword, limit);
         return { ok: true, keyword, platform, rows };
       }
       if (platform === 'piaoxingqiu') {
@@ -1279,4 +1432,6 @@ exports._internals = {
   diffRestock: diffRestock,
   damaiSearch: damaiSearch,
   mtopCall: mtopCall,
+  findBilibili: findBilibili,
+  pollBilibili: pollBilibili,
 };
