@@ -33,6 +33,7 @@ const path = require('path');
 // ---------------------------------------------------------------------------
 const emptyCollection = () => ({
   where: () => ({ limit: () => ({ get: async () => ({ data: [] }) }) }),
+  limit: () => ({ get: async () => ({ data: [] }) }),  // query action 直接调 .limit()
   doc: () => ({
     get: async () => ({ data: null }),      // 不存在 → null（首次无基线）
     set: async () => ({ _id: 'noop' }),     // 无状态模式：不落库
