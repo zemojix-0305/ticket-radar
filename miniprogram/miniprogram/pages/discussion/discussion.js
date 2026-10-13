@@ -31,9 +31,11 @@ Page({
     showPost: false,
     postContent: '',
     postTags: '',
+    postType: 0,
     user: { uid: '', nickname: '', avatar: '' },
     hasMore: true,
     offset: 0,
+    currentTab: 0,
   },
 
   onLoad() {
@@ -143,6 +145,7 @@ Page({
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 3);
+    const typeLabels = ['', '问题反馈', '建议留言', '求助求助'];
 
     wx.cloud
       .callFunction({
@@ -151,6 +154,7 @@ Page({
           action: 'createPost',
           content,
           tags,
+          type: typeLabels[this.data.postType],
           nickname: u.nickname || '匿名狐友',
           avatar: u.avatar || '',
         },
@@ -159,7 +163,7 @@ Page({
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '发布失败');
         wx.showToast({ title: '已发布', icon: 'success' });
-        this.setData({ showPost: false, postContent: '', postTags: '' });
+        this.setData({ showPost: false, postContent: '', postTags: '', postType: 0 });
         this.loadPosts(true);
       })
       .catch((e) => {

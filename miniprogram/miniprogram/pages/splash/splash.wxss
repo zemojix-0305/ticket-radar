@@ -1,0 +1,133 @@
+/* 开屏页 - 极简设计 */
+.splash-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  z-index: 9999;
+}
+
+/* 背景装饰线条 */
+.splash-deco-1 {
+  position: absolute;
+  top: 120px;
+  left: -50px;
+  width: 200px;
+  height: 200px;
+  border: 1px solid #F0F0F0;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.splash-deco-2 {
+  position: absolute;
+  bottom: 200px;
+  right: -80px;
+  width: 300px;
+  height: 300px;
+  border: 1px solid #F5F5F5;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.splash-deco-3 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  border: 1px dashed #F8F8F8;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+/* Logo区域 */
+.splash-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20vh;
+}
+
+.splash-logo-border {
+  width: 120px;
+  height: 120px;
+  border: 2px solid #1A1A1A;
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.splash-logo {
+  width: 72px;
+  height: 72px;
+}
+
+.splash-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: 4px;
+  margin-top: 24px;
+  font-family: "STKaiti", "楷体", "KaiTi", serif;
+}
+
+.splash-subtitle {
+  font-size: 11px;
+  color: #999;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-top: 8px;
+  font-family: -apple-system, "Helvetica Neue", sans-serif;
+}
+
+/* 副标题 */
+.splash-tagline {
+  margin-bottom: 80px;
+}
+
+.splash-daqie {
+  font-size: 14px;
+  color: #666;
+  letter-spacing: 8px;
+  font-family: "STKaiti", "楷体", serif;
+}
+
+/* 底部版权 */
+.splash-footer {
+  margin-bottom: 40px;
+}
+
+.splash-copy {
+  font-size: 10px;
+  color: #CCC;
+  letter-spacing: 2px;
+}
+
+/* 进度指示 */
+.splash-progress {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.splash-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #E5E5E5;
+}
+
+.splash-dot.active {
+  background: #1A1A1A;
+}

@@ -20,6 +20,21 @@
     </button>
   </view>
 
+  <!-- 支持作者广告位 -->
+  <view class="support-card" wx:if="{{showSupport}}">
+    <view class="support-inner">
+      <view class="support-text">
+        <text class="support-title">支持作者 ❤️</text>
+        <text class="support-desc">如果你喜欢这个工具，请帮我在 GitHub 点个 Star，或者请我喝杯咖啡。</text>
+      </view>
+      <view class="support-actions">
+        <button class="btn-sm press" hover-class="press-hover" bindtap="onStar">⭐ Star</button>
+        <button class="btn-sm press" hover-class="press-hover" bindtap="onCoffee">☕ 请喝咖啡</button>
+      </view>
+    </view>
+    <view class="support-close press" bindtap="closeSupport" hover-class="press-hover">×</view>
+  </view>
+
   <!-- 快捷入口 -->
   <view class="quick-grid">
     <view class="quick-item press-card" bindtap="openAdd" hover-class="press-card-hover">

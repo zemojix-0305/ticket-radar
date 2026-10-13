@@ -1,0 +1,33 @@
+<!-- 开屏页 -->
+<view class="splash-page">
+  <!-- 背景装饰 -->
+  <view class="splash-deco-1"></view>
+  <view class="splash-deco-2"></view>
+  <view class="splash-deco-3"></view>
+  
+  <!-- Logo区域 -->
+  <view class="splash-logo-wrap">
+    <view class="splash-logo-border">
+      <image class="splash-logo" src="/images/logo.png" mode="aspectFit" />
+    </view>
+    <view class="splash-title">余票监控</view>
+    <view class="splash-subtitle">Ticket Radar</view>
+  </view>
+  
+  <!-- 副标题 -->
+  <view class="splash-tagline">
+    <text class="splash-daqie">盯紧每一张票</text>
+  </view>
+  
+  <!-- 底部版权 -->
+  <view class="splash-footer">
+    <text class="splash-copy">© 2026 支持作者 · 用心做产品</text>
+  </view>
+  
+  <!-- 进度指示 -->
+  <view class="splash-progress" wx:if="{{!loaded}}">
+    <view class="splash-dot active"></view>
+    <view class="splash-dot"></view>
+    <view class="splash-dot"></view>
+  </view>
+</view>

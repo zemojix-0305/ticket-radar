@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/splash/splash",
     "pages/monitor/monitor",
     "pages/shows/shows",
     "pages/history/history",
@@ -10,7 +11,8 @@
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTitleText": "余票监控",
-    "navigationBarTextStyle": "black"
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFFFFF"
   },
   "tabBar": {
     "color": "#75757A",
@@ -38,7 +40,7 @@
       },
       {
         "pagePath": "pages/discussion/discussion",
-        "text": "讨论",
+        "text": "反馈",
         "iconPath": "images/tab_discuss.png",
         "selectedIconPath": "images/tab_discuss_on.png"
       },
@@ -51,5 +53,11 @@
     ]
   },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "cloud": true,
+  "permission": {
+    "scope.qrcode": {
+      "desc": "用于扫描二维码，快速获取演出信息"
+    }
+  }
 }

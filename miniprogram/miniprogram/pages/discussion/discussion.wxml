@@ -1,5 +1,20 @@
-<!-- 讨论区：帖子流 + 搜索 + 发帖 -->
+<!-- 讨论区：问题反馈白板 + 留言墙 -->
 <view class="page">
+
+  <!-- 顶部标题区 -->
+  <view class="board-header">
+    <view class="board-title">问题反馈</view>
+    <view class="board-subtitle">FEEDBACK</view>
+    <view class="board-line"></view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <view class="board-tabs">
+    <view class="tab {{currentTab===0 ? 'active' : ''}}" data-tab="0" bindtap="onTab" hover-class="press-hover">全部</view>
+    <view class="tab {{currentTab===1 ? 'active' : ''}}" data-tab="1" bindtap="onTab" hover-class="press-hover">问题反馈</view>
+    <view class="tab {{currentTab===2 ? 'active' : ''}}" data-tab="2" bindtap="onTab" hover-class="press-hover">建议留言</view>
+    <view class="tab {{currentTab===3 ? 'active' : ''}}" data-tab="3" bindtap="onTab" hover-class="press-hover">求助求助</view>
+  </view>
 
   <!-- 搜索栏 -->
   <view class="searchbar">
@@ -16,9 +31,6 @@
       />
       <text class="search-clear press" wx:if="{{kw}}" bindtap="clearSearch" hover-class="press-hover">清除</text>
     </view>
-    <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="doSearch" hover-class="press-hover">
-      {{searching ? '搜着' : '搜'}}
-    </view>
   </view>
 
   <!-- 失败 -->
@@ -30,22 +42,40 @@
   <!-- 空状态 -->
   <view class="card empty" wx:if="{{!loading && !posts.length && !fail}}">
     <view class="empty-mark"></view>
-    <view class="empty-title">还没有帖子</view>
-    <view class="empty-sub">来发第一条。</view>
+    <view class="empty-title">还没有反馈</view>
+    <view class="empty-sub">第一条你来写。</view>
+    <view class="stitch-hint">点击右下角 ✍ 发布</view>
   </view>
 
-  <!-- 帖子流 -->
-  <view class="post-card" wx:for="{{posts}}" wx:key="_id">
-    <view class="post-head">
-      <image class="post-avatar" src="{{item.avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
-      <view class="post-meta">
-        <text class="post-name">{{item.nickname}}</text>
-        <text class="t3">{{item.rel}}</text>
+  <!-- 帖子流 - 白板风格 -->
+  <view class="post-board" wx:for="{{posts}}" wx:key="_id">
+    <!-- 图钉装饰 -->
+    <view class="pin"></view>
+
+    <view class="post-card">
+      <view class="post-head">
+        <image class="post-avatar" src="{{item.avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
+        <view class="post-meta">
+          <text class="post-name">{{item.nickname}}</text>
+          <text class="t3">{{item.rel}}</text>
+        </view>
+        <view class="post-type-tag" wx:if="{{item.type}}">{{item.type}}</view>
       </view>
-    </view>
-    <view class="post-body">{{item.content}}</view>
-    <view class="post-tags" wx:if="{{item.tags && item.tags.length}}">
-      <text class="post-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
+      <view class="post-body">{{item.content}}</view>
+
+      <!-- 标签 -->
+      <view class="post-tags" wx:if="{{item.tags && item.tags.length}}">
+        <text class="post-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
+      </view>
+
+      <!-- 底部互动 -->
+      <view class="post-footer">
+        <view class="post-actions">
+          <text class="action-btn press" hover-class="press-hover">👍 {{item.likes || 0}}</text>
+          <text class="action-btn press" hover-class="press-hover">💬 {{item.comments || 0}}</text>
+        </view>
+        <text class="t3 post-time">{{item.timeStr}}</text>
+      </view>
     </view>
   </view>
 
@@ -57,19 +87,23 @@
     <text class="t3">没有更多了</text>
   </view>
 
-  <!-- 发帖悬浮按钮 -->
-  <view class="fab" bindtap="openPost" hover-class="press-hover">
-    <text class="fab-plus">＋</text>
+  <!-- 底部说明 -->
+  <view class="board-footer">
+    <text class="t3 stitch-text">数据来自社区 · 每五分钟刷新一次</text>
   </view>
 
-  <view class="safe"></view>
+  <!-- 发帖悬浮按钮 -->
+  <view class="fab press" bindtap="openPost" hover-class="press-hover">
+    <text class="fab-icon">✍</text>
+  </view>
+
 </view>
 
-<!-- 发帖弹层 -->
+<!-- 发帖弹窗 -->
 <view class="mask" wx:if="{{showPost}}" bindtap="closePost"></view>
 <view class="sheet" wx:if="{{showPost}}">
   <view class="sheet-grab"></view>
-  <view class="sheet-title">发一条帖子</view>
+  <view class="sheet-title">发布反馈</view>
   <view class="sheet-sub">友善交流，禁止黄牛广告、转账引流。违者删帖。</view>
 
   <view class="field">
@@ -81,6 +115,15 @@
       value="{{postContent}}"
       bindinput="onPostInput"
     />
+  </view>
+
+  <view class="field">
+    <view class="field-lbl">类型</view>
+    <view class="type-selector">
+      <view class="type-opt {{postType===0?'active':''}}" data-type="0" bindtap="onType">问题反馈</view>
+      <view class="type-opt {{postType===1?'active':''}}" data-type="1" bindtap="onType">建议留言</view>
+      <view class="type-opt {{postType===2?'active':''}}" data-type="2" bindtap="onType">求助求助</view>
+    </view>
   </view>
 
   <view class="field">

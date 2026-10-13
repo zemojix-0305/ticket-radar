@@ -23,17 +23,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 62px;
-  height: 62px;
+  width: 80px;
+  height: 44px;
   padding: 0;
-  background: var(--brand);
-  border-radius: 50%;
+  background: var(--accent);
+  border-radius: 22px;
   line-height: 1.15;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(36, 86, 219, 0.25);
 }
 .hero-add::after { border: none; }
-.hero-plus { font-size: 21px; color: var(--on-brand); }
-.hero-add-t { font-size: 11px; color: var(--on-brand); }
+.hero-plus { font-size: 21px; color: #FFFFFF; }
+.hero-add-t { font-size: 11px; color: #FFFFFF; }
 
 /* ---------- 快捷入口：4 列一行，线性图标 + 灰字，克制不抢戏 ---------- */
 .quick-grid {
@@ -328,4 +329,58 @@
   top: 0;
   width: 300px;
   height: 180px;
+}
+
+/* ---------- 支持作者卡片 ---------- */
+.support-card {
+  margin: 12px;
+  padding: 14px 16px;
+  background: var(--accent-weak);
+  border-radius: 20px;
+  border: 1.5px dashed var(--accent);
+  position: relative;
+}
+.support-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.support-text {
+  flex: 1;
+  min-width: 0;
+}
+.support-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: "STKaiti", "楷体", serif;
+}
+.support-desc {
+  font-size: 12px;
+  color: var(--t2);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.support-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btn-sm {
+  padding: 6px 14px;
+  background: var(--accent);
+  color: #FFFFFF;
+  border-radius: 16px;
+  font-size: 12px;
+  border: none;
+}
+.btn-sm::after { border: none; }
+.support-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 18px;
+  color: var(--t3);
+  padding: 4px;
 }

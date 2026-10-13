@@ -54,6 +54,7 @@ const LABEL = {
 };
 
 const CREDIT_KEY = 'wx_subscribe_credit';
+const SUPPORT_VIEWED_KEY = 'support_viewed';
 
 // 把时间戳变成「12 分钟前查过」。
 // 用户关心的是「这数据新不新」，不是具体几点查的。
@@ -100,6 +101,31 @@ Page({
   onShow() {
     // 从「我的」页领完额度回来要能看到数字变了
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+    // 首次进入且未关闭过，显示支持作者
+    if (!this.data.supportTipShown) {
+      const viewed = wx.getStorageSync(SUPPORT_VIEWED_KEY);
+      if (!viewed) {
+        this.setData({ showSupport: true });
+      }
+    }
+  },
+
+  closeSupport() {
+    this.setData({ showSupport: false });
+    wx.setStorageSync(SUPPORT_VIEWED_KEY, true);
+  },
+
+  onStar() {
+    wx.setStorageSync(SUPPORT_VIEWED_KEY, true);
+    wx.setClipboardData({
+      data: 'https://github.com/zemojix-0305/ticket-radar',
+      success: () => wx.showToast({ title: '链接已复制，快去 Star', icon: 'none' }),
+    });
+  },
+
+  onCoffee() {
+    wx.setStorageSync(SUPPORT_VIEWED_KEY, true);
+    wx.showToast({ title: '感谢支持！', icon: 'none' });
   },
 
   onPullDownRefresh() {
