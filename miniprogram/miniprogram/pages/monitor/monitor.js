@@ -118,8 +118,7 @@ Page({
   refresh() {
     const self = this;
     self.setData({ loading: true, fail: '' });
-    return wx.cloud
-      request({ action: 'query' })
+    return request({ action: 'query' })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -464,28 +463,27 @@ Page({
     }
 
     const id = p.key + '-' + f.id.replace(/[^0-9a-zA-Z]/g, '').slice(-12);
-    wx.cloud
-      .database()
-      .collection('radar_tasks')
-      .doc(id)
-      .set({
-        data: {
-          _id: id,
-          adapter: p.key,
-          name:
-            f.name ||
-            (p.key === 'rail12306' ? params.from + ' → ' + params.to : p.label + ' 监控'),
-          params: params,
-          enabled: true,
-        },
-      })
-      .then(() => {
-        Toast('已开始盯，稍等出结果');
-        self.setData({ showAdd: false, form: { name: '', id: '', city: '', date: '' } });
-        setTimeout(() => self.refresh(), 2500);
-      })
-      .catch((e) =>
-        Dialog.alert({ title: '添加失败', message: String(e.message || e) })
-      );
+    const task = {
+      _id: id,
+      adapter: p.key,
+      name:
+        f.name ||
+        (p.key === 'rail12306' ? params.from + ' → ' + params.to : p.label + ' 监控'),
+      params: params,
+      enabled: true,
+    };
+    try {
+      const tasks = require('../utils/tasks');
+      const existing = tasks.loadTasks();
+      // 避免重复添加
+      if (!existing.find(t => t._id === id)) {
+        tasks.saveTasks([...existing, task]);
+      }
+      Toast('已开始盯，稍等出结果');
+      self.setData({ showAdd: false, form: { name: '', id: '', city: '', date: '' } });
+      setTimeout(() => self.refresh(), 2500);
+    } catch (e) {
+      Dialog.alert({ title: '添加失败', message: String(e.message || e) });
+    }
   },
 });

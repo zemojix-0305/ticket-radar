@@ -141,8 +141,7 @@ Page({
     }
     if (this.data.hotLoading) return;
     this.setData({ hotLoading: true, hotFail: '' });
-    wx.cloud
-request({ action: 'find', keyword: '', platform: p.key, limit: 10 })
+    request({ action: 'find', keyword: '', platform: p.key, limit: 10 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -179,8 +178,7 @@ request({ action: 'find', keyword: '', platform: p.key, limit: 10 })
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
 
-    wx.cloud
-request({ action: 'find', keyword: kw, platform: p.key, limit: 20 })
+    request({ action: 'find', keyword: kw, platform: p.key, limit: 20 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -202,8 +200,7 @@ request({ action: 'find', keyword: kw, platform: p.key, limit: 20 })
     if (this.data.searching) return;
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
-    wx.cloud
-request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 })
+    request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
