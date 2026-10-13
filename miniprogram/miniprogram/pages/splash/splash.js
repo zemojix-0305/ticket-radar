@@ -1,24 +1,32 @@
-// 开屏页逻辑
+// 开屏页：2.4s 自动进入，点任意处跳过
 Page({
   data: {
-    loaded: false
+    jumped: false,
   },
 
   onLoad() {
-    // 模拟加载动画
-    setTimeout(() => {
-      this.setData({ loaded: true });
-    }, 800);
-    
-    // 延迟跳转
-    setTimeout(() => {
-      wx.switchTab({
-        url: '/pages/monitor/monitor'
-      });
-    }, 2200);
+    // 首次展示开屏，之后 24h 内不再打扰
+    const last = wx.getStorageSync('splash_shown_at') || 0;
+    if (Date.now() - last < 24 * 3600 * 1000) {
+      this.jump();
+      return;
+    }
+    wx.setStorageSync('splash_shown_at', Date.now());
+    this._timer = setTimeout(() => this.jump(), 2400);
+  },
+
+  goHome() {
+    if (this._timer) clearTimeout(this._timer);
+    this.jump();
+  },
+
+  jump() {
+    if (this.data.jumped) return;
+    this.setData({ jumped: true });
+    wx.switchTab({ url: '/pages/monitor/monitor' });
   },
 
   onUnload() {
-    // 防止返回
-  }
+    if (this._timer) clearTimeout(this._timer);
+  },
 });

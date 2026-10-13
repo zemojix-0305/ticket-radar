@@ -9,6 +9,16 @@
 // 存一次就能换环境，不用改代码重新编译。
 App({
   onLaunch() {
+    // 界面字体（站酷庆科黄油体子集）双保险：
+    // app.wxss 里已有 @font-face，部分基础库对本地路径支持不稳，这里再挂一次
+    wx.loadFontFace({
+      global: true,
+      family: 'ButterYM',
+      source: 'url("/fonts/butter.woff2")',
+      desc: { style: 'normal', weight: 400 },
+      fail: (e) => console.warn('[ticket-radar] 字体加载失败，回退楷体', e),
+    });
+
     if (!wx.cloud) return;
 
     const ENV = wx.getStorageSync('radar_env') || '';

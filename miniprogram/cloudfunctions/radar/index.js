@@ -1002,6 +1002,12 @@ exports.main = async (event) => {
       const tags = Array.isArray(event && event.tags) ? event.tags : [];
       const nickname = String((event && event.nickname) || '匿名狐友').trim();
       const avatar = String((event && event.avatar) || '').trim();
+      // type：问题反馈/建议留言/求助求助；sticker：留言墙素材 id（白名单校验防路径注入）
+      const type = String((event && event.type) || '').trim().slice(0, 10);
+      const sticker = String((event && event.sticker) || '').trim();
+      if (sticker && !/^(note[1-8]|apple|starPurple|leaf|dolls|puzzle|twins|ice)$/.test(sticker)) {
+        return { ok: false, error: '素材不合法' };
+      }
 
       // 简单内容审核：禁止常见广告/引流关键词
       const forbidden = /(加微信|加v|转账|二维码|代拍|黄牛|票贩子|出票.*先款)/i;

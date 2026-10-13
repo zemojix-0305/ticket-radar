@@ -110,6 +110,24 @@
   </view>
 
   <view class="field">
+    <view class="field-lbl">挑一张纸写</view>
+    <!-- 素材选择：横向滚动一排缩略图 -->
+    <scroll-view class="stk-scroll" scroll-x enable-flex>
+      <view class="stk-opt {{postSticker===s.key?'active':''}}"
+            wx:for="{{stickers}}" wx:for-item="s" wx:key="key"
+            data-key="{{s.key}}" bindtap="onPickSticker" hover-class="press-hover">
+        <image class="stk-thumb" src="{{s.bg}}" mode="aspectFill" />
+        <text class="stk-lbl">{{s.label}}</text>
+      </view>
+    </scroll-view>
+    <!-- 实时预览：写的字直接落在选的素材上 -->
+    <view class="stk-preview-wrap">
+      <image class="stk-preview-bg" src="{{previewBg}}" mode="aspectFill" />
+      <view class="stk-preview-text">{{postContent || '你写的字会出现在这里'}}</view>
+    </view>
+  </view>
+
+  <view class="field">
     <view class="field-lbl">类型</view>
     <view class="type-selector">
       <view class="type-opt {{postType===0?'active':''}}" data-type="0" bindtap="onType">问题反馈</view>
@@ -126,5 +144,30 @@
   <view class="acts">
     <button class="btn btn-ghost press" bindtap="closePost" hover-class="press-hover">取消</button>
     <button class="btn btn-primary press" bindtap="submitPost" hover-class="press-hover">发布</button>
+  </view>
+</view>
+
+<!-- 放大查看某张便签 -->
+<view class="zoom-mask" wx:if="{{zoomIdx >= 0}}" bindtap="closeZoom">
+  <view class="zoom-card" catchtap="">
+    <view class="zoom-close press" bindtap="closeZoom" hover-class="press-hover">×</view>
+    <view class="zoom-note-wrap" wx:if="{{posts[zoomIdx]}}">
+      <image class="zoom-note-bg" src="{{posts[zoomIdx].bg}}" mode="widthFix" />
+      <image class="note-clip" wx:if="{{!posts[zoomIdx].onSticker}}" src="/images/board/clip{{posts[zoomIdx].clipIdx}}.png" mode="aspectFit" />
+      <view class="zoom-note-body">
+        <view class="note-head">
+          <image class="note-avatar" src="{{posts[zoomIdx].avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
+          <view class="post-meta">
+            <text class="note-name">{{posts[zoomIdx].nickname}}</text>
+            <text class="note-time">{{posts[zoomIdx].rel}}</text>
+          </view>
+          <view class="post-type-tag" wx:if="{{posts[zoomIdx].type}}">{{posts[zoomIdx].type}}</view>
+        </view>
+        <view class="zoom-note-text {{posts[zoomIdx].dark ? 'note-text-dark' : ''}}">{{posts[zoomIdx].content}}</view>
+        <view class="post-tags" wx:if="{{posts[zoomIdx].tags && posts[zoomIdx].tags.length}}">
+          <text class="post-tag" wx:for="{{posts[zoomIdx].tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

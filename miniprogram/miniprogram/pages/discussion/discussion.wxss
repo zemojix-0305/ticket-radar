@@ -11,7 +11,7 @@
   font-weight: 700;
   color: var(--t1);
   letter-spacing: 3px;
-  font-family: "STKaiti", "楷体", serif;
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
 }
 .board-subtitle {
   font-size: 10px;
@@ -207,7 +207,7 @@
 .stitch-text {
   font-size: 11px;
   color: var(--t3);
-  font-family: "STKaiti", "楷体", serif;
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
 }
 
 /* ---------- 发帖悬浮按钮 ---------- */
@@ -364,5 +364,130 @@
   border-radius: 20px;
   font-size: 12px;
   color: var(--t3);
-  font-family: "STKaiti", "楷体", serif;
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
+}
+
+/* ---------- 发帖：素材选择 + 实时预览 ---------- */
+.stk-scroll {
+  white-space: nowrap;
+  margin-top: 10px;
+}
+.stk-opt {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 10px;
+  width: 64px;
+}
+.stk-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--none-weak);
+}
+.stk-opt.active .stk-thumb {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-weak);
+}
+.stk-lbl {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 4px;
+}
+.stk-opt.active .stk-lbl { color: var(--brand); }
+
+.stk-preview-wrap {
+  position: relative;
+  margin-top: 12px;
+  height: 190px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--none-weak);
+}
+.stk-preview-bg {
+  width: 100%;
+  height: 100%;
+}
+.stk-preview-text {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 52px;
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #3A3A3E;
+  word-break: break-word;
+  max-height: 110px;
+  overflow: hidden;
+}
+
+/* ---------- 放大查看 ---------- */
+.zoom-mask {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(26, 26, 26, 0.55);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: zoom-fade 0.2s ease-out;
+}
+@keyframes zoom-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.zoom-card {
+  position: relative;
+  width: 82vw;
+  animation: zoom-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes zoom-pop {
+  from { transform: scale(0.75); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.zoom-close {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  line-height: 32px;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--t1);
+  font-size: 22px;
+  z-index: 2;
+}
+.zoom-note-wrap {
+  position: relative;
+  transform: rotate(0deg);
+}
+.zoom-note-bg {
+  width: 100%;
+  display: block;
+}
+.zoom-note-body {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  top: 10%;
+}
+.zoom-note-text {
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
+  font-size: 17px;
+  line-height: 1.8;
+  color: #3A3A3E;
+  word-break: break-word;
+}
+.note-text-dark { color: #F4F1E8; }
+
+/* 便签上的「点击放大」提示 */
+.note-zoom-hint {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--t3);
+  opacity: 0.7;
 }

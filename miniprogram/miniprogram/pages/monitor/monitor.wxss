@@ -354,7 +354,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--accent);
-  font-family: "STKaiti", "楷体", serif;
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
 }
 .support-desc {
   font-size: 12px;
@@ -368,12 +368,19 @@
   flex-shrink: 0;
 }
 .btn-sm {
+  /* 微信 button 默认块级撑满 100%——会把 flex 兄弟挤成一字一行，必须收住 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  white-space: nowrap;
   padding: 6px 14px;
   background: var(--accent);
   color: #FFFFFF;
   border-radius: 16px;
   font-size: 12px;
   border: none;
+  line-height: 1;
 }
 .btn-sm::after { border: none; }
 .support-close {

@@ -13,6 +13,30 @@ const PAGE_SIZE = 20;
 const NOTE_COUNT = 8;   // images/board/note1..8.png
 const CLIP_COUNT = 13;  // images/board/clip1..13.png
 
+// 发帖可选素材：8 张便签纸 + 6 张浅色贴纸卡（深色贴纸写字看不清，不收）。
+// key 会存进帖子字段 sticker，渲染时按 key 找背景图。
+const STICKERS = [
+  { key: 'note1', label: '黄纸', bg: '/images/board/note1.png', dark: false },
+  { key: 'note2', label: '粉纸', bg: '/images/board/note2.png', dark: false },
+  { key: 'note3', label: '蓝纸', bg: '/images/board/note3.png', dark: false },
+  { key: 'note4', label: '绿纸', bg: '/images/board/note4.png', dark: false },
+  { key: 'note5', label: '橘纸', bg: '/images/board/note5.png', dark: false },
+  { key: 'note6', label: '紫纸', bg: '/images/board/note6.png', dark: false },
+  { key: 'note7', label: '白纸', bg: '/images/board/note7.png', dark: false },
+  { key: 'note8', label: '米纸', bg: '/images/board/note8.png', dark: false },
+  { key: 'apple', label: '苹果', bg: '/images/board2/cartoon4.png', dark: false },
+  { key: 'starPurple', label: '星星', bg: '/images/board2/cartoon8.png', dark: false },
+  { key: 'leaf', label: '叶子', bg: '/images/board2/collage12.png', dark: true },
+  { key: 'dolls', label: '娃娃', bg: '/images/board2/collage14.png', dark: true },
+  { key: 'puzzle', label: '拼图', bg: '/images/board2/collage16.png', dark: false },
+  { key: 'twins', label: '双星', bg: '/images/board2/cartoon11.png', dark: false },
+  { key: 'ice', label: '冰块', bg: '/images/board2/cartoon3.png', dark: false },
+];
+function stickerBg(key) {
+  const s = STICKERS.find((x) => x.key === key);
+  return s ? s.bg : '';
+}
+
 // 把任意字符串 hash 成 0..n-1。同一个 _id 永远拿到同一个素材编号。
 function stableHash(str) {
   let h = 0;
@@ -51,6 +75,10 @@ Page({
     postContent: '',
     postTags: '',
     postType: 0,
+    postSticker: 'note1',
+    previewBg: stickerBg('note1'),
+    stickers: STICKERS,
+    zoomIdx: -1,
     user: { uid: '', nickname: '', avatar: '' },
     hasMore: true,
     offset: 0,
@@ -98,6 +126,9 @@ Page({
           rel: relTime(p.createdAt),
           noteIdx: noteIndex(p._id),
           clipIdx: clipIndex(p._id),
+          // 用户选过素材就用选的，没选（历史帖）按 _id 稳定轮换便签
+          bg: stickerBg(p.sticker) || '/images/board/note' + noteIndex(p._id) + '.png',
+          onSticker: !!p.sticker,   // 贴纸卡类没有自带夹子，渲染时不再叠 clip
           // 微旋转 -1.2°~1.2°：让便签墙不至于太机械
           rot: ((stableHash(p._id + 'r') % 25) - 12) / 10,
         }));
@@ -148,7 +179,7 @@ Page({
       });
       return;
     }
-    this.setData({ showPost: true, postContent: '', postTags: '' });
+    this.setData({ showPost: true, postContent: '', postTags: '', postType: 0, postSticker: 'note1', previewBg: stickerBg('note1') });
   },
 
   closePost() {
@@ -161,6 +192,23 @@ Page({
 
   onTagInput(e) {
     this.setData({ postTags: e.detail.value });
+  },
+
+  onPickSticker(e) {
+    const key = e.currentTarget.dataset.key;
+    this.setData({ postSticker: key, previewBg: stickerBg(key) });
+  },
+
+  // 点便签 → 放大查看
+  onNoteTap(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    if (idx >= 0 && idx < this.data.posts.length) {
+      this.setData({ zoomIdx: idx });
+    }
+  },
+
+  closeZoom() {
+    this.setData({ zoomIdx: -1 });
   },
 
   submitPost() {
@@ -184,6 +232,7 @@ Page({
           content,
           tags,
           type: typeLabels[this.data.postType],
+          sticker: this.data.postSticker,
           nickname: u.nickname || '匿名狐友',
           avatar: u.avatar || '',
         },

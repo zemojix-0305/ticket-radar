@@ -1,133 +1,117 @@
-/* 开屏页 - 极简设计 */
+/* 开屏页：zine 拼贴风
+   构图 = 中央海报卡（微转 -2°，胶带贴角）+ 周围散落贴纸。
+   动画：贴纸按 0.08s 错峰「啪」地贴上来（scale 1.3→1 + 淡入）。 */
 .splash-page {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #FFFFFF;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #F7F6F2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 40px;
-  z-index: 9999;
-}
-
-/* 背景装饰线条 */
-.splash-deco-1 {
-  position: absolute;
-  top: 120px;
-  left: -50px;
-  width: 200px;
-  height: 200px;
-  border: 1px solid #F0F0F0;
-  border-radius: 50%;
-  opacity: 0.5;
-}
-
-.splash-deco-2 {
-  position: absolute;
-  bottom: 200px;
-  right: -80px;
-  width: 300px;
-  height: 300px;
-  border: 1px solid #F5F5F5;
-  border-radius: 50%;
-  opacity: 0.4;
-}
-
-.splash-deco-3 {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 500px;
-  height: 500px;
-  border: 1px dashed #F8F8F8;
-  border-radius: 50%;
-  opacity: 0.3;
-}
-
-/* Logo区域 */
-.splash-logo-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 20vh;
-}
-
-.splash-logo-border {
-  width: 120px;
-  height: 120px;
-  border: 2px solid #1A1A1A;
-  border-radius: 32px;
-  display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* ---------- 散落贴纸 ---------- */
+.stk {
+  position: absolute;
+  opacity: 0;
+  animation: sticker-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.stk-rabbit   { width: 150rpx; top: 11%; left: 9%;  transform: rotate(-11deg); animation-delay: 0.35s; }
+.stk-bluestar { width: 120rpx; top: 9%;  right: 10%; transform: rotate(14deg); animation-delay: 0.5s; }
+.stk-crane    { width: 160rpx; bottom: 17%; left: 10%; transform: rotate(9deg); animation-delay: 0.65s; }
+.stk-twins    { width: 150rpx; bottom: 15%; right: 8%; transform: rotate(-8deg); animation-delay: 0.8s; }
+.stk-love     { width: 110rpx; top: 38%; right: 5%;  transform: rotate(7deg); animation-delay: 0.95s; }
+.stk-spark    { width: 90rpx;  top: 30%; left: 6%;   transform: rotate(-14deg); animation-delay: 1.1s; }
+.stk-pink     { width: 100rpx; bottom: 36%; right: 15%; transform: rotate(18deg); animation-delay: 1.25s; }
+
+/* 微转要在动画结束后保留——用 keyframes 收尾值覆盖 transform */
+@keyframes sticker-in {
+  from { opacity: 0; scale: 1.35; }
+  to   { opacity: 1; scale: 1; }
+}
+
+/* ---------- 中央海报卡 ---------- */
+.poster {
   position: relative;
-}
-
-.splash-logo {
-  width: 72px;
-  height: 72px;
-}
-
-.splash-title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #1A1A1A;
-  letter-spacing: 4px;
-  margin-top: 24px;
-  font-family: "STKaiti", "楷体", "KaiTi", serif;
-}
-
-.splash-subtitle {
-  font-size: 11px;
-  color: #999;
-  letter-spacing: 6px;
-  text-transform: uppercase;
-  margin-top: 8px;
-  font-family: -apple-system, "Helvetica Neue", sans-serif;
-}
-
-/* 副标题 */
-.splash-tagline {
-  margin-bottom: 80px;
-}
-
-.splash-daqie {
-  font-size: 14px;
-  color: #666;
-  letter-spacing: 8px;
-  font-family: "STKaiti", "楷体", serif;
-}
-
-/* 底部版权 */
-.splash-footer {
-  margin-bottom: 40px;
-}
-
-.splash-copy {
-  font-size: 10px;
-  color: #CCC;
-  letter-spacing: 2px;
-}
-
-/* 进度指示 */
-.splash-progress {
+  width: 480rpx;
+  padding: 64rpx 44rpx 52rpx;
+  background: #FFFFFF;
+  border-radius: 8rpx;
+  box-shadow: 0 12rpx 40rpx rgba(53, 51, 49, 0.10);
+  transform: rotate(-2deg);
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  align-items: center;
+  animation: poster-up 0.5s ease-out forwards;
+  opacity: 0;
+}
+@keyframes poster-up {
+  from { opacity: 0; transform: rotate(-2deg) translateY(28rpx); }
+  to   { opacity: 1; transform: rotate(-2deg) translateY(0); }
 }
 
-.splash-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #E5E5E5;
+/* 胶带：半透明米黄斜贴条 */
+.tape {
+  position: absolute;
+  width: 150rpx;
+  height: 44rpx;
+  background: rgba(235, 220, 160, 0.75);
+  box-shadow: 0 2rpx 6rpx rgba(53, 51, 49, 0.08);
+}
+.tape-tl { top: -20rpx; left: 44rpx;  transform: rotate(-38deg); }
+.tape-br { bottom: -20rpx; right: 44rpx; transform: rotate(-38deg); }
+
+.poster-star {
+  width: 170rpx;
+  height: 170rpx;
+  margin-bottom: 28rpx;
+  animation: star-sway 3.2s ease-in-out 1.4s infinite alternate;
+}
+@keyframes star-sway {
+  from { transform: rotate(-4deg); }
+  to   { transform: rotate(5deg); }
 }
 
-.splash-dot.active {
-  background: #1A1A1A;
+.poster-title {
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
+  font-size: 72rpx;
+  letter-spacing: 10rpx;
+  color: #1A1A1A;
+}
+.poster-en {
+  margin-top: 14rpx;
+  font-size: 20rpx;
+  letter-spacing: 7rpx;
+  color: #9A9A9F;
+  text-transform: uppercase;
+}
+.poster-line {
+  width: 64rpx;
+  height: 3rpx;
+  background: #D8D8DC;
+  margin: 30rpx 0 22rpx;
+  border-radius: 2rpx;
+}
+.poster-tag {
+  font-family: "ButterYM", "STKaiti", "楷体", serif;
+  font-size: 26rpx;
+  letter-spacing: 4rpx;
+  color: #6E6E73;
+}
+
+/* ---------- 底部提示 ---------- */
+.splash-hint {
+  position: absolute;
+  bottom: 60rpx;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  color: #B9B9BE;
+  animation: hint-blink 2s ease-in-out infinite;
+}
+@keyframes hint-blink {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
 }
