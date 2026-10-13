@@ -12,6 +12,7 @@ const CREDIT_KEY = 'wx_subscribe_credit';
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '/vant/toast/toast';
 import { request } from '../utils/api';
+import { loadTasks, saveTasks } from '../utils/tasks';
 import Dialog from '/vant/dialog/dialog';
 
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。
@@ -348,19 +349,7 @@ request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date,
     }
 
     this.setData({ adding: id });
-    wx.cloud
-      .database()
-      .collection('radar_tasks')
-      .doc(id)
-      .set({
-        data: {
-          _id: id,
-          adapter,
-          name,
-          params,
-          enabled: true,
-          poster: row.poster || '',
-        },
+saveTasks([...loadTasks(), { _id: id, adapter, name, params, enabled: true, poster: row.poster || '' }])
       })
       .then(() => {
         Toast({ type: 'success', message: '已开始盯' });
