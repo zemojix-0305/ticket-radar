@@ -82,5 +82,17 @@
     </view>
   </view>
 
+  <!-- 支持作者：点开才有，不打扰主流程 -->
+  <view class="card support">
+    <view class="support-deco">
+      <image class="support-stk" src="/images/board2/collage13.png" mode="aspectFit" />
+    </view>
+    <view class="support-main">
+      <view class="support-t">支持作者</view>
+      <view class="support-d">项目已开源，点个 Star 就是最大的鼓励</view>
+    </view>
+    <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ Star</view>
+  </view>
+
   <view class="safe"></view>
 </view>

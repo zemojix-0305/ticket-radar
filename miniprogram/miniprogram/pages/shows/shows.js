@@ -16,9 +16,9 @@ const CREDIT_KEY = 'wx_subscribe_credit';
 // 平台辨识靠文字；彩色只留给「有票/无票/异常」语义状态。
 // 猫眼放第一位：它是唯一有热门列表的平台，进页面就有内容可逛。
 const PLATFORMS = [
+  { key: 'rail12306', label: '12306' },
   { key: 'maoyan', label: '猫眼' },
   { key: 'moretickets', label: '摩天轮' },
-  { key: 'rail12306', label: '12306' },
   { key: 'damai', label: '大麦', linkOnly: true },
   { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
 ];
@@ -99,7 +99,7 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        const rows = (r.rows || []).map((row) => this.normalize(row, PLATFORMS[0]));
+        const rows = (r.rows || []).map((row) => this.normalize(row, PLATFORMS.find((x) => x.key === 'maoyan')));
         this.setData({ hot: rows, hotLoading: false });
       })
       .catch((e) => {

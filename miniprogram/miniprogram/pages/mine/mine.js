@@ -85,6 +85,14 @@ Page({
     });
   },
 
+  // 支持作者：复制 GitHub 仓库链接（小程序不能直接跳外部浏览器）
+  goStar() {
+    wx.setClipboardData({
+      data: 'https://github.com/zemojix-0305/ticket-radar',
+      success: () => wx.showToast({ title: '链接已复制，去点个 Star 吧', icon: 'none' }),
+    });
+  },
+
   onShow() {
     // 从别的 tab 领完额度切回来，数字要跟着变
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });

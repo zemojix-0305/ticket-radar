@@ -17,15 +17,15 @@
    3. 所有可点元素必须有按压反馈（hover-class）。
    4. 对比度用 tools/check_palette.py 校验（WCAG AA）。
    ========================================================================== */
-/* ---------- 界面字体：黄油圆体 ----------
-   「站酷庆科黄油体」子集（187KB，只含界面用到的 943 字）。
-   为什么不用黄油溏心体：溏心体是缪客科技的商业字体（商用需授权），
-   庆科黄油体同样圆头黄油感、免费可商用。要换溏心体时：
-   1) 拿到授权 ttf；2) 跑 python tools/subset_font.py <ttf> 重出子集即可。
+/* ---------- 界面字体：龙藏手写体 ----------
+   「Long Cang / 龙藏」子集（316KB，只含界面用到的 983 字），OFL 免费商用。
+   钢笔手写感，用在页面大标题/留言/开屏——ins 手账的「字」担当。
+   要换其他手写体时：1) 拿到 ttf；2) 跑
+   python tools/subset_font.py <ttf> miniprogram/miniprogram/fonts/hand.woff2
    生僻字（用户随手输入的）会自动退回楷体/系统字体。 */
 @font-face {
-  font-family: "ButterYM";
-  src: url("/fonts/butter.woff2") format("woff2");
+  font-family: "HandCN";
+  src: url("/fonts/hand.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
 }
@@ -83,7 +83,7 @@ page {
    楷体栈：iOS 有 Kaiti SC，安卓退化到 KaiTi/楷体，再退化到衬线。
    只用在标题和装饰短语上，正文不用——可读性优先。 */
 .font-hand {
-  font-family: "ButterYM", "Kaiti SC", "STKaiti", "楷体", "Yuanti SC", serif;
+  font-family: "HandCN", "Kaiti SC", "STKaiti", "楷体", "Yuanti SC", serif;
   font-weight: 400;
 }
 
@@ -105,7 +105,7 @@ page {
   padding: 3px 12px;
   border: 1.5px dashed #B8B8BC;
   border-radius: 999px;
-  font-family: "ButterYM", "Kaiti SC", "STKaiti", "楷体", serif;
+  font-family: "HandCN", "Kaiti SC", "STKaiti", "楷体", serif;
   font-size: 12px;
   color: var(--t2);
   line-height: 18px;
@@ -288,7 +288,7 @@ page {
   padding: 24px 20px 12px;
 }
 .sec-title {
-  font-family: "ButterYM", "Kaiti SC", "STKaiti", "楷体", serif;
+  font-family: "HandCN", "Kaiti SC", "STKaiti", "楷体", serif;
   font-size: 19px;
   color: var(--t1);
   letter-spacing: 1px;

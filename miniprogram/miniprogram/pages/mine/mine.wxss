@@ -75,3 +75,49 @@
   color: var(--brand);
   word-break: break-all;
 }
+
+/* ---------- 支持作者 ---------- */
+.support {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+.support-deco {
+  position: absolute;
+  right: -14px;
+  top: -12px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.support-stk {
+  width: 96px;
+  height: 96px;
+  transform: rotate(12deg);
+}
+.support-main {
+  flex: 1;
+  min-width: 0;
+}
+.support-t {
+  font-family: "HandCN", "STKaiti", "楷体", serif;
+  font-size: 19px;
+  color: var(--t1);
+  letter-spacing: 1px;
+}
+.support-d {
+  font-size: 12px;
+  color: var(--t3);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.support-btn {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  background: var(--brand);
+  color: #FFFFFF;
+  border-radius: 18px;
+  font-size: 13px;
+  white-space: nowrap;
+}

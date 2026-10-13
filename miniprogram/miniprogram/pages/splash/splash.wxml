@@ -1,26 +1,34 @@
-<!-- 开屏页：zine 拼贴风 -->
-<!-- 语言：一张微倾斜的白色海报卡，四角贴纸带压着；周围散落贴纸素材。
-     所有元素带错峰入场动画；点任意处可跳过。 -->
+<!-- 开屏页 v3：一张真·车票 -->
+<!-- 语言：整页纯白，中央一张微倾的车票卡（打孔线+副券条码），
+     手写体大字直接写在票面上，少量贴纸点缀。点任意处进入。 -->
 <view class="splash-page" bindtap="goHome">
 
-  <!-- 散落贴纸层 -->
-  <image class="stk stk-rabbit" src="/images/board2/collage4.png" mode="aspectFit" />
-  <image class="stk stk-bluestar" src="/images/board2/origami11.png" mode="aspectFit" />
+  <!-- 少量贴纸：克制，三张封顶 -->
+  <image class="stk stk-star" src="/images/board2/origami11.png" mode="aspectFit" />
   <image class="stk stk-crane" src="/images/board2/collage15.png" mode="aspectFit" />
-  <image class="stk stk-twins" src="/images/board2/cartoon11.png" mode="aspectFit" />
-  <image class="stk stk-love" src="/images/board2/collage13.png" mode="aspectFit" />
   <image class="stk stk-spark" src="/images/board2/collage11.png" mode="aspectFit" />
-  <image class="stk stk-pink" src="/images/board2/origami1.png" mode="aspectFit" />
 
-  <!-- 中央海报卡 -->
-  <view class="poster">
-    <view class="tape tape-tl"></view>
-    <view class="tape tape-br"></view>
-    <image class="poster-star" src="/images/board2/collage5.png" mode="aspectFit" />
-    <view class="poster-title">余票监控</view>
-    <view class="poster-en">TICKET RADAR</view>
-    <view class="poster-line"></view>
-    <view class="poster-tag">盯 紧 每 一 张 票</view>
+  <!-- 车票主体 -->
+  <view class="ticket">
+    <view class="tape"></view>
+
+    <!-- 主券 -->
+    <view class="ticket-main">
+      <view class="ticket-cn">余票监控</view>
+      <view class="ticket-en">T I C K E T · R A D A R</view>
+      <view class="ticket-slogan">盯紧每一张票</view>
+    </view>
+
+    <!-- 打孔线 + 副券 -->
+    <view class="perforation"></view>
+    <view class="hole hole-top"></view>
+    <view class="hole hole-bottom"></view>
+
+    <view class="ticket-stub">
+      <view class="stub-txt">ADMIT ONE</view>
+      <view class="barcode"></view>
+      <view class="stub-no">NO.2026</view>
+    </view>
   </view>
 
   <!-- 底部提示 -->

@@ -8,8 +8,10 @@
   padding: 26px 20px 16px;
 }
 .hero-title {
-  font-size: 26px;
-  letter-spacing: 2px;
+  /* 手写体大标题（龙藏体），手写感字号略放大补视觉尺寸 */
+  font-family: "HandCN", "STKaiti", "楷体", serif;
+  font-size: 31px;
+  letter-spacing: 3px;
   color: var(--t1);
   margin-bottom: 6px;
 }
@@ -331,63 +333,13 @@
   height: 180px;
 }
 
-/* ---------- 支持作者卡片 ---------- */
-.support-card {
-  margin: 12px;
-  padding: 14px 16px;
-  background: var(--accent-weak);
-  border-radius: 20px;
-  border: 1.5px dashed var(--accent);
-  position: relative;
-}
-.support-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.support-text {
-  flex: 1;
-  min-width: 0;
-}
-.support-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
-  font-family: "ButterYM", "STKaiti", "楷体", serif;
-}
-.support-desc {
-  font-size: 12px;
-  color: var(--t2);
-  margin-top: 4px;
-  line-height: 1.5;
-}
-.support-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.btn-sm {
-  /* 微信 button 默认块级撑满 100%——会把 flex 兄弟挤成一字一行，必须收住 */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  white-space: nowrap;
-  padding: 6px 14px;
-  background: var(--accent);
-  color: #FFFFFF;
-  border-radius: 16px;
-  font-size: 12px;
-  border: none;
-  line-height: 1;
-}
-.btn-sm::after { border: none; }
-.support-close {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  font-size: 18px;
-  color: var(--t3);
-  padding: 4px;
+
+/* 空状态的千纸鹤点缀 */
+.empty-stk {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 6px;
+  display: block;
+  transform: rotate(-8deg);
+  opacity: 0.9;
 }

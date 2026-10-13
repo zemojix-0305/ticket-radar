@@ -13,8 +13,8 @@ App({
     // app.wxss 里已有 @font-face，部分基础库对本地路径支持不稳，这里再挂一次
     wx.loadFontFace({
       global: true,
-      family: 'ButterYM',
-      source: 'url("/fonts/butter.woff2")',
+      family: 'HandCN',
+      source: 'url("/fonts/hand.woff2")',
       desc: { style: 'normal', weight: 400 },
       fail: (e) => console.warn('[ticket-radar] 字体加载失败，回退楷体', e),
     });
