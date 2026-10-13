@@ -1,11 +1,11 @@
-/* 开屏页 v4：coquette 手账票根（第十五轮重做）
-   构图 = 纯白底 + 满底高透明拼贴层 + 中央票根卡（微转 -3°，打孔线分主券/副券）
+/* 开屏页 v4：coquette 手账票根（第十五轮重做，第十六轮换 Y2K 天使系配色）
+   构图 = 相纸白底 + 满底高透明拼贴层 + 中央票根卡（微转 -3°，打孔线分主券/副券）
    + 胶带与蝴蝶结压票顶 + 五张贴纸错峰「啪」地贴上。
-   配色 = 白 + 玫瑰粉 #BC3565 + 浅粉 #F2C7D4；文字全部系统默认字体。 */
+   配色 = 白 + 长春花蓝 #4461CF + 浅蓝 #C7D5F7；文字全部系统默认字体。 */
 .splash-page {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #FFFFFF;
+  background: #FBFCFE;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,9 +55,9 @@
   width: 600rpx;
   padding: 56rpx 0;
   background: #FFFFFF;
-  border: 2rpx solid #F2C7D4;          /* 玫瑰粉描边，替代原来的灰 */
+  border: 2rpx solid #C7D5F7;          /* 玫瑰粉描边，替代原来的灰 */
   border-radius: 28rpx;                 /* coquette：更圆的角 */
-  box-shadow: 0 18rpx 60rpx rgba(188, 53, 101, 0.10);
+  box-shadow: 0 18rpx 60rpx rgba(78, 107, 224, 0.10);
   transform: rotate(-3deg);
   opacity: 0;
   animation: ticket-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
@@ -74,7 +74,7 @@
   left: 50%;
   width: 150rpx;
   height: 40rpx;
-  background: rgba(188, 53, 101, 0.22);
+  background: rgba(78, 107, 224, 0.22);
   transform: translateX(-50%) rotate(-4deg);
   border-radius: 3rpx;
   box-shadow: 0 2rpx 6rpx rgba(26, 26, 26, 0.05);
@@ -112,7 +112,7 @@
 .ticket-slogan {
   margin-top: 34rpx;
   font-size: 26rpx;
-  color: #BC3565;
+  color: #4461CF;
   letter-spacing: 3rpx;
 }
 /* 三颗小星：粉 / 蓝 / 黄，坐在口号下方 */
@@ -132,7 +132,7 @@
 /* 打孔线 */
 .perforation {
   width: 0;
-  border-left: 3rpx dashed #F2C7D4;
+  border-left: 3rpx dashed #C7D5F7;
 }
 /* 打孔圆缺：白圆 + 粉环，模拟被撕票口 */
 .hole {
@@ -142,7 +142,7 @@
   height: 34rpx;
   border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: inset 0 0 0 2rpx #F2C7D4;
+  box-shadow: inset 0 0 0 2rpx #C7D5F7;
 }
 .hole-top    { top: -19rpx; }
 .hole-bottom { bottom: -19rpx; }

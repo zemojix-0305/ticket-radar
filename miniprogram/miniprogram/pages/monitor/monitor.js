@@ -11,7 +11,7 @@ const PLATFORMS = [
   { key: 'bilibili', label: 'B站会员购', hint: '粘贴会员购演出链接；或去「搜演出」直接搜', ph: '粘贴会员购演出链接' },
   { key: 'maoyan', label: '猫眼', hint: '演出的 performance_id，在猫眼演出页地址栏里', ph: '例：509862' },
   { key: 'moretickets', label: '摩天轮', hint: '巡演的 tour_id，在摩天轮演出页地址栏里', ph: '例：67357b7a…' },
-  { key: 'piaoxingqiu', label: '票星球', hint: '把票星球分享的演出链接粘贴进来', ph: '粘贴票星球演出链接' },
+  { key: 'piaoxingqiu', label: '票星球', hint: '粘贴票星球分享链接；或去「搜演出」直接搜演出名', ph: '粘贴票星球演出链接' },
   { key: 'rail12306', label: '12306', hint: '填两个站名，中间空格隔开就行', ph: '广州南 长沙南' },
 ];
 

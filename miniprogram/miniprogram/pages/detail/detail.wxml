@@ -1,0 +1,86 @@
+<!-- 演出详情：大海报 + 场次/票档 + 盯这场。
+     数据走云函数 detail action（场次×票档全展开，官方状态原文）。 -->
+<view class="page">
+
+  <!-- 背景拼贴层 -->
+  <view class="bg-collage">
+    <view class="bg-tint bg-tint-blue bg-tint-a"></view>
+    <view class="bg-tint bg-tint-lav bg-tint-b"></view>
+    <view class="bg-tint bg-tint-mint bg-tint-c"></view>
+    <image class="bg-stk bg-faint bg-love"  src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-swirl" src="/images/board2/cartoon12.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star1" src="/images/board2/origami1.png" mode="aspectFit" />
+  </view>
+
+  <!-- 加载中 -->
+  <view class="card sk-card" wx:if="{{loading}}">
+    <view class="sk sk-poster"></view>
+    <view class="sk sk-t" style="width:70%"></view>
+    <view class="sk" style="width:45%;height:12px;margin-top:12px"></view>
+  </view>
+
+  <!-- 失败 -->
+  <view class="card empty" wx:if="{{!loading && error}}">
+    <view class="empty-mark"></view>
+    <view class="empty-title">详情没拿到</view>
+    <view class="empty-sub">{{error}}</view>
+    <view class="empty-btn press" bindtap="reload" hover-class="press-hover">重试</view>
+  </view>
+
+  <block wx:if="{{!loading && !error}}">
+    <!-- 大海报 -->
+    <view class="hero">
+      <view class="tape"></view>
+      <view class="bow"><view class="bow-k"></view></view>
+      <image class="hero-poster" src="{{poster}}" mode="aspectFill" wx:if="{{poster}}" />
+      <view class="hero-poster hero-poster-blank" wx:if="{{!poster}}">暂无海报</view>
+      <image class="hero-stk stk-a" src="/images/board2/origami21.png" mode="aspectFit" />
+      <image class="hero-stk stk-b" src="/images/board2/cartoon7.png" mode="aspectFit" />
+    </view>
+
+    <!-- 标题区 -->
+    <view class="card info">
+      <view class="info-name">{{name}}</view>
+      <view class="info-meta">
+        <text class="tag tag-brand">{{label}}</text>
+        <text class="tag tag-none" wx:if="{{city}}">{{city}}</text>
+      </view>
+      <view class="info-row" wx:if="{{venue}}">场馆 · {{venue}}</view>
+      <view class="info-row" wx:if="{{date}}">时间 · {{date}}</view>
+      <view class="info-row info-price" wx:if="{{price}}">{{price}}</view>
+    </view>
+
+    <!-- 场次 × 票档 -->
+    <view class="sec">
+      <view class="sec-title title-strong">场次与票档</view>
+      <view class="en-note">SESSIONS <text class="spark">✦</text> TICKETS</view>
+    </view>
+
+    <view class="card sess" wx:for="{{sessions}}" wx:key="name" wx:for-item="s" wx:for-index="si">
+      <view class="sess-head">
+        <view class="sess-name">{{s.name}}</view>
+        <text class="sess-status {{s.available ? 'ok' : 'none'}}">{{s.status || (s.available ? '可购' : '不可购')}}</text>
+      </view>
+      <view class="tier" wx:for="{{s.tiers}}" wx:key="name" wx:for-item="t">
+        <view class="tier-dot {{t.available ? 'on' : ''}}"></view>
+        <view class="tier-name">{{t.name}}</view>
+        <view class="tier-price" wx:if="{{t.price}}">{{t.price}}</view>
+        <view class="tier-status {{t.available ? 'ok' : 'none'}}">{{t.status}}</view>
+      </view>
+      <view class="sess-empty" wx:if="{{!s.tiers.length}}">这个场次的票档信息还没拉下来，点「盯这场」后我们会持续替你看着。</view>
+    </view>
+
+    <view class="stitch-wrap">
+      <view class="stitch-tag">盯整场 = 任意票档从无到有就提醒你</view>
+    </view>
+  </block>
+
+  <!-- 底部操作栏 -->
+  <view class="actionbar" wx:if="{{!loading && !error}}">
+    <view class="action-btn press {{adding ? 'busy' : ''}}" bindtap="addMonitor" hover-class="press-hover">
+      {{adding ? '安排上了…' : '盯这场演出'}}
+    </view>
+  </view>
+
+  <view class="safe"></view>
+</view>

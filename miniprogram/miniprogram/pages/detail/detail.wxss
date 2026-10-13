@@ -1,0 +1,177 @@
+/* 演出详情页样式：Y2K × coquette（长春花蓝 + 浅色光晕 + 拼贴层） */
+
+.page { padding-bottom: 96px; position: relative; }
+
+/* ---------- 背景拼贴定位（和 shows 页同款语法）---------- */
+.bg-love   { width: 120px; height: 120px; top: 520px; right: -24px; transform: rotate(14deg); }
+.bg-swirl  { width: 96px;  height: 96px;  top: 900px; left: -20px; }
+.bg-star1  { width: 30px;  height: 30px;  top: 240px; left: 8%; transform: rotate(-12deg); }
+
+/* ---------- 大海报 ---------- */
+.hero {
+  position: relative;
+  margin: 12px 16px 0;
+  padding: 10px 10px 12px;
+}
+.hero-poster {
+  display: block;
+  width: 100%;
+  height: 420rpx;
+  border-radius: 28rpx;
+  border: 2rpx solid var(--brand-line);
+  background: var(--bg-soft);
+}
+.hero-poster-blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--t3);
+  letter-spacing: 1px;
+}
+.hero-stk { position: absolute; width: 44rpx; height: 44rpx; }
+.hero-stk.stk-a { right: 18rpx; bottom: 26rpx; transform: rotate(12deg); opacity: 0.95; }
+.hero-stk.stk-b { left: 14rpx; bottom: 18rpx; transform: rotate(-10deg); opacity: 0.9; }
+
+/* ---------- 标题信息卡 ---------- */
+.info { padding: 16px 18px; }
+.info-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--t1);
+  line-height: 1.45;
+  letter-spacing: 0.3px;
+}
+.info-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.info-row {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.6;
+}
+.info-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* ---------- 分区标题 ---------- */
+.sec {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 18px 20px 10px;
+}
+.sec-title { font-size: 17px; font-weight: 600; color: var(--t1); letter-spacing: 0.5px; }
+
+/* ---------- 场次卡 ---------- */
+.sess { padding: 14px 16px; }
+.sess-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.sess-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--t1);
+  letter-spacing: 0.3px;
+}
+.sess-status { font-size: 12px; white-space: nowrap; }
+.sess-status.ok { color: var(--ok); }
+.sess-status.none { color: var(--t3); }
+
+/* ---------- 票档行 ---------- */
+.tier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
+}
+.tier + .tier { border-top: 1px dashed var(--line); }
+.tier-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bar-idle);
+  flex-shrink: 0;
+}
+.tier-dot.on { background: var(--ok); }
+.tier-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tier-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+}
+.tier-status { font-size: 12px; white-space: nowrap; min-width: 72px; text-align: right; }
+.tier-status.ok { color: var(--ok); }
+.tier-status.none { color: var(--t3); }
+.sess-empty {
+  padding: 12px 2px 4px;
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.7;
+}
+
+/* ---------- 底部操作栏 ---------- */
+.actionbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid var(--line);
+  display: flex;
+}
+.action-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 23px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-btn.busy { background: var(--brand-deep); }
+
+/* ---------- 骨架/空态 ---------- */
+.stitch-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0 6px;
+}
+.sk-poster {
+  width: 100%;
+  height: 420rpx;
+  border-radius: 28rpx;
+  margin-bottom: 16px;
+}
+.empty-btn {
+  margin: 14px auto 0;
+  padding: 8px 22px;
+  border-radius: 999px;
+  background: var(--brand-weak);
+  color: var(--brand);
+  font-size: 13px;
+  width: fit-content;
+}

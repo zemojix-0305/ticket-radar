@@ -7,15 +7,18 @@ from __future__ import annotations
 
 #: 与 miniprogram/miniprogram/app.wxss 里的 page{} 同源，改一处记得改两处。
 #:
-#: 白底 coquette 风（第十四轮）。纯白底 + 细线分区；
-#: 唯一点缀色深玫瑰 #BC3565；语义色：绿/灰/红/琥珀。
+#: 白底 Y2K × coquette 天使系（第十六轮）。相纸白底 + 细线分区；
+#: 主色长春花蓝 #4E6BE0；辅色薄荷 teal / 薰衣草 lav / 银；语义色：绿/灰/红/琥珀。
 PALETTE = {
-    "bg": "#FFFFFF",       # 纯白底
-    "card": "#FFFFFF",     # 卡片同为白
-    "brand": "#BC3565",    # 深玫瑰粉（coquette 唯一点缀色）
-    "t1": "#1A1A1A",       # 正文
-    "t2": "#6E6E73",       # 次要
-    "t3": "#75757A",       # 提示
+    "bg": "#FBFCFE",       # 相纸白
+    "card": "#FFFFFF",     # 卡片纯白
+    "brand": "#4461CF",    # 长春花蓝（Y2K 主色）
+    "brand-deep": "#3A54B8",
+    "mint": "#0E6E5F",     # 薄荷 teal（Y2K 辅色）
+    "lav": "#6A5BC4",      # 薰衣草（Y2K 辅色）
+    "t1": "#23283B",       # 正文（蓝黑墨水色）
+    "t2": "#5A6070",       # 次要
+    "t3": "#6B7385",       # 提示
     "ok": "#1E7A46",       # 有票：绿
     "none": "#6A6A6F",     # 无票：灰（与 ok 色相差大，色弱可辨）
     "bad": "#BC3B2C",      # 异常：红
@@ -24,7 +27,9 @@ PALETTE = {
     "none-weak": "#F4F4F5",
     "bad-weak": "#FBEAE7",
     "warn-weak": "#FBF3DC",
-    "brand-weak": "#FBE9EF",
+    "brand-weak": "#EDF2FE",
+    "mint-weak": "#E2F4EF",
+    "lav-weak": "#F0EDFB",
 }
 
 #: (用途, 前景, 背景, 是否大字)。大字阈值 3.0，普通文本 4.5。
@@ -45,7 +50,9 @@ CHECKS = [
     # pastel 浅底上的深字
     ("薄荷底/深绿字", "ok", "ok-weak", False),
     ("灰底/灰字", "none", "none-weak", False),
-    ("粉底/莓粉字", "brand", "brand-weak", False),
+    ("蓝浅底/长春花字", "brand", "brand-weak", False),
+    ("薄荷浅底/teal字", "mint", "mint-weak", False),
+    ("薰衣草浅底/紫字", "lav", "lav-weak", False),
 ]
 
 

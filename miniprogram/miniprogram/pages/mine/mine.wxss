@@ -97,42 +97,15 @@
   gap: 14px;
   overflow: hidden;
 }
-/* 装饰贴纸：左下角探出半个，透明度 0.28，绝不碰右侧 Star 按钮 */
-.support-deco {
-  position: absolute;
-  left: -16px;
-  bottom: -20px;
-  opacity: 0.28;
-  pointer-events: none;
-  z-index: 0;
-}
-.support-stk {
-  width: 84px;
-  height: 84px;
-  transform: rotate(-10deg);
-}
+/* 支持作者：默认字体 + 朴素排版（对齐参考截图：标题/说明/Star 按钮） */
 .support-main {
   flex: 1;
   min-width: 0;
-  position: relative;
-  z-index: 1;
 }
-.support-t-row { display: flex; align-items: center; gap: 7px; }
-.support-star { width: 20px; height: 20px; flex-shrink: 0; }
 .support-t {
   font-size: 17px;
   font-weight: 600;
   color: var(--t1);
-  letter-spacing: 0.5px;
-}
-/* GitHub 小徽章：一眼看出开源去向 */
-.support-gh {
-  flex-shrink: 0;
-  font-size: 10px;
-  color: var(--brand);
-  background: var(--brand-weak);
-  padding: 2px 8px;
-  border-radius: 999px;
   letter-spacing: 0.5px;
 }
 .support-d {
@@ -143,8 +116,6 @@
 }
 .support-btn {
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
   padding: 9px 18px;
   background: var(--brand);
   color: #FFFFFF;

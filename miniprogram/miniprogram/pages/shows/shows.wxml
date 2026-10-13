@@ -4,6 +4,8 @@
   <!-- 背景拼贴层：board2 贴纸素材，透明度压到 0.07~0.14，
        只在留白缝隙透出（z-index:-1，盖在白卡片底下） -->
   <view class="bg-collage">
+    <view class="bg-tint bg-tint-blue bg-tint-a"></view>
+    <view class="bg-tint bg-tint-mint bg-tint-c"></view>
     <image class="bg-stk bg-faint bg-love"   src="/images/board2/collage13.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-swirl"  src="/images/board2/cartoon12.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-burst"  src="/images/board2/collage3.png"  mode="aspectFit" />
@@ -129,12 +131,12 @@
     <view class="sk" style="width:40%;height:12px;margin-top:12px"></view>
   </view>
 
-  <!-- ============ 热门演出（猫眼 & 没在展示搜索结果时） ============ -->
-  <block wx:if="{{platforms[platformIndex].key === 'maoyan' && !searched && !searching}}">
+  <!-- ============ 正在热卖（每个平台都有自己的榜；12306 是查票没有榜） ============ -->
+  <block wx:if="{{platforms[platformIndex].key !== 'rail12306' && !searched && !searching}}">
 
     <view class="sec">
       <view class="sec-title title-strong">正在热卖</view>
-      <view class="en-note">TRENDING NOW</view>
+      <view class="en-note">TRENDING NOW <text class="spark">✦</text></view>
     </view>
 
     <view class="card sk-card" wx:if="{{hotLoading}}">
@@ -144,19 +146,20 @@
 
     <view class="card empty" wx:if="{{!hotLoading && hotFail}}">
       <view class="empty-mark"></view>
-      <view class="empty-title">热门列表拿不到</view>
+      <view class="empty-title">这个平台的热卖榜还没拿到</view>
       <view class="empty-sub">{{hotFail}}</view>
     </view>
 
     <view class="hot-list" wx:if="{{!hotLoading && hot.length}}">
-      <view class="show-card press-card" wx:for="{{hot}}" wx:key="id" hover-class="press-card-hover">
+      <view class="show-card press-card" wx:for="{{hot}}" wx:key="id" hover-class="press-card-hover" data-row="{{item}}" bindtap="openDetail">
         <view class="poster">
           <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
         </view>
+        <view class="poster poster-blank" wx:if="{{!item.poster}}"></view>
         <view class="show-main">
           <view class="show-name">{{item.name}}</view>
           <view class="show-meta">
-            <text class="tag tag-brand">猫眼</text>
+            <text class="tag tag-brand">{{item.platformLabel}}</text>
             <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
           </view>
           <view class="show-sub">
@@ -166,10 +169,11 @@
           </view>
           <view class="show-foot">
             <text class="show-price" wx:if="{{item.price}}">{{item.price}} 起</text>
+            <view class="show-more">详情 ›</view>
             <view
               class="btn-watch {{adding === item.id ? 'btn-watch-busy' : ''}}"
               data-row="{{item}}"
-              bindtap="add"
+              catchtap="add"
               hover-class="press-hover"
             >{{adding === item.id ? '…' : '盯'}}</view>
           </view>
@@ -178,7 +182,7 @@
     </view>
 
     <view class="stitch-wrap" wx:if="{{hot.length}}">
-      <view class="stitch-tag">数据来自猫眼 · 每五分钟刷新一次</view>
+      <view class="stitch-tag">点开看场次和票档 · 数据来自{{platforms[platformIndex].label}}</view>
     </view>
   </block>
 
@@ -192,7 +196,7 @@
     </view>
 
     <view class="hot-list" wx:if="{{rows.length}}">
-      <view class="show-card press-card" wx:for="{{rows}}" wx:key="id" hover-class="press-card-hover">
+      <view class="show-card press-card" wx:for="{{rows}}" wx:key="id" hover-class="press-card-hover" data-row="{{item}}" bindtap="openDetail">
         <view class="poster">
           <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
         </view>
@@ -210,10 +214,11 @@
           </view>
           <view class="show-foot">
             <text class="show-price" wx:if="{{item.price}}">{{item.price}} 起</text>
+            <view class="show-more">详情 ›</view>
             <view
               class="btn-watch {{adding === item.id ? 'btn-watch-busy' : ''}}"
               data-row="{{item}}"
-              bindtap="add"
+              catchtap="add"
               hover-class="press-hover"
             >{{adding === item.id ? '…' : '盯'}}</view>
           </view>

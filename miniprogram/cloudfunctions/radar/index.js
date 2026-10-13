@@ -890,14 +890,14 @@ function biliCheck(j) {
   }
 }
 
-/** 会员购关键词搜索 → 与 findMaoyan 同构的行结构。 */
+/** 会员购关键词搜索 → 与 findMaoyan 同构的行结构。空关键词 = 正在热卖列表。 */
 async function findBilibili(keyword, limit) {
   const kw = String(keyword || '').trim();
-  if (!kw) throw new Error('会员购没有热门列表，输入关键词搜索');
   await biliWarm().catch(() => {}); // buvid3 拿不到也照搜，匿名多半放行
   const url =
     `${BILI_SHOW}/api/ticket/project/listV2?version=134&platform=web&page=1` +
-    `&pagesize=${Math.min(Number(limit) || 20, 20)}&ptype=100104&area=0&keyword=${encodeURIComponent(kw)}`;
+    `&pagesize=${Math.min(Number(limit) || 20, 20)}&ptype=100104&area=0` +
+    (kw ? `&keyword=${encodeURIComponent(kw)}` : '');
   const j = await getJson(url, { headers: biliHeaders() });
   biliCheck(j);
   const rows = (j.data && j.data.result) || [];
@@ -978,100 +978,385 @@ async function pollBilibili(params) {
 }
 
 // ===========================================================================
-// 平台：票星球（接口未完全打通——适配器先走通链路，部署后 probe 实测）
+// 平台：票星球（m.piaoxingqiu.com / cyy_gatewayapi，公开匿名可读——2026-10 实测打通）
 // ===========================================================================
-//
-// 2026-10 查证：本机直连/代理都连不上 www.piaoxingqiu.com（疑似对非国内
-// 常规 IP 段有限制），公开文档也没有。票星球 Web 端是 SPA，数据走
-// api.piaoxingqiu.com。这里先按最可能的详情接口写，跑不通时把原始错误
-// 原样报给用户——宁可「暂未打通」也不能做假状态。
+// 端点全部来自 H5 前端 bundle（uni-app，global-static.caiyicloud.com），
+// 都是 pub（公开）路径，不需要登录态：
+//   搜索: GET /cyy_gatewayapi/home/pub/v3/show_list/search
+//         ?keyword=&pageType=SEARCH_PAGE&offset=&length=        （不带城市=全国）
+//   推荐: GET /cyy_gatewayapi/home/pub/v3/show/recommend         （热卖榜，40 条）
+//   静态: GET /cyy_gatewayapi/show/pub/v5/show/{showId}/static   （海报/名称/场馆）
+//   动态: GET /cyy_gatewayapi/show/pub/v5/show/{showId}/dynamic  （showDetailStatus）
+//   场次: GET /cyy_gatewayapi/show/pub/v3/show/{showId}/sessions_static_data（场次名/时间）
+//         GET /cyy_gatewayapi/show/pub/v3/show/{showId}/sessions_dynamic_data（场次态）
+//   票档: GET /cyy_gatewayapi/show/pub/v3/show/{showId}/show_session/{sid}/seat_plans_static_data（票名/原价）
+//         GET /cyy_gatewayapi/show/pub/v3/show/{showId}/show_session/{sid}/seat_plans_dynamic_data（canBuyCount）
+// 请求头固定 Src: H5 / Terminal-Src: H5 + iPhone UA；同盾 blackbox 只用于
+// 抢票下单（本项目不做），监控链路全程匿名。
+// 状态枚举（官方原文）：ONSALE 在售 / PRESALE 预售 / PURCHASE_TO_BEGIN 未开售 /
+//   SOLD_OUT 售罄 / LACK_OF_TICKET 缺票登记（回流票的信号源）/ PENDING 待定。
 
-const PXQ_BASE = 'https://www.piaoxingqiu.com';
-const PXQ_API = 'https://api.piaoxingqiu.com';
+const PXQ_M = 'https://m.piaoxingqiu.com';
+const PXQ_VER = '4.3.3-20240404095840';
 
 function pxqHeaders() {
   return {
-    'User-Agent': UA,
-    Referer: PXQ_BASE + '/',
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+    Src: 'H5',
+    'Terminal-Src': 'H5',
     Accept: 'application/json, text/plain, */*',
-    'Content-Type': 'application/json',
   };
 }
 
-/** 票星球链接形如 /show/{id}，也有分享短链。 */
+function pxqUrl(path, query) {
+  const q = Object.assign({ src: 'H5', ver: PXQ_VER }, query || {});
+  const qs = Object.keys(q)
+    .filter((k) => q[k] !== '' && q[k] != null)
+    .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(q[k]))
+    .join('&');
+  return `${PXQ_M}${path}${qs ? '?' + qs : ''}`;
+}
+
+function pxqCheck(j, what) {
+  if (!j || typeof j !== 'object') throw new Error('票星球返回了空响应');
+  if (j.statusCode != null && j.statusCode !== 200) {
+    throw new Error('票星球' + what + '返回：' + (j.comments || ('statusCode=' + j.statusCode)));
+  }
+  const d = j.data;
+  if (!d || typeof d !== 'object') throw new Error('票星球' + what + '无数据');
+  if (d.rsCode != null && d.rsCode !== 200) {
+    throw new Error('票星球' + what + '业务错误 rsCode=' + d.rsCode);
+  }
+  return d;
+}
+
+/** 票星球分享链接形如 /show/{bizShowId}（24 位十六进制）。 */
 function extractPxqId(text) {
   const m = String(text || '').match(/piaoxingqiu\.com\/show\/([a-zA-Z0-9-]+)/i);
   return (m && m[1]) || '';
 }
 
-async function pollPiaoxingqiu(params) {
-  const showId = params.show_id || params.id || extractPxqId(params.url || '');
-  if (!showId) throw new Error('缺少票星球 show_id——把票星球小程序/网页分享的演出链接粘贴进来');
-
-  // 逐个试已知可能的接口路径；全部失败时给出统一的「未打通」报错
-  const attempts = [
-    `${PXQ_API}/api/v1/web/content/item/${encodeURIComponent(showId)}`,
-    `${PXQ_BASE}/show/${encodeURIComponent(showId)}`,
-  ];
-  const errors = [];
-  for (const url of attempts) {
-    try {
-      const r = await request(url, { headers: pxqHeaders(), timeout: 15000 });
-      if (r.status !== 200) {
-        errors.push(url + ' → HTTP ' + r.status);
-        continue;
-      }
-      let data;
-      try {
-        data = JSON.parse(r.body);
-      } catch (e) {
-        errors.push(url + ' → 返回了 HTML/非 JSON（可能是风控页）');
-        continue;
-      }
-      // 命中了就尽力解析；字段名没有官方文档，只取确定的常用字段
-      const d = data.data || data;
-      const name = d.name || d.showName || ('票星球 #' + showId);
-      const saleStatus = d.saleStatus != null ? String(d.saleStatus) : '';
-      return [
-        {
-          label: name,
-          place: d.venueName || d.cityName || '',
-          when: d.showTimeStr || d.showTime || '',
-          status: saleStatus || '状态未知',
-          available: saleStatus === '1' || saleStatus === 'ON_SALE',
-          count: saleStatus === '1' ? null : 0,
-          price: d.priceRange || d.minPrice || '',
-        },
-      ];
-    } catch (e) {
-      errors.push(url + ' → ' + String((e && e.message) || e));
-    }
-  }
-  throw new Error(
-    '票星球接口暂未打通（接口无公开文档，且本平台网络限制较多）。\n尝试记录：' +
-      errors.join('；'),
-  );
+/** 官方票态 → 是否可买。缺票登记/售罄/未开售都算不可买。 */
+function pxqAvailable(status) {
+  const s = String(status || '').toUpperCase();
+  return s === 'ONSALE' || s === 'ON_SALE' || s === 'PRESALE' || s === 'PRE_SALE';
 }
 
-/** 票星球「搜索」同大麦：只支持粘贴链接。 */
-async function findPiaoxingqiu(linkOrId) {
-  const id = extractPxqId(linkOrId) || String(linkOrId || '').trim();
-  if (!id) throw new Error('请粘贴票星球演出链接（形如 .../show/xxxx）');
-  const items = await pollPiaoxingqiu({ show_id: id });
+const PXQ_STATUS_CN = {
+  ONSALE: '在售', ON_SALE: '在售',
+  PRESALE: '预售中', PRE_SALE: '预售中',
+  PURCHASE_TO_BEGIN: '未开售',
+  SOLD_OUT: '售罄',
+  LACK_OF_TICKET: '缺票登记',
+  PENDING: '待定',
+};
+
+function pxqStatusCn(status) {
+  const s = String(status || '').toUpperCase();
+  return PXQ_STATUS_CN[s] || (status ? String(status) : '状态未知');
+}
+
+/** 关键词搜索（全国范围）→ 与 findMaoyan 同构的行结构。 */
+async function findPiaoxingqiu(keyword, limit) {
+  const kw = String(keyword || '').trim();
+  if (!kw) throw new Error('输入演出名搜索票星球');
+  const j = await getJson(
+    pxqUrl('/cyy_gatewayapi/home/pub/v3/show_list/search', {
+      keyword: kw,
+      pageType: 'SEARCH_PAGE',
+      offset: 0,
+      length: Math.min(Number(limit) || 20, 50),
+    }),
+    { headers: pxqHeaders(), timeout: 15000 },
+  );
+  const d = pxqCheck(j, '搜索');
+  const rows = Array.isArray(d.searchData) ? d.searchData : [];
+  return rows.map((r) => ({
+    performanceId: String(r.showId),
+    showId: String(r.showId),
+    stdShowId: r.stdShowId ? String(r.stdShowId) : '',
+    name: r.showName || ('票星球 #' + r.showId),
+    city: r.cityName || '',
+    venue: r.venueName || '',
+    dateRange: r.showDate || '',
+    price: r.minOriginalPrice != null ? '¥' + r.minOriginalPrice + ' 起' : '',
+    status: pxqStatusCn(r.showStatus),
+    available: pxqAvailable(r.showStatus),
+    poster: r.posterUrl || '',
+    category: (r.backendCategory && r.backendCategory.displayName) || '',
+  }));
+}
+
+/** 票星球热卖榜（推荐位 40 条，匿名直读）。 */
+async function hotPiaoxingqiu(limit) {
+  const j = await getJson(pxqUrl('/cyy_gatewayapi/home/pub/v3/show/recommend'), {
+    headers: pxqHeaders(),
+    timeout: 15000,
+  });
+  const rows = pxqCheck(j, '推荐') || [];
+  return (Array.isArray(rows) ? rows : [])
+    .slice(0, Math.min(Number(limit) || 20, 40))
+    .map((r) => ({
+      performanceId: String(r.showId),
+      showId: String(r.showId),
+      name: r.showName || ('票星球 #' + r.showId),
+      city: r.cityName || '',
+      venue: r.venueName || '',
+      dateRange: r.showDate || '',
+      price: r.minOriginalPrice != null ? '¥' + r.minOriginalPrice + ' 起' : '',
+      status: pxqStatusCn(r.showStatus),
+      poster: r.posterUrl || '',
+    }));
+}
+
+/**
+ * 抓一个票星球演出的当前状态：场次 × 票档 全展开。
+ * 每行一个可判定的 available，diffRestock 直接可用。
+ * params: { show_id } 或 { url: 分享链接 }
+ */
+async function pollPiaoxingqiu(params) {
+  let showId = params.show_id || params.id || extractPxqId(params.url || '') || '';
+  if (!showId) {
+    // 也接受直接粘 24 位 hex id
+    const m = String(params.url || '').match(/\b([a-f0-9]{24})\b/i);
+    if (m) showId = m[1];
+  }
+  if (!showId) throw new Error('缺少票星球 show_id——把票星球分享的演出链接粘贴进来，或去「搜演出」直接搜');
+
+  // 场次静态（名称/时间）+ 动态（状态）；动态失败不致命，下面按静态兜底
+  const sStatic = pxqCheck(
+    await getJson(pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${showId}/sessions_static_data`), {
+      headers: pxqHeaders(), timeout: 15000,
+    }), '场次',
+  );
+  let sDynamic = null;
+  try {
+    sDynamic = pxqCheck(
+      await getJson(pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${showId}/sessions_dynamic_data`), {
+        headers: pxqHeaders(), timeout: 15000,
+      }), '场次状态',
+    );
+  } catch (e) { /* 场次动态拿不到就用静态兜底 */ }
+  const dynMap = {};
+  for (const s of (sDynamic && sDynamic.sessionVOs) || []) {
+    dynMap[String(s.bizShowSessionId)] = s;
+  }
+
+  const sessions = Array.isArray(sStatic.sessionVOs) ? sStatic.sessionVOs : [];
+  const showName = sStatic.showName || ('票星球 #' + showId);
+  const items = [];
+  for (const s of sessions.slice(0, 10)) {
+    const sid = String(s.bizShowSessionId || '');
+    const dyn = dynMap[sid] || {};
+    const sStatus = String(dyn.sessionStatus || s.sessionStatus || '').toUpperCase();
+    // 票档静态（票名/原价）+ 动态（canBuyCount）
+    let plans = [];
+    try {
+      const pStatic = pxqCheck(
+        await getJson(
+          pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${showId}/show_session/${sid}/seat_plans_static_data`),
+          { headers: pxqHeaders(), timeout: 15000 },
+        ), '票档',
+      );
+      plans = Array.isArray(pStatic.seatPlans) ? pStatic.seatPlans : [];
+      let pDynamic = null;
+      try {
+        pDynamic = pxqCheck(
+          await getJson(
+            pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${showId}/show_session/${sid}/seat_plans_dynamic_data`),
+            { headers: pxqHeaders(), timeout: 15000 },
+          ), '票档状态',
+        );
+      } catch (e) { /* 动态拿不到就用静态的 isStopSale 判 */ }
+      const canBuy = {};
+      for (const p of (pDynamic && pDynamic.seatPlans) || []) {
+        canBuy[String(p.seatPlanId)] = p;
+      }
+      for (const p of plans) {
+        const pid = String(p.seatPlanId || '');
+        const dynP = canBuy[pid] || {};
+        const cnt = dynP.canBuyCount != null ? Number(dynP.canBuyCount) : null;
+        const available =
+          p.saleStarted !== false &&
+          p.isStopSale !== true &&
+          p.channelHideFlag !== true &&
+          (cnt == null ? pxqAvailable(sStatus) : cnt > 0);
+        items.push({
+          label: (s.sessionName || '场次') + ' ' + (p.seatPlanName || '票档'),
+          place: sStatic.venueName || '',
+          when: s.sessionName || '',
+          status: available
+            ? (cnt != null && cnt > 0 ? '可购 ×' + cnt : pxqStatusCn(sStatus))
+            : (p.isStopSale === true ? '停售' : pxqStatusCn(sStatus)),
+          available: available,
+          count: available ? (cnt != null && cnt > 0 ? cnt : null) : 0,
+          price: p.originalPrice != null ? '¥' + p.originalPrice : '',
+        });
+      }
+    } catch (e) {
+      // 票档拿不到：场次级一条兜底（状态原文）
+      items.push({
+        label: s.sessionName || showName,
+        place: sStatic.venueName || '',
+        when: s.sessionName || '',
+        status: pxqStatusCn(sStatus) || '场次',
+        available: pxqAvailable(sStatus) && dyn.hasSessionSoldOut !== true,
+        count: pxqAvailable(sStatus) ? null : 0,
+        price: '',
+      });
+    }
+  }
+  if (!items.length) {
+    // 没挂出场次：项目级一条，用动态详情状态兜底
+    let dStatus = '';
+    try {
+      const dyn = pxqCheck(
+        await getJson(pxqUrl(`/cyy_gatewayapi/show/pub/v5/show/${showId}/dynamic`), {
+          headers: pxqHeaders(), timeout: 15000,
+        }), '详情',
+      );
+      dStatus = String(dyn.showDetailStatus || '').toUpperCase();
+    } catch (e) { /* 忽略，走未知 */ }
+    items.push({
+      label: showName,
+      place: '',
+      when: '',
+      status: pxqStatusCn(dStatus) || '状态未知',
+      available: pxqAvailable(dStatus),
+      count: pxqAvailable(dStatus) ? null : 0,
+      price: '',
+    });
+  }
+  return items;
+}
+
+// ===========================================================================
+// 演出详情（详情页用）：统一返回 { platform, id, name, venue, sessions[] }
+//   sessions[].tiers[] 每行带官方状态原文 + available（可判定）。
+//   B站/票星球出真场次结构；其余平台 poll 是扁平的，包成单一分组。
+// ===========================================================================
+async function detailShow(platform, id) {
+  if (platform === 'bilibili') {
+    await biliWarm().catch(() => {});
+    const j = await getJson(
+      `${BILI_SHOW}/api/ticket/project/getV2?version=134&id=${encodeURIComponent(id)}` +
+        `&project_id=${encodeURIComponent(id)}&requestSource=pcweb`,
+      { headers: biliHeaders() },
+    );
+    biliCheck(j);
+    const d = j.data || {};
+    const venue =
+      (d.venue_info && (d.venue_info.name || d.venue_info.venue_name)) ||
+      (d.place_info && (d.place_info.name || d.place_info.place_name)) || '';
+    const sessions = (Array.isArray(d.screen_list) ? d.screen_list : []).map((s) => ({
+      name: s.name || s.start_time_str || '场次',
+      when: s.start_time_str || s.name || '',
+      status: '',
+      available: false,
+      tiers: (s.ticket_list || []).map((t) => {
+        const disp = (t.sale_flag && t.sale_flag.display_name) || '';
+        const soldOut = /售罄|缺货|结束|下架|停止|暂停/.test(disp);
+        const available = t.clickable === true && t.is_sale === 1 && !soldOut;
+        return {
+          name: t.desc || t.screen_name || '票档',
+          price: t.price != null ? '¥' + t.price / 100 : '',
+          status: disp || (available ? '可购' : '不可购'),
+          available: available,
+        };
+      }),
+    }));
+    return { platform, id, name: d.name || '', venue, sessions };
+  }
+
+  if (platform === 'piaoxingqiu') {
+    const sStatic = pxqCheck(
+      await getJson(pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${id}/sessions_static_data`), {
+        headers: pxqHeaders(), timeout: 15000,
+      }), '场次',
+    );
+    let sDynamic = null;
+    try {
+      sDynamic = pxqCheck(
+        await getJson(pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${id}/sessions_dynamic_data`), {
+          headers: pxqHeaders(), timeout: 15000,
+        }), '场次状态',
+      );
+    } catch (e) { /* 动态拿不到用静态兜底 */ }
+    const dynMap = {};
+    for (const s of (sDynamic && sDynamic.sessionVOs) || []) dynMap[String(s.bizShowSessionId)] = s;
+    const sessions = [];
+    for (const s of (Array.isArray(sStatic.sessionVOs) ? sStatic.sessionVOs : []).slice(0, 10)) {
+      const sid = String(s.bizShowSessionId || '');
+      const dyn = dynMap[sid] || {};
+      const sStatus = String(dyn.sessionStatus || s.sessionStatus || '').toUpperCase();
+      const tiers = [];
+      try {
+        const pStatic = pxqCheck(
+          await getJson(
+            pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${id}/show_session/${sid}/seat_plans_static_data`),
+            { headers: pxqHeaders(), timeout: 15000 },
+          ), '票档',
+        );
+        let pDynamic = null;
+        try {
+          pDynamic = pxqCheck(
+            await getJson(
+              pxqUrl(`/cyy_gatewayapi/show/pub/v3/show/${id}/show_session/${sid}/seat_plans_dynamic_data`),
+              { headers: pxqHeaders(), timeout: 15000 },
+            ), '票档状态',
+          );
+        } catch (e) { /* 动态拿不到用静态判 */ }
+        const canBuy = {};
+        for (const p of (pDynamic && pDynamic.seatPlans) || []) canBuy[String(p.seatPlanId)] = p;
+        for (const p of pStatic.seatPlans || []) {
+          const cnt = canBuy[String(p.seatPlanId)];
+          const n = cnt && cnt.canBuyCount != null ? Number(cnt.canBuyCount) : null;
+          const available =
+            p.saleStarted !== false && p.isStopSale !== true && p.channelHideFlag !== true &&
+            (n == null ? pxqAvailable(sStatus) : n > 0);
+          tiers.push({
+            name: p.seatPlanName || '票档',
+            price: p.originalPrice != null ? '¥' + p.originalPrice : '',
+            status: available
+              ? (n != null && n > 0 ? '可购 ×' + n : pxqStatusCn(sStatus))
+              : (p.isStopSale === true ? '停售' : pxqStatusCn(sStatus)),
+            available: available,
+          });
+        }
+      } catch (e) { /* 票档拿不到就空着 */ }
+      sessions.push({
+        name: s.sessionName || '场次',
+        when: s.sessionName || '',
+        status: pxqStatusCn(sStatus),
+        available: pxqAvailable(sStatus) && dyn.hasSessionSoldOut !== true,
+        tiers: tiers,
+      });
+    }
+    return { platform, id, name: sStatic.showName || '', venue: sStatic.venueName || '', sessions };
+  }
+
+  // 其余平台：扁平 poll 包成单一分组
+  const fn = PLATFORMS[platform];
+  if (!fn) throw new Error('暂不支持平台 ' + platform);
+  const paramKey =
+    platform === 'moretickets' ? 'tour_id'
+    : platform === 'maoyan' ? 'performance_id'
+    : platform === 'damai' ? 'item_id'
+    : 'id';
+  const items = await fn({ [paramKey]: id });
   const first = items[0] || {};
-  return [
-    {
-      performanceId: id,
-      showId: id,
-      name: first.label || '票星球 #' + id,
-      city: '',
-      venue: first.place || '',
-      dateRange: first.when || '',
-      price: first.price || '',
-      status: first.status || '',
-      poster: '',
-    },
-  ];
+  return {
+    platform, id,
+    name: first.label || '',
+    venue: first.place || '',
+    sessions: [{
+      name: first.label || '票档', when: first.when || '', status: first.status || '',
+      available: !!first.available,
+      tiers: items.map((it) => ({
+        name: it.label, price: it.price || '', status: it.status || '', available: !!it.available,
+      })),
+    }],
+  };
 }
 
 // ===========================================================================
@@ -1274,15 +1559,33 @@ exports.main = async (event) => {
       const limit = (event && event.limit) || 20;
       const platform = String((event && event.platform) || 'moretickets').trim();
 
-      // 空关键词 = 热门列表。实测（2026-10）只有猫眼支持：k= 直接返回
-      // 在售演出（带海报）。摩天轮空关键词 403、大麦风控、票星球无接口
-      // ——拿不到就明说，不造假列表。
+      // 空关键词 = 各平台「正在热卖」。实测（2026-10）：
+      //   猫眼 k= 直返在售（带海报）；B站 listV2 免 keyword 返推荐位；
+      //   票星球 show/recommend 返 40 条热卖榜；大麦/摩天轮没有真正的
+      //   热门端点，用「演唱会」关键词兜底（真实数据，不是编的）；
+      //   12306 是站站查询，没有热卖榜。
       if (!keyword) {
         if (platform === 'maoyan') {
           const rows = await findMaoyan('', limit);
           return { ok: true, keyword: '', platform, rows };
         }
-        return { ok: false, error: '该平台没有热门列表，请输入关键词搜索' };
+        if (platform === 'bilibili') {
+          const rows = await findBilibili('', limit);
+          return { ok: true, keyword: '', platform, rows };
+        }
+        if (platform === 'piaoxingqiu') {
+          const rows = await hotPiaoxingqiu(limit);
+          return { ok: true, keyword: '', platform, rows };
+        }
+        if (platform === 'damai') {
+          const rows = await damaiSearch('演唱会', limit);
+          return { ok: true, keyword: '', platform, rows };
+        }
+        if (platform === 'moretickets') {
+          const rows = await findMoretickets('演唱会', limit);
+          return { ok: true, keyword: '', platform, rows };
+        }
+        return { ok: false, error: '12306 是查两站之间的余票，没有「热卖榜」——填上出发地和目的地就能查' };
       }
 
       if (platform === 'maoyan') {
@@ -1307,11 +1610,39 @@ exports.main = async (event) => {
         const rows = await findBilibili(keyword, limit);
         return { ok: true, keyword, platform, rows };
       }
+      // 票星球：关键词 → 全国搜索（2026-10 打通）；粘贴分享链接 → 抠 id 抓详情
       if (platform === 'piaoxingqiu') {
-        const rows = await findPiaoxingqiu(keyword);
+        const linkId = extractPxqId(keyword);
+        if (linkId) {
+          const items = await pollPiaoxingqiu({ show_id: linkId });
+          const first = items[0] || {};
+          return {
+            ok: true, keyword, platform,
+            rows: [{
+              performanceId: linkId, showId: linkId,
+              name: first.label || ('票星球 #' + linkId),
+              city: '', venue: first.place || '', dateRange: first.when || '',
+              price: first.price || '', status: first.status || '', poster: '',
+            }],
+          };
+        }
+        const rows = await findPiaoxingqiu(keyword, limit);
         return { ok: true, keyword, platform, rows };
       }
       return { ok: false, error: '暂不支持平台 ' + platform };
+    }
+
+    // --- 演出详情：场次 × 票档 全展开（详情页用）------------------------
+    if (action === 'detail') {
+      const platform = String((event && event.platform) || '').trim();
+      const id = String((event && event.id) || '').trim();
+      if (!platform || !id) return { ok: false, error: '缺少 platform 或 id' };
+      try {
+        const r = await detailShow(platform, id);
+        return Object.assign({ ok: true }, r);
+      } catch (e) {
+        return { ok: false, error: String((e && e.message) || e) };
+      }
     }
 
     // --- 讨论区帖子列表 ---------------------------------------------
@@ -1434,4 +1765,8 @@ exports._internals = {
   mtopCall: mtopCall,
   findBilibili: findBilibili,
   pollBilibili: pollBilibili,
+  findPiaoxingqiu: findPiaoxingqiu,
+  pollPiaoxingqiu: pollPiaoxingqiu,
+  hotPiaoxingqiu: hotPiaoxingqiu,
+  detailShow: detailShow,
 };

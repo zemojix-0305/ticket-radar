@@ -127,22 +127,46 @@ Page({
 
   /** 热门演出：只有猫眼能做（实测空关键词返回在售列表），其他平台给假数据是不诚实 */
   loadHot() {
+    const p = PLATFORMS[this.data.platformIndex] || PLATFORMS[0];
+    // 12306 是查两站之间余票，没有「热卖榜」
+    if (p.key === 'rail12306') {
+      this.setData({ hot: [], hotLoading: false, hotFail: '' });
+      return;
+    }
     if (this.data.hotLoading) return;
     this.setData({ hotLoading: true, hotFail: '' });
     wx.cloud
       .callFunction({
         name: 'radar',
-        data: { action: 'find', keyword: '', platform: 'maoyan', limit: 10 },
+        data: { action: 'find', keyword: '', platform: p.key, limit: 10 },
       })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        const rows = (r.rows || []).map((row) => this.normalize(row, PLATFORMS.find((x) => x.key === 'maoyan')));
+        const rows = (r.rows || []).map((row) => this.normalize(row, p));
         this.setData({ hot: rows, hotLoading: false });
       })
       .catch((e) => {
         this.setData({ hotLoading: false, hotFail: String(e.message || e) });
       });
+  },
+
+  /** 点演出卡片 → 详情页（海报 + 场次/票档 + 盯这场） */
+  openDetail(e) {
+    const row = e.currentTarget.dataset.row;
+    if (!row || !row.id) return;
+    const q = [
+      'platform=' + encodeURIComponent(row.platform),
+      'id=' + encodeURIComponent(row.id),
+      'name=' + encodeURIComponent(row.name || ''),
+      'poster=' + encodeURIComponent(row.poster || ''),
+      'city=' + encodeURIComponent(row.city || ''),
+      'venue=' + encodeURIComponent(row.venue || ''),
+      'price=' + encodeURIComponent(row.price || ''),
+      'date=' + encodeURIComponent(row.dateRange || ''),
+      'label=' + encodeURIComponent(row.platformLabel || ''),
+    ].join('&');
+    wx.navigateTo({ url: '/pages/detail/detail?' + q });
   },
 
   searchKeyword(p) {
@@ -217,7 +241,9 @@ Page({
 
   onPlatform(e) {
     const idx = Number(e.currentTarget.dataset.idx);
-    this.setData({ platformIndex: idx, rows: [], searched: false, fail: '' });
+    this.setData({ platformIndex: idx, rows: [], searched: false, fail: '', hot: [] });
+    // 切平台就换一批热卖（每平台都有自己的榜单）
+    this.loadHot();
   },
 
   /** 携程式交换出发地/目的地 */
@@ -304,6 +330,9 @@ Page({
     } else if (row.platform === 'bilibili') {
       // 会员购：project_id，轮询走 getV2 接口
       params = { project_id: row.id };
+    } else if (row.platform === 'piaoxingqiu') {
+      // 票星球：show_id（bizShowId），轮询走 cyy_gatewayapi
+      params = { show_id: row.id };
     } else if (row.platform === 'rail12306') {
       // 12306 监控必须带上出发地/目的地/日期，不然轮询时不知道查哪条线
       params = { from: this.data.from, to: this.data.to, date: this.data.date };

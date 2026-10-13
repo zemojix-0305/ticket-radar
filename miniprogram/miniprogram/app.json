@@ -3,6 +3,7 @@
     "pages/splash/splash",
     "pages/monitor/monitor",
     "pages/shows/shows",
+    "pages/detail/detail",
     "pages/history/history",
     "pages/discussion/discussion",
     "pages/mine/mine"

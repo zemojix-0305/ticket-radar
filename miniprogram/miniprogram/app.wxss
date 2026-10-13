@@ -1,39 +1,50 @@
 /* ==========================================================================
    全局设计令牌 + 通用组件
    --------------------------------------------------------------------------
-   风格：白底 coquette 手账墙（第十五轮）。
-   · 纯白底 #FFFFFF 不变，分区靠 1px 细线和大留白；
-   · 唯一点缀色：深玫瑰 #BC3565（coquette 风的 raspberry rose），
-     白底对比 5.5:1、浅粉底上 4.7:1，均过 WCAG AA；
-   · coquette 小巧思：和纸胶带（粉）+ 纯 CSS 蝴蝶结 .bow + 蕾丝点线 .lace；
-   · 拼贴墙：每页垫一层 .bg-collage（board2 贴纸素材，透明度 0.06~0.14），
+   风格：白底 Y2K × coquette 天使系（第十六轮）。
+   · 底色仍以白为主（相纸白 #FBFCFE），但不再抗拒浅色块：
+     极浅蓝天灰 --bg-soft / 长春花蓝浅底 --brand-weak 大面积用；
+   · 主色：长春花蓝 #4461CF（periwinkle，Y2K 的电子天使感），
+     白底对比 4.7:1，过 WCAG AA；
+   · 辅色：薄荷 teal / 薰衣草 lav / 银 —— 全部从参考图来
+     （天使翅膀、百合、锦鲤、音符、Y2K 旋涡那一系浅色）；
+   · coquette 小巧思：和纸胶带（蓝）+ 纯 CSS 蝴蝶结 .bow + 蕾丝点线 .lace
+     + Y2K 小星 ✦（.spark）；
+   · 拼贴墙：每页垫一层 .bg-collage（board2 贴纸素材，透明度 0.08~0.16），
      只在卡片留白处露出来，像桌面上垫的拼贴纸；
    · 全部文字回归系统默认字体（第十五轮起不再有任何 font-family 声明）；
    · 平台名一律本名：大麦 / 猫眼 / 摩天轮 / B站会员购 / 票星球 / 12306。
 
    硬规则不变：
    1. 零渐变（蕾丝点线/条码用的是 repeating 图案，不是颜色渐变）。
-   2. 彩色只来自玫瑰粉 + 语义色（有票绿/无票灰/异常红/提醒琥珀）。
+   2. 彩色只来自长春花蓝 + 语义色（有票绿/无票灰/异常红/提醒琥珀）。
    3. 所有可点元素必须有按压反馈（hover-class）。
    4. 对比度用 tools/check_palette.py 校验（WCAG AA）。
    ========================================================================== */
 
 page {
-  --bg: #FFFFFF;
-  --bg-soft: #F7F7F8;      /* 输入框/代码块的极浅灰底 */
+  --bg: #FBFCFE;          /* 相纸白：比纯白多一丁点冷调 */
+  --bg-soft: #F0F4FC;     /* 输入框/代码块的极浅蓝天灰 */
 
   --card: #FFFFFF;
 
-  --ink: #1A1A1A;
+  --ink: #23283B;         /* 蓝黑墨水色，比纯黑柔和 */
 
-  --brand: #BC3565;        /* 深玫瑰粉，coquette 唯一点缀色 */
-  --brand-deep: #A02751;
-  --brand-weak: #FBE9EF;
-  --brand-line: #F2C7D4;
+  --brand: #4461CF;       /* 长春花蓝，Y2K 主色（白底 5.5:1） */
+  --brand-deep: #3A54B8;  /* 深一档（白底 6.7:1） */
+  --brand-weak: #EDF2FE;
+  --brand-line: #C7D5F7;
 
   /* accent = brand 的别名（monitor 页样式引用的是 accent 名） */
-  --accent: #BC3565;
-  --accent-weak: #FBE9EF;
+  --accent: #4461CF;
+  --accent-weak: #EDF2FE;
+
+  /* Y2K 辅色：薄荷 / 薰衣草 / 银（弱底色用于标签和装饰） */
+  --mint: #0E6E5F;
+  --mint-weak: #E2F4EF;
+  --lav: #6A5BC4;
+  --lav-weak: #F0EDFB;
+  --silver: #8E9BB3;
 
   --ok: #1E7A46;
   --ok-weak: #E6F4EB;
@@ -44,10 +55,10 @@ page {
   --warn: #96690A;
   --warn-weak: #FBF3DC;
 
-  --t1: #1A1A1A;
-  --t2: #6E6E73;
-  --t3: #75757A;
-  --line: #ECECEC;
+  --t1: #23283B;
+  --t2: #5A6070;
+  --t3: #6B7385;
+  --line: #E8EDF6;
 
   --r: 16px;
   --r-sm: 12px;
@@ -291,7 +302,7 @@ page {
   left: 16px;
   width: 54px;
   height: 15px;
-  background: rgba(188, 53, 101, 0.14);
+  background: rgba(78, 107, 224, 0.14);
   transform: rotate(-4deg);
   border-radius: 2px;
   pointer-events: none;
@@ -361,9 +372,25 @@ page {
   z-index: -1;
 }
 .bg-stk { position: absolute; }
-.bg-faint  { opacity: 0.07; }   /* 大块素材：最淡 */
-.bg-soft   { opacity: 0.10; }   /* 中等素材 */
-.bg-visible { opacity: 0.14; }  /* 小星星：稍亮，点到为止 */
+.bg-faint  { opacity: 0.09; }   /* 大块素材：最淡 */
+.bg-soft   { opacity: 0.13; }   /* 中等素材 */
+.bg-visible { opacity: 0.18; }  /* 小星星：稍亮，点到为止 */
+
+/* ---------- Y2K 浅色光晕（第十六轮）----------
+   参考图是「天使系」的浅色空气感：浅蓝/薄荷/薰衣草的大色块。
+   用纯色圆（不是渐变）以很低的存在感垫在页面角落，配合拼贴层
+   做出「相纸上有光」的感觉。用法：放在 .bg-collage 里。 */
+.bg-tint {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.bg-tint-blue  { background: var(--brand-weak); }
+.bg-tint-mint  { background: var(--mint-weak); }
+.bg-tint-lav   { background: var(--lav-weak); }
+.bg-tint-a { width: 260px; height: 260px; top: -90px; right: -70px; opacity: 0.85; }
+.bg-tint-b { width: 200px; height: 200px; top: 38%; left: -80px; opacity: 0.7; }
+.bg-tint-c { width: 230px; height: 230px; bottom: -60px; right: -60px; opacity: 0.6; }
 
 /* ---------- 蕾丝点线（coquette 分隔线）----------
    一行等距小圆点，模仿蕾丝花边。用于分区之间，比直线软。 */

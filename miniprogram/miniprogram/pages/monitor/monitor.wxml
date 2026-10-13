@@ -3,6 +3,8 @@
 
   <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
   <view class="bg-collage">
+    <view class="bg-tint bg-tint-blue bg-tint-a"></view>
+    <view class="bg-tint bg-tint-lav bg-tint-c"></view>
     <image class="bg-stk bg-faint bg-youme"  src="/images/board2/collage16.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-cloud"  src="/images/board2/collage4.png"  mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star3" src="/images/board2/origami13.png" mode="aspectFit" />

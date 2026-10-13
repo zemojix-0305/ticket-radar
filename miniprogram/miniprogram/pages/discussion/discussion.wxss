@@ -185,7 +185,7 @@
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(188, 53, 101, 0.08);
+  background: rgba(78, 107, 224, 0.08);
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -244,7 +244,7 @@
   align-items: center;
   justify-content: center;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(188, 53, 101, 0.25);
+  box-shadow: 0 4px 12px rgba(78, 107, 224, 0.25);
 }
 .fab-icon {
   font-size: 22px;

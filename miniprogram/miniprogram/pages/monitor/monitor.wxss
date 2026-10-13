@@ -56,7 +56,7 @@
   border-radius: 22px;
   line-height: 1.15;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(188, 53, 101, 0.25);
+  box-shadow: 0 4px 12px rgba(78, 107, 224, 0.25);
 }
 .hero-add::after { border: none; }
 .hero-plus { font-size: 21px; color: #FFFFFF; }

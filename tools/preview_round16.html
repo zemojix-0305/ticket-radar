@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第16轮视觉稿：Y2K 天使系 + 全平台热卖 + 详情页</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #EEF1F6;
+    padding: 32px 20px 60px;
+    color: #23283B;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
+  .sub { font-size: 12px; color: #6B7385; letter-spacing: 2px; text-transform: uppercase; margin: 6px 0 28px; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone {
+    width: 375px; background: #FBFCFE; border-radius: 28px; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(35,40,59,0.12); position: relative;
+    border: 1px solid #E2E8F2;
+  }
+  .phone-tag {
+    position: absolute; top: 14px; right: 14px; z-index: 99;
+    background: rgba(68,98,207,0.92); color: #fff; font-size: 11px;
+    padding: 3px 10px; border-radius: 999px; letter-spacing: 1px;
+  }
+  .cap { font-size: 13px; color: #5A6070; margin: 14px 4px 0; line-height: 1.7; }
+  .cap b { color: #23283B; }
+  /* ---- 令牌 ---- */
+  :root {
+    --bg: #FBFCFE; --card: #FFFFFF; --brand: #4461CF; --brand-deep: #3A54B8;
+    --brand-weak: #EDF2FE; --brand-line: #C7D5F7;
+    --mint: #0E6E5F; --mint-weak: #E2F4EF; --lav: #6A5BC4; --lav-weak: #F0EDFB;
+    --t1: #23283B; --t2: #5A6070; --t3: #6B7385; --line: #E8EDF6;
+    --ok: #1E7A46; --ok-weak: #E6F4EB; --none: #6A6A6F; --none-weak: #F4F4F5;
+  }
+  /* ---- 通用 ---- */
+  .page { position: relative; padding-bottom: 20px; min-height: 500px; }
+  .bg-collage { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .bg-tint { position: absolute; border-radius: 50%; }
+  .tint-blue { background: var(--brand-weak); }
+  .tint-mint { background: var(--mint-weak); }
+  .tint-lav { background: var(--lav-weak); }
+  .ta { width: 240px; height: 240px; top: -80px; right: -60px; opacity: .9; }
+  .tb { width: 180px; height: 180px; top: 42%; left: -70px; opacity: .75; }
+  .tc { width: 210px; height: 210px; bottom: -50px; right: -50px; opacity: .6; }
+  .bg-stk { position: absolute; }
+  .faint { opacity: .09; } .vis { opacity: .18; }
+  .tape {
+    position: absolute; top: -7px; left: 16px; width: 54px; height: 15px;
+    background: rgba(68,98,207,0.16); transform: rotate(-4deg); border-radius: 2px;
+  }
+  .bow { position: relative; width: 18px; height: 14px; flex-shrink: 0; }
+  .bow::before, .bow::after {
+    content: ""; position: absolute; top: 0; width: 9px; height: 12px;
+    border: 2px solid var(--brand); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  }
+  .bow::before { left: 0; transform: rotate(-14deg); }
+  .bow::after { right: 0; transform: rotate(14deg); }
+  .bow-k {
+    position: absolute; left: 6px; top: 3px; width: 6px; height: 6px;
+    background: var(--brand); border-radius: 50%; z-index: 2;
+  }
+  .spark { color: var(--brand); font-size: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; margin: 12px; position: relative; z-index: 1; }
+  .title-strong { font-weight: 600; letter-spacing: 0.5px; }
+  .en-note { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--t3); }
+  .stitch-tag {
+    display: inline-flex; padding: 3px 12px; border: 1.5px dashed #B8BCC8; border-radius: 999px;
+    font-size: 12px; color: var(--t2);
+  }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+  .tag-brand { color: var(--brand); background: var(--brand-weak); }
+  .tag-ok { color: var(--ok); background: var(--ok-weak); }
+  .tag-none { color: var(--none); background: var(--none-weak); }
+
+  /* ---- 开屏 ---- */
+  .splash { background: var(--bg); height: 560px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .ticket {
+    width: 280px; background: #fff; border: 2px solid var(--brand-line); border-radius: 28px;
+    transform: rotate(-3deg); position: relative; z-index: 2; padding: 26px 22px 20px;
+    box-shadow: 0 18px 60px rgba(68,98,207,0.10);
+  }
+  .ticket-cn { font-size: 24px; font-weight: 600; text-align: center; letter-spacing: 1px; color: var(--t1); }
+  .ticket-en { text-align: center; font-size: 9px; letter-spacing: 3px; color: var(--t3); margin-top: 6px; text-transform: uppercase; }
+  .perf { border-top: 2px dashed var(--brand-line); margin: 16px -22px 0; position: relative; }
+  .perf::before, .perf::after {
+    content: ""; position: absolute; top: -11px; width: 20px; height: 20px;
+    background: var(--bg); border-radius: 50%;
+  }
+  .perf::before { left: -11px; } .perf::after { right: -11px; }
+  .slogan { text-align: center; font-size: 12px; color: var(--brand); margin-top: 14px; letter-spacing: 1px; }
+  .stars-row { text-align: center; margin-top: 10px; color: var(--brand); font-size: 12px; letter-spacing: 8px; }
+
+  /* ---- 演出页 ---- */
+  .head { padding: 26px 20px 4px; position: relative; z-index: 1; }
+  .head-row { display: flex; align-items: center; gap: 8px; }
+  .head-hand { font-size: 24px; font-weight: 600; white-space: nowrap; }
+  .head-stks { margin-left: auto; display: flex; gap: 4px; }
+  .head-stks img { width: 26px; height: 26px; }
+  .platform-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 4px; position: relative; z-index: 1; }
+  .chip { padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--t2); background: #F0F4FC; }
+  .chip.on { background: var(--t1); color: #fff; }
+  .searchbar { margin: 10px 16px; display: flex; gap: 8px; position: relative; z-index: 1; }
+  .search-box {
+    flex: 1; display: flex; align-items: center; gap: 8px; background: #fff;
+    border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; font-size: 13px; color: var(--t3);
+  }
+  .search-btn { background: var(--brand); color: #fff; border-radius: 999px; padding: 0 18px; font-size: 13px; display: flex; align-items: center; }
+  .sec { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 20px 10px; position: relative; z-index: 1; }
+  .sec-title { font-size: 17px; font-weight: 600; }
+  .show-card { display: flex; gap: 12px; padding: 12px; cursor: pointer; }
+  .poster { width: 76px; height: 104px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--brand-weak); }
+  .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .show-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .show-name { font-size: 14px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .show-meta { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .show-sub { font-size: 12px; color: var(--t3); margin-top: 6px; }
+  .show-foot { margin-top: auto; padding-top: 8px; display: flex; align-items: center; gap: 8px; }
+  .show-price { font-size: 14px; font-weight: 600; }
+  .show-more { margin-left: auto; font-size: 12px; color: var(--brand); }
+  .btn-watch { background: var(--brand); color: #fff; font-size: 12px; padding: 5px 14px; border-radius: 999px; }
+
+  /* ---- 详情页 ---- */
+  .hero-poster {
+    width: calc(100% - 32px); height: 300px; margin: 12px 16px 0; border-radius: 24px;
+    border: 2px solid var(--brand-line); object-fit: cover; display: block; position: relative; z-index: 1;
+  }
+  .info { padding: 16px 18px; }
+  .info-name { font-size: 18px; font-weight: 600; line-height: 1.45; }
+  .info-meta { display: flex; gap: 6px; margin-top: 10px; }
+  .info-row { margin-top: 8px; font-size: 13px; color: var(--t2); }
+  .info-price { color: var(--brand); font-weight: 600; font-size: 16px; }
+  .sess { padding: 14px 16px; }
+  .sess-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .sess-name { font-size: 15px; font-weight: 600; }
+  .tier { display: flex; align-items: center; gap: 10px; padding: 10px 2px; }
+  .tier + .tier { border-top: 1px dashed var(--line); }
+  .tier-dot { width: 8px; height: 8px; border-radius: 50%; background: #E5E5E7; flex-shrink: 0; }
+  .tier-dot.on { background: var(--ok); }
+  .tier-name { flex: 1; font-size: 14px; }
+  .tier-price { font-size: 13px; font-weight: 600; }
+  .tier-status { font-size: 12px; min-width: 72px; text-align: right; color: var(--t3); }
+  .tier-status.ok { color: var(--ok); }
+  .actionbar {
+    position: sticky; bottom: 0; margin-top: 8px; padding: 12px 16px;
+    background: rgba(255,255,255,0.94); border-top: 1px solid var(--line); display: flex; z-index: 5;
+  }
+  .action-btn {
+    flex: 1; height: 46px; border-radius: 23px; background: var(--brand); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; letter-spacing: 1px;
+  }
+
+  /* ---- 我的页支持作者卡 ---- */
+  .support { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .support-t { font-size: 17px; font-weight: 600; letter-spacing: 0.5px; }
+  .support-d { font-size: 12px; color: var(--t3); margin-top: 5px; }
+  .support-btn { margin-left: auto; background: var(--brand); color: #fff; padding: 9px 18px; border-radius: 18px; font-size: 13px; white-space: nowrap; }
+
+  /* ---- 色板 ---- */
+  .palette { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .sw { width: 92px; }
+  .sw-c { height: 44px; border-radius: 10px; border: 1px solid rgba(35,40,59,0.08); }
+  .sw-n { font-size: 11px; color: var(--t2); margin-top: 5px; }
+  .sw-h { font-size: 10px; color: var(--t3); font-family: Menlo, monospace; }
+  .notes { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; margin-top: 28px; }
+  .notes h3 { font-size: 15px; margin-bottom: 10px; }
+  .notes li { font-size: 13px; color: var(--t2); line-height: 2; margin-left: 18px; }
+  .notes b { color: var(--t1); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>第 16 轮视觉稿</h1>
+  <div class="sub">Y2K angelcore · per-platform trending · show detail page</div>
+
+  <div class="row">
+    <!-- 开屏 -->
+    <div>
+      <div class="phone">
+        <div class="phone-tag">开屏</div>
+        <div class="splash">
+          <div class="bg-collage">
+            <div class="bg-tint tint-blue ta"></div>
+            <div class="bg-tint tint-lav tb"></div>
+            <div class="bg-tint tint-mint tc"></div>
+            <img class="bg-stk faint" src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:150px;top:40px;left:-30px;transform:rotate(12deg)">
+            <img class="bg-stk faint" src="../miniprogram/miniprogram/images/board2/cartoon12.png" style="width:130px;bottom:60px;right:-30px">
+            <img class="bg-stk vis" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:30px;top:80px;right:40px">
+            <img class="bg-stk vis" src="../miniprogram/miniprogram/images/board2/origami22.png" style="width:24px;bottom:120px;left:46px">
+          </div>
+          <div class="ticket">
+            <div class="tape"></div>
+            <div class="bow" style="position:absolute;top:-9px;left:50%;margin-left:-9px;z-index:3;"><div class="bow-k"></div></div>
+            <div class="ticket-cn">盯紧每一张回流票</div>
+            <div class="ticket-en">TICKET RADAR · RESTOCK ALERT</div>
+            <div class="perf"></div>
+            <div class="slogan">大麦 · 猫眼 · 摩天轮 · B站会员购 · 票星球</div>
+            <div class="stars-row">✦ ✦ ✦</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap"><b>开屏 v5</b>：相纸白底 + 满底高透明拼贴 + 浅蓝/薰衣草/薄荷光晕 + 票根卡（长春花蓝描边）+ 蝴蝶结骑票顶。口号「盯紧每一张回流票」。</div>
+    </div>
+
+    <!-- 演出页 -->
+    <div>
+      <div class="phone">
+        <div class="phone-tag">搜演出</div>
+        <div class="page">
+          <div class="bg-collage">
+            <div class="bg-tint tint-blue ta"></div>
+            <div class="bg-tint tint-mint tc"></div>
+            <img class="bg-stk faint" src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:120px;top:300px;right:-24px;transform:rotate(14deg)">
+            <img class="bg-stk vis" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:30px;top:210px;left:8%">
+          </div>
+          <div class="head">
+            <div class="tape"></div>
+            <div class="head-row">
+              <div class="bow"><div class="bow-k"></div></div>
+              <div class="head-hand title-strong">今天想看什么</div>
+              <div class="head-stks">
+                <img src="../miniprogram/miniprogram/images/board2/origami21.png">
+                <img src="../miniprogram/miniprogram/images/board2/cartoon11.png">
+              </div>
+            </div>
+            <div class="en-note" style="margin-top:6px;">FIND SOMETHING TO WATCH <span class="spark">✦</span></div>
+          </div>
+          <div class="platform-bar">
+            <div class="chip">12306</div><div class="chip">猫眼</div><div class="chip">摩天轮</div>
+            <div class="chip on">B站</div><div class="chip">大麦</div><div class="chip">票星球</div>
+          </div>
+          <div class="searchbar">
+            <div class="search-box">🔍 搜索演出、巡演、场馆</div>
+            <div class="search-btn">搜索</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title title-strong">正在热卖</div>
+            <div class="en-note">TRENDING NOW <span class="spark">✦</span></div>
+          </div>
+          <div class="card">
+            <div class="show-card">
+              <div class="poster"><img src="../miniprogram/miniprogram/images/board2/origami13.png" style="object-fit:contain;padding:8px"></div>
+              <div class="show-main">
+                <div class="show-name">上海·「小孩姐大派对」GBC 同人Only</div>
+                <div class="show-meta"><span class="tag tag-brand">B站会员购</span><span class="tag tag-ok">预售中</span></div>
+                <div class="show-sub">2026-10-24</div>
+                <div class="show-foot"><span class="show-price">¥48 起</span><span class="show-more">详情 ›</span><span class="btn-watch">盯</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="show-card">
+              <div class="poster"><img src="../miniprogram/miniprogram/images/board2/origami5.png" style="object-fit:contain;padding:8px"></div>
+              <div class="show-main">
+                <div class="show-name">【北京】凤凰传奇「吉祥如意」2026演唱会</div>
+                <div class="show-meta"><span class="tag tag-brand">票星球</span><span class="tag tag-none">缺票登记</span></div>
+                <div class="show-sub">北京 · 国家体育场—鸟巢</div>
+                <div class="show-foot"><span class="show-price">¥380 起</span><span class="show-more">详情 ›</span><span class="btn-watch">盯</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;position:relative;z-index:1;"><div class="stitch-tag">点开看场次和票档 · 数据来自B站会员购</div></div>
+        </div>
+      </div>
+      <div class="cap"><b>每个平台都有自己的「正在热卖」</b>：B站（listV2 免关键词）、票星球（recommend 40 条真榜）、大麦/摩天轮（演唱会关键词兜底）。卡片整体可点 → 进详情。</div>
+    </div>
+
+    <!-- 详情页 -->
+    <div>
+      <div class="phone">
+        <div class="phone-tag">详情页（新）</div>
+        <div class="page">
+          <div class="bg-collage">
+            <div class="bg-tint tint-blue ta"></div>
+            <div class="bg-tint tint-lav tb"></div>
+            <img class="bg-stk faint" src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:120px;top:520px;right:-24px;transform:rotate(14deg)">
+          </div>
+          <div style="position:relative;">
+            <div class="tape"></div>
+            <div class="bow" style="position:absolute;top:-6px;left:24px;z-index:3;"><div class="bow-k"></div></div>
+            <img class="hero-poster" src="../miniprogram/miniprogram/images/board2/origami24.png" style="object-fit:contain;background:#EDF2FE;padding:24px">
+          </div>
+          <div class="card info">
+            <div class="info-name">【北京】凤凰传奇「吉祥如意」2026演唱会-北京站</div>
+            <div class="info-meta"><span class="tag tag-brand">票星球</span><span class="tag tag-none">北京</span></div>
+            <div class="info-row">场馆 · 国家体育场—鸟巢</div>
+            <div class="info-row">时间 · 2026.10.30 - 11.08</div>
+            <div class="info-row info-price">¥380 起</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title title-strong">场次与票档</div>
+            <div class="en-note">SESSIONS <span class="spark">✦</span> TICKETS</div>
+          </div>
+          <div class="card sess">
+            <div class="sess-head"><div class="sess-name">2026-10-30 周五 19:00</div><div class="tier-status none">缺票登记</div></div>
+            <div class="tier"><div class="tier-dot"></div><div class="tier-name">看台 380元</div><div class="tier-price">¥380</div><div class="tier-status">停售</div></div>
+            <div class="tier"><div class="tier-dot"></div><div class="tier-name">看台 480元</div><div class="tier-price">¥480</div><div class="tier-status">停售</div></div>
+            <div class="tier"><div class="tier-dot on"></div><div class="tier-name">内场 880元</div><div class="tier-price">¥880</div><div class="tier-status ok">可购 ×3</div></div>
+          </div>
+          <div class="card sess">
+            <div class="sess-head"><div class="sess-name">2026-10-31 周六 19:00</div><div class="tier-status none">缺票登记</div></div>
+            <div class="tier"><div class="tier-dot on"></div><div class="tier-name">看台 380元</div><div class="tier-price">¥380</div><div class="tier-status ok">可购 ×12</div></div>
+            <div class="tier"><div class="tier-dot"></div><div class="tier-name">看台 580元</div><div class="tier-price">¥580</div><div class="tier-status">停售</div></div>
+          </div>
+          <div style="display:flex;justify-content:center;position:relative;z-index:1;"><div class="stitch-tag">盯整场 = 任意票档从无到有就提醒你</div></div>
+          <div class="actionbar"><div class="action-btn">盯这场演出</div></div>
+        </div>
+      </div>
+      <div class="cap"><b>详情页</b>：大海报 + 场次列表 + 逐票档状态（官方原文）+ 底部「盯这场」。B站/票星球出真场次结构，其他平台扁平包一层。</div>
+    </div>
+
+    <!-- 我的页 -->
+    <div>
+      <div class="phone">
+        <div class="phone-tag">我的</div>
+        <div class="page" style="padding:16px 0;">
+          <div class="bg-collage">
+            <div class="bg-tint tint-lav ta"></div>
+            <img class="bg-stk vis" src="../miniprogram/miniprogram/images/board2/origami19.png" style="width:26px;top:200px;right:10%">
+          </div>
+          <div class="card support">
+            <div>
+              <div class="support-t">支持作者</div>
+              <div class="support-d">项目已开源，点个 Star 就是最大的鼓励</div>
+            </div>
+            <div class="support-btn">☆ Star</div>
+          </div>
+          <div class="card" style="padding:16px 18px;">
+            <div style="font-size:13px;color:var(--t2);line-height:2;">
+              推送绑定 · 额度 12 条<br>监控平台 · 6 个全匿名<br>大麦关键词搜索 · 已打通<br>B站会员购 · 搜索+逐票档<br>票星球 · 搜索+逐票档（新）
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cap"><b>支持作者卡</b>：按你给的截图重做——默认字体、无贴纸无徽章，就「支持作者 / 项目已开源，点个 Star 就是最大的鼓励 / ☆ Star」。</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>本轮配色（Y2K 天使系，参考你给的图）</h3>
+    <div class="palette">
+      <div class="sw"><div class="sw-c" style="background:#FBFCFE"></div><div class="sw-n">相纸白</div><div class="sw-h">#FBFCFE</div></div>
+      <div class="sw"><div class="sw-c" style="background:#4461CF"></div><div class="sw-n">长春花蓝（主）</div><div class="sw-h">#4461CF</div></div>
+      <div class="sw"><div class="sw-c" style="background:#EDF2FE"></div><div class="sw-n">浅蓝底</div><div class="sw-h">#EDF2FE</div></div>
+      <div class="sw"><div class="sw-c" style="background:#0E6E5F"></div><div class="sw-n">薄荷 teal</div><div class="sw-h">#0E6E5F</div></div>
+      <div class="sw"><div class="sw-c" style="background:#E2F4EF"></div><div class="sw-n">薄荷浅底</div><div class="sw-h">#E2F4EF</div></div>
+      <div class="sw"><div class="sw-c" style="background:#6A5BC4"></div><div class="sw-n">薰衣草</div><div class="sw-h">#6A5BC4</div></div>
+      <div class="sw"><div class="sw-c" style="background:#F0EDFB"></div><div class="sw-n">薰衣草浅底</div><div class="sw-h">#F0EDFB</div></div>
+      <div class="sw"><div class="sw-c" style="background:#23283B"></div><div class="sw-n">蓝黑墨水</div><div class="sw-h">#23283B</div></div>
+    </div>
+    <ul style="margin-top:14px;">
+      <li><b>对比度全部过 WCAG AA</b>（18 项校验，tools/check_palette.py 已同步新配色）。</li>
+      <li><b>背景不再执着全白</b>：相纸白底 + 三个浅色光晕（纯色圆，守零渐变规则）+ 拼贴层透明度上调到 0.09~0.18。</li>
+      <li><b>票星球从「只能贴链接」升级成完整监控</b>：全国关键词搜索 + 热卖榜 + 场次×票档，接口全部匿名（cyy_gatewayapi，同盾只用于抢票下单，我们不做）。</li>
+      <li><b>B站入口本来就在</b>（搜演出页第 4 个标签 + 监控页手动添加第二个）——之前没看到应该是没重新编译；这轮热卖榜也接上了。</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
