@@ -6,6 +6,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 26px 20px 16px;
+  position: relative;   /* 容纳胶带 */
 }
 .hero-title-row {
   display: flex;
@@ -13,10 +14,10 @@
   gap: 8px;
 }
 .hero-title {
-  /* 手写体大标题（站酷快乐体）。单行不换行——标题折行是排版事故 */
-  font-family: "HandCN", "STKaiti", "楷体", serif;
-  font-size: 29px;
-  letter-spacing: 1px;
+  /* 粗黑体大标题：干净、不土；手账感由胶带+贴纸表达 */
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   color: var(--t1);
   white-space: nowrap;
   margin-bottom: 6px;

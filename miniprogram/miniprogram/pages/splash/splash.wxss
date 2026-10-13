@@ -67,11 +67,11 @@
   justify-content: center;
 }
 .ticket-cn {
-  font-family: "HandCN", "STKaiti", "楷体", serif;
-  font-size: 76rpx;
+  font-size: 72rpx;
+  font-weight: 600;
   line-height: 1.15;
   color: #1A1A1A;
-  letter-spacing: 4rpx;
+  letter-spacing: 6rpx;
 }
 .ticket-en {
   margin-top: 18rpx;
@@ -81,7 +81,6 @@
 }
 .ticket-slogan {
   margin-top: 34rpx;
-  font-family: "HandCN", "STKaiti", "楷体", serif;
   font-size: 26rpx;
   color: #2456DB;
   letter-spacing: 3rpx;

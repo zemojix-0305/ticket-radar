@@ -3,6 +3,7 @@
 
   <!-- 顶部标题区 -->
   <view class="board-header">
+    <view class="tape"></view>
     <view class="board-head-l">
       <view class="board-title font-hand">问题反馈</view>
       <view class="board-subtitle">FEEDBACK</view>

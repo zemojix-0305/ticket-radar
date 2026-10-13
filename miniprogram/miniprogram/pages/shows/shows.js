@@ -19,7 +19,7 @@ const PLATFORMS = [
   { key: 'rail12306', label: '12306' },
   { key: 'maoyan', label: '猫眼' },
   { key: 'moretickets', label: '摩天轮' },
-  { key: 'damai', label: '大麦', linkOnly: true },
+  { key: 'damai', label: '大麦' },
   { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
 ];
 

@@ -101,10 +101,10 @@
   min-width: 0;
 }
 .support-t {
-  font-family: "HandCN", "STKaiti", "楷体", serif;
-  font-size: 19px;
+  font-size: 17px;
+  font-weight: 600;
   color: var(--t1);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 .support-d {
   font-size: 12px;

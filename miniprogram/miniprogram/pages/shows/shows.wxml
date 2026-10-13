@@ -1,9 +1,13 @@
 <!-- 场次页：进来就有热门演出逛，想搜再搜；12306 是携程式的站站选择。 -->
 <view class="page">
 
-  <!-- 顶部：手写体标题 + 英文小注（参考图的双语排版） -->
+  <!-- 顶部：粗黑体标题 + 胶带/贴纸点缀（和监控页同款语法） -->
   <view class="head">
-    <view class="head-hand font-hand">今天想看什么</view>
+    <view class="tape"></view>
+    <view class="head-row">
+      <view class="head-hand font-hand">今天想看什么</view>
+      <image class="head-stk" src="/images/board2/origami11.png" mode="aspectFit" />
+    </view>
     <view class="en-note">FIND SOMETHING TO WATCH</view>
   </view>
 
@@ -41,9 +45,9 @@
     </view>
   </view>
 
-  <!-- 大麦/票星球：粘贴链接模式说明 -->
+  <!-- 票星球：粘贴链接模式说明（大麦已支持关键词搜索，不用粘贴了） -->
   <view class="link-hint" wx:if="{{platforms[platformIndex].linkOnly}}">
-    这两个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里就能盯它的回流票——状态从「无票」翻回「可售」的第一时间推给你。
+    这个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里就能盯它的回流票——状态从「无票」翻回「可售」的第一时间推给你。
   </view>
 
   <!-- 12306：携程式表单 —— 起点终点两大块 + 交换 + 日期 -->

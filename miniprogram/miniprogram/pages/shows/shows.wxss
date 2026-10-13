@@ -3,11 +3,13 @@
 /* ---------- 顶部：手写体标题 + 英文小注 ---------- */
 .head {
   padding: 26px 20px 4px;
+  position: relative;   /* 容纳胶带 */
 }
 .head-hand {
-  font-size: 26px;
+  font-size: 24px;
+  font-weight: 600;
   color: var(--t1);
-  letter-spacing: 2px;
+  letter-spacing: 0.5px;
   margin-bottom: 8px;
   white-space: nowrap;   /* 标题类一律单行 */
 }

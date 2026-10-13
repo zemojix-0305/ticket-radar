@@ -10,15 +10,17 @@
  * 为什么云函数要重写一遍解析：本地版是 Python，而云开发只跑 Node.js。
  * 所以这里的解析逻辑是从 radar/adapters/ 翻成 JS 的，改那边记得同步这里。
  *
- * 明确不做的事：不下单、不破签名、不带任何 Cookie。
- * 大麦这类需要登录态的平台这里接不了——Cookie 存云上等于把用户凭据
- * 放到第三方环境，既不安全也没必要。12306 / 猫眼 / 摩天轮都是匿名可用的。
+ * 明确不做的事：不下单、不破登录态签名、绝不存用户登录 Cookie。
+ * 大麦走的是 mtop 无线网关下发的**匿名**令牌（_m_h5_tk），不是用户凭据，
+ * 云上只缓存这个匿名令牌、不碰任何账号信息；票星球无公开搜索接口仍以
+ * 粘贴链接为主。12306 / 猫眼 / 摩天轮 / 大麦均为匿名可用。
  */
 
 'use strict';
 
 const https = require('https');
 const http = require('http');
+const crypto = require('crypto');
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
@@ -590,13 +592,14 @@ async function pollRail(params) {
 }
 
 // ===========================================================================
-// 平台：大麦（PC 详情页是 SSR，内嵌 JSON 匿名可读——2026-10 实测）
+// 平台：大麦
 // ===========================================================================
-//
-// 能做什么：用户提供 itemId（从大麦 App/网页分享链接里提取），
-//   轮询「项目级状态」：开售时间 / 价格范围 / 场次列表（performBases）。
-// 不能做什么：关键词搜索（search.damai.cn 对云 IP 直接回风控验证页，
-//   2026-10 实测 x5secdata punish）；票档余量（在选座页，需要登录态）。
+// 两条匿名可用路径（2026-10 实测打通）：
+//   1) 详情页 SSR：用户提供 itemId（从大麦 App/网页分享链接里提取），
+//      解析内嵌 JSON 拿项目级状态：开售时间 / 价格范围 / 场次列表（performBases）。
+//   2) mtop 无线搜索：关键词 → mtop.damai.wireless.search.search，返回 projectInfo，
+//      用户不用去 App 翻链接抠 id——和猫眼/摩天轮一样直接打字搜（见下方 mtop 段）。
+// 仍不能做：票档余量（在选座页，需要登录态）；下单。
 
 const DAMAI_DETAIL = 'https://detail.damai.cn/item.htm';
 
@@ -613,6 +616,107 @@ function damaiHeaders() {
 function extractDamaiId(text) {
   const m = String(text || '').match(/(?:id=(\d{6,})|itemId[=:"]+(\d{6,}))/i);
   return (m && (m[1] || m[2])) || '';
+}
+
+// ---------------------------------------------------------------------------
+// 大麦 mtop 匿名搜索（2026-10 实测打通）
+// ---------------------------------------------------------------------------
+// 大麦移动端整个并入淘票票壳（m.damai.cn 重定向到 m.taopiaopiao.com），
+// 数据全走 m.h5 网关。关键事实：
+//   · search.damai.cn/searchajax 老接口对非浏览器 IP 直接 x5sec 风控——死路；
+//   · API 名从 show-h5-next 前端包挖出：
+//       mtop.damai.wireless.search.search  v1.0 —— 关键词搜索（返回 projectInfo）
+//       mtop.damai.wireless.search.discovery.bycity.get v1.0 —— 只回热搜词，热门列表做不了
+//   · _m_h5_tk 是网关下发的**匿名**令牌（不是用户凭据），签名 = md5(token&t&appKey&data)，
+//     首次请求通常 TOKEN_EMPTY，网关同时种下令牌，重试一次即成功；少数情况下
+//     首轮直接回 API_NOT_FOUNDED（网关把无令牌请求路由到了没该 API 的后端），
+//     mtopCall 已对这两种情况都做重试，最终都能拿到数据。
+// 参数结构抄自搜索页源码：cityId/longitude/latitude/pageIndex/pageSize/keyword/
+//   sourceType=11/returnItemOption=4/distanceCityId/option=434。
+
+const MTOP_APPKEY = '12574478';
+const MTOP_BASE = 'https://h5api.m.taobao.com/h5';
+// 进程级缓存令牌 cookie；云函数实例常驻时复用，冷启动多一次重试
+let mtopCookie = '';
+
+function mtopAttempt(api, dataObj, v) {
+  const t = Date.now().toString();
+  const data = JSON.stringify(dataObj);
+  const tkAt = mtopCookie.indexOf('_m_h5_tk=');
+  const token = tkAt >= 0 ? mtopCookie.slice(tkAt + 9).split(';')[0].split('_')[0] : '';
+  const sign = crypto.createHash('md5').update(`${token}&${t}&${MTOP_APPKEY}&${data}`).digest('hex');
+  const headers = {
+    'User-Agent': UA,
+    Referer: 'https://m.damai.cn/',
+    Accept: 'application/json',
+  };
+  if (mtopCookie) headers.Cookie = mtopCookie;
+  return request(
+    `${MTOP_BASE}/${api}/${v}/?jsv=2.7.2&appKey=${MTOP_APPKEY}&t=${t}` +
+      `&sign=${sign}&api=${api}&v=${v}&type=originaljson&dataType=json&data=${encodeURIComponent(data)}`,
+    { headers, timeout: 15000 },
+  ).then((r) => {
+    const sc = r.headers['set-cookie'];
+    if (sc) mtopCookie = sc.map((c) => c.split(';')[0]).join('; ');
+    let j;
+    try {
+      j = JSON.parse(r.body);
+    } catch (e) {
+      throw new Error('大麦 mtop 返回非 JSON：' + r.body.slice(0, 100));
+    }
+    return j;
+  });
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function mtopCall(api, dataObj, v) {
+  let j = await mtopAttempt(api, dataObj, v);
+  let ret = (j.ret || [])[0] || '';
+  // 首轮匿名请求可能回两种情况：
+  //   TOKEN_EMPTY/EXPIRED —— 网关首次下发匿名令牌，重试一次即可；
+  //   API_NOT_FOUNDED      —— 网关把"无令牌"请求路由到了没有该 API 的后端，
+  //                            纯看运气（2026-10 实测时好时坏，连发还会触发
+  //                            USER_VALIDATE 风控）。两种都再试：API_NOT_FOUNDED
+  //                            时清掉旧令牌重新走签发流程，往往就路由对。最多多试
+  //   3 次、每次加点退避，避免瞬间连发把自己风控死。
+  let tries = 0;
+  while (!/SUCCESS/.test(ret) && /TOKEN_EMPTY|TOKEN_EXPIRED|API_NOT_FOUNDED/.test(ret) && tries < 3) {
+    if (/API_NOT_FOUNDED/.test(ret)) mtopCookie = ''; // 丢弃可能错路的匿名令牌，重新签发
+    await sleep(200 + tries * 150);
+    j = await mtopAttempt(api, dataObj, v);
+    ret = (j.ret || [])[0] || '';
+    tries++;
+  }
+  if (!/SUCCESS/.test(ret)) throw new Error('大麦 mtop：' + ret);
+  return j.data || {};
+}
+
+/** 大麦关键词搜索 → 与 findMaoyan 同构的行结构。 */
+async function damaiSearch(keyword, limit) {
+  const kw = String(keyword || '').trim();
+  if (!kw) throw new Error('搜索词不能为空');
+  const data = await mtopCall('mtop.damai.wireless.search.search', {
+    cityId: 0, longitude: 0, latitude: 0,
+    pageIndex: 1, pageSize: Math.min(Number(limit) || 20, 50),
+    keyword: kw, sourceType: 11, returnItemOption: 4,
+    distanceCityId: '852', option: 434,
+  });
+  const rows = Array.isArray(data.projectInfo) ? data.projectInfo : [];
+  return rows.map((p) => ({
+    performanceId: String(p.id),
+    itemId: String(p.id),
+    name: p.name || p.ipName || ('大麦 #' + p.id),
+    city: p.cityName || '',
+    venue: p.venueName || '',
+    dateRange: p.showTime || '',
+    price: p.priceLow ? '¥' + p.priceLow + ' 起' : '',
+    // itemSaleStatus 官方映射无公开文档：1 实测为在售；其余透传数字不猜
+    status: p.itemSaleStatus === 1 ? '在售' : (p.itemSaleStatus != null ? '状态' + p.itemSaleStatus : ''),
+    poster: p.posterUrl || (Array.isArray(p.videos) && p.videos[0] && p.videos[0].picUrl) || '',
+  }));
 }
 
 /**
@@ -703,33 +807,30 @@ async function pollDamai(params) {
 }
 
 /**
- * 大麦「搜索」：只能搜用户粘贴的链接——关键词搜索被风控，不做假。
- * 返回结构和 findMaoyan 一致，前端渲染不用分叉。
+ * 大麦入口：链接/纯数字 id → 抓详情页；关键词 → mtop 无线搜索。
+ * 和猫眼/摩天轮一样，用户直接打字就能搜——不再逼人去 App 翻链接。
  */
 async function findDamai(linkOrId) {
-  const id = extractDamaiId(linkOrId);
-  if (!id) {
-    throw new Error(
-      '识别不了这个大麦链接。请到大麦 App 打开该演出 → 分享 → 复制链接，' +
-        '粘贴进来（链接里要有 id=数字）',
-    );
+  const raw = String(linkOrId || '').trim();
+  if (/https?:\/\//i.test(raw) || /^\d{6,}$/.test(raw)) {
+    const id = extractDamaiId(raw) || raw;
+    const items = await pollDamai({ item_id: id });
+    const first = items[0] || {};
+    return [
+      {
+        performanceId: id,
+        itemId: id,
+        name: first.label || '大麦 #' + id,
+        city: '',
+        venue: first.place || '',
+        dateRange: first.when || '',
+        price: first.price || '',
+        status: first.status || '',
+        poster: '',
+      },
+    ];
   }
-  // 复用 pollDamai 拿状态，包一层成搜索行
-  const items = await pollDamai({ item_id: id });
-  const first = items[0] || {};
-  return [
-    {
-      performanceId: id,
-      itemId: id,
-      name: first.label || '大麦 #' + id,
-      city: '',
-      venue: first.place || '',
-      dateRange: first.when || '',
-      price: first.price || '',
-      status: first.status || '',
-      poster: '',
-    },
-  ];
+  return damaiSearch(raw);
 }
 
 // ===========================================================================
@@ -1047,8 +1148,8 @@ exports.main = async (event) => {
         const rows = await findRail(keyword, (event && event.date) || '', limit);
         return { ok: true, keyword, platform, rows };
       }
-      // 大麦/票星球没有可用的关键词搜索（大麦被风控、票星球无公开接口），
-      // keyword 参数此时承载的是「用户粘贴的链接」，能抠出 id 就返回单行
+      // 大麦：链接/纯数字 id → 抓详情页；关键词 → mtop 无线搜索（2026-10 打通）。
+      // 票星球无公开搜索接口，keyword 此时承载的是「用户粘贴的链接」。
       if (platform === 'damai') {
         const rows = await findDamai(keyword);
         return { ok: true, keyword, platform, rows };
@@ -1176,4 +1277,6 @@ exports._internals = {
   resolveStationCode: resolveStationCode,
   errorKind: errorKind,
   diffRestock: diffRestock,
+  damaiSearch: damaiSearch,
+  mtopCall: mtopCall,
 };

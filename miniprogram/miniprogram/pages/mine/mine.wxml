@@ -89,9 +89,9 @@
     </view>
     <view class="support-main">
       <view class="support-t">支持作者</view>
-      <view class="support-d">项目已开源，点个 Star 就是最大的鼓励</view>
+      <view class="support-d">GitHub 开源 · zemojix-0305/ticket-radar，点个 Star 就是最大的鼓励</view>
     </view>
-    <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ Star</view>
+    <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ GitHub Star</view>
   </view>
 
   <view class="safe"></view>

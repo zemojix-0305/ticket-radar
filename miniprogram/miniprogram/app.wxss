@@ -17,18 +17,10 @@
    3. 所有可点元素必须有按压反馈（hover-class）。
    4. 对比度用 tools/check_palette.py 校验（WCAG AA）。
    ========================================================================== */
-/* ---------- 界面字体：站酷快乐体 ----------
-   「ZCOOL KuaiLe / 站酷快乐体」子集（OFL 免费商用），圆润俏皮的手写感，
-   最接近黄油溏心体气质的免费替代。用在页面大标题/留言/开屏。
-   要换其他手写体时：1) 拿到 ttf 放 tools/font-src/；2) 跑
-   python tools/subset_font.py <ttf> miniprogram/miniprogram/fonts/hand.woff2
-   生僻字（用户随手输入的）会自动退回楷体/系统字体。 */
-@font-face {
-  font-family: "HandCN";
-  src: url("/fonts/hand.woff2") format("woff2");
-  font-weight: normal;
-  font-style: normal;
-}
+/* ---------- 标题字体：系统黑体 ----------
+   手写体（龙藏/站酷快乐体）试过两轮都被否——标题回归干净的粗黑体，
+   手账感交给贴纸和胶带去表达（更耐看，也不占 300KB+ 包体积）。
+   .font-hand 类名保留（wxml 里到处在用），语义改为「标题强调」。 */
 
 page {
   --bg: #FFFFFF;
@@ -79,12 +71,10 @@ page {
   letter-spacing: 0.2px;
 }
 
-/* ---------- 手写体点缀 ----------
-   楷体栈：iOS 有 Kaiti SC，安卓退化到 KaiTi/楷体，再退化到衬线。
-   只用在标题和装饰短语上，正文不用——可读性优先。 */
+/* ---------- 标题强调（原手写体位）---------- */
 .font-hand {
-  font-family: "HandCN", "Kaiti SC", "STKaiti", "楷体", "Yuanti SC", serif;
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 /* ---------- 英文小注 ----------
@@ -105,7 +95,6 @@ page {
   padding: 3px 12px;
   border: 1.5px dashed #B8B8BC;
   border-radius: 999px;
-  font-family: "HandCN", "Kaiti SC", "STKaiti", "楷体", serif;
   font-size: 12px;
   color: var(--t2);
   line-height: 18px;
@@ -288,10 +277,27 @@ page {
   padding: 24px 20px 12px;
 }
 .sec-title {
-  font-family: "HandCN", "Kaiti SC", "STKaiti", "楷体", serif;
   font-size: 19px;
+  font-weight: 600;
   color: var(--t1);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;   /* 标题类一律单行，折行=排版事故 */
+}
+
+/* ---------- 和纸胶带点缀 ----------
+   手账感的核心小巧思：一条半透明钴蓝胶带斜贴在页面标题左上角，
+   像把这一块「贴」上去的。纯 CSS，不占包体积。
+   父容器需要 position:relative。 */
+.tape {
+  position: absolute;
+  top: -7px;
+  left: 16px;
+  width: 54px;
+  height: 15px;
+  background: rgba(36, 86, 219, 0.13);
+  transform: rotate(-4deg);
+  border-radius: 2px;
+  pointer-events: none;
 }
 .sec-more { font-size: 12px; color: var(--t3); letter-spacing: 0.2px; }
 
