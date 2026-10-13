@@ -1,16 +1,27 @@
 <!-- 讨论区：问题反馈白板 + 留言墙 -->
 <view class="page">
 
+  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <view class="bg-collage">
+    <image class="bg-stk bg-faint bg-love2"   src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-leaf"    src="/images/board2/collage12.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star5" src="/images/board2/origami1.png"  mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star6" src="/images/board2/origami24.png" mode="aspectFit" />
+  </view>
+
   <!-- 顶部标题区 -->
   <view class="board-header">
     <view class="tape"></view>
     <view class="board-head-l">
-      <view class="board-title font-hand">问题反馈</view>
-      <view class="board-subtitle">FEEDBACK</view>
+      <view class="board-title title-strong">问题反馈</view>
+      <view class="board-subtitle">FEEDBACK <text class="spark">✦</text></view>
       <view class="board-line"></view>
     </view>
     <view class="bow"><view class="bow-k"></view></view>
-    <image class="board-stk" src="/images/board2/origami11.png" mode="aspectFit" />
+    <view class="board-stks">
+      <image class="board-stk stk-a" src="/images/board2/origami13.png" mode="aspectFit" />
+      <image class="board-stk stk-b" src="/images/board2/cartoon1.png" mode="aspectFit" />
+    </view>
   </view>
 
   <!-- 分类筛选 -->

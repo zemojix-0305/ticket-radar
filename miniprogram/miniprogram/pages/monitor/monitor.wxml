@@ -1,16 +1,28 @@
-<!-- 监控页：白色灵动风。绣字标题 + 快捷入口 + 圆角任务卡。 -->
+<!-- 监控页：白色 coquette 风。粗黑体标题 + 快捷入口 + 圆角任务卡。 -->
 <view class="page">
 
-  <!-- 顶部：极简排版。粗黑体标题 + 胶带/贴纸点缀 + 大数字计数 -->
+  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <view class="bg-collage">
+    <image class="bg-stk bg-faint bg-youme"  src="/images/board2/collage16.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-cloud"  src="/images/board2/collage4.png"  mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star3" src="/images/board2/origami13.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star4" src="/images/board2/origami5.png"  mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-sparkle" src="/images/board2/collage11.png" mode="aspectFit" />
+  </view>
+
+  <!-- 顶部：极简排版。粗黑体标题 + 胶带/蝴蝶结/贴纸点缀 + 大数字计数 -->
   <view class="hero">
     <view class="tape"></view>
     <view class="hero-l">
       <view class="hero-title-row">
         <view class="bow"><view class="bow-k"></view></view>
-        <view class="hero-title font-hand">正在盯的票</view>
-        <image class="hero-stk" src="/images/board2/origami11.png" mode="aspectFit" />
+        <view class="hero-title title-strong">正在盯的票</view>
+        <view class="hero-stks">
+          <image class="hero-stk stk-a" src="/images/board2/origami12.png" mode="aspectFit" />
+          <image class="hero-stk stk-b" src="/images/board2/cartoon7.png" mode="aspectFit" />
+        </view>
       </view>
-      <view class="en-note">WATCHING NOW</view>
+      <view class="en-note">WATCHING NOW <text class="spark">✦</text></view>
       <view class="hero-count">
         <text class="num hero-ok">{{okCount}}</text>
         <text class="hero-sep">/</text>
@@ -153,16 +165,19 @@
     <view class="empty-sub">换回「全部」看看。</view>
   </view>
 
-  <!-- 常见问题 -->
+  <!-- 常见问题 · 使用教程 -->
   <view class="card faq">
     <view class="faq-head" bindtap="toggleFaq" hover-class="press-hover">
-      <text class="faq-title">常见问题</text>
+      <view class="faq-head-l">
+        <image class="faq-stk" src="/images/board2/cartoon7.png" mode="aspectFit" />
+        <text class="faq-title">常见问题 · 使用教程</text>
+      </view>
       <text class="faq-arrow {{faqOpen ? 'open' : ''}}">▾</text>
     </view>
     <view class="faq-list" wx:if="{{faqOpen}}">
       <view class="faq-item" wx:for="{{faqList}}" wx:key="q" data-idx="{{index}}" bindtap="onFaqItem" hover-class="press-hover">
         <view class="faq-q">
-          <text class="faq-dot">·</text>
+          <text class="faq-dot">✦</text>
           <text>{{item.q}}</text>
         </view>
         <view class="faq-a" wx:if="{{item.open}}">{{item.a}}</view>

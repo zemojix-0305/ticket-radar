@@ -1,4 +1,11 @@
-.page { padding-bottom: 8px; }
+.page { padding-bottom: 8px; position: relative; }
+
+/* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
+.bg-youme   { width: 110px; height: 110px; top: 520px; right: -22px; transform: rotate(-10deg); }
+.bg-cloud   { width: 100px; height: 100px; top: 900px; left: -18px; transform: rotate(6deg); }
+.bg-sparkle { width: 70px;  height: 70px;  top: 180px; right: 6%; }
+.bg-star3   { width: 26px;  height: 26px;  top: 330px; left: 7%; transform: rotate(-14deg); }
+.bg-star4   { width: 22px;  height: 22px;  top: 720px; right: 14%; transform: rotate(12deg); }
 
 /* ---------- 顶部：极简排版 ---------- */
 .hero {
@@ -22,6 +29,8 @@
   white-space: nowrap;
   margin-bottom: 6px;
 }
+.hero-l { flex: 1; min-width: 0; }
+.hero-stks { display: flex; align-items: center; gap: 2px; }
 .hero-stk {
   width: 30px;
   height: 30px;
@@ -29,6 +38,7 @@
   transform: rotate(10deg);
   opacity: 0.95;
 }
+.hero-stk.stk-b { width: 24px; height: 24px; transform: rotate(-8deg); margin-left: -4px; }
 .hero-count { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; }
 .hero-ok { color: var(--t1); }
 .hero-total { color: var(--t3); }
@@ -323,8 +333,18 @@
 .acts { display: flex; gap: 10px; margin-top: 18px; }
 .acts .btn { flex: 1; }
 
-/* ---------- FAQ ---------- */
+/* ---------- FAQ（常见问题 · 使用教程）---------- */
 .faq { padding: 14px 16px; margin-bottom: 12px; }
+.faq-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.faq-head-l { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.faq-stk { width: 24px; height: 24px; flex-shrink: 0; }
+.faq-title { font-size: 15px; font-weight: 600; color: var(--t1); letter-spacing: 0.5px; }
+.faq-arrow { font-size: 13px; color: var(--t3); transition: transform 0.2s; flex-shrink: 0; }
+.faq-arrow.open { transform: rotate(180deg); }
 .faq-list { margin-top: 12px; }
 .faq-item { padding: 10px 0; border-top: 1px solid var(--line); }
 .faq-item:first-child { border-top: none; }
@@ -336,7 +356,7 @@
   color: var(--t1);
   line-height: 1.5;
 }
-.faq-dot { color: var(--brand); }
+.faq-dot { color: var(--brand); font-size: 12px; margin-top: 2px; flex-shrink: 0; }
 .faq-a {
   margin-top: 8px;
   padding: 10px 12px;

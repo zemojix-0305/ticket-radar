@@ -1,6 +1,13 @@
 <!-- 历史页：历史曲线 + 推送记录两个 tab -->
 <view class="page">
 
+  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <view class="bg-collage">
+    <image class="bg-stk bg-faint bg-h-note"  src="/images/board2/collage8.png"  mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-h-star" src="/images/board2/origami14.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-h-star2" src="/images/board2/origami2.png" mode="aspectFit" />
+  </view>
+
   <!-- tab 切换 -->
   <view class="tabs">
     <view class="tab {{tab === 0 ? 'tab-on' : ''}}" data-idx="0" bindtap="switchTab" hover-class="tab-hover">历史曲线</view>

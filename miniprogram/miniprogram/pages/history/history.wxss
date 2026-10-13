@@ -1,4 +1,9 @@
-.page { padding-bottom: 8px; }
+.page { padding-bottom: 8px; position: relative; }
+
+/* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
+.bg-h-note  { width: 92px; height: 92px; top: 420px; left: -18px; transform: rotate(-8deg); }
+.bg-h-star  { width: 26px; height: 26px; top: 150px; right: 12%; transform: rotate(-12deg); }
+.bg-h-star2 { width: 22px; height: 22px; top: 760px; right: 9%; transform: rotate(14deg); }
 
 /* ---------- tab 切换 ---------- */
 .tabs {

@@ -1,15 +1,28 @@
 <!-- 场次页：进来就有热门演出逛，想搜再搜；12306 是携程式的站站选择。 -->
 <view class="page">
 
-  <!-- 顶部：粗黑体标题 + 胶带/贴纸点缀（和监控页同款语法） -->
+  <!-- 背景拼贴层：board2 贴纸素材，透明度压到 0.07~0.14，
+       只在留白缝隙透出（z-index:-1，盖在白卡片底下） -->
+  <view class="bg-collage">
+    <image class="bg-stk bg-faint bg-love"   src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-swirl"  src="/images/board2/cartoon12.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-burst"  src="/images/board2/collage3.png"  mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star1" src="/images/board2/origami1.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star2" src="/images/board2/origami22.png" mode="aspectFit" />
+  </view>
+
+  <!-- 顶部：粗黑体标题 + 胶带/蝴蝶结/贴纸点缀（和监控页同款语法） -->
   <view class="head">
     <view class="tape"></view>
     <view class="head-row">
       <view class="bow"><view class="bow-k"></view></view>
-      <view class="head-hand font-hand">今天想看什么</view>
-      <image class="head-stk" src="/images/board2/origami11.png" mode="aspectFit" />
+      <view class="head-hand title-strong">今天想看什么</view>
+      <view class="head-stks">
+        <image class="head-stk stk-a" src="/images/board2/origami21.png" mode="aspectFit" />
+        <image class="head-stk stk-b" src="/images/board2/cartoon11.png" mode="aspectFit" />
+      </view>
     </view>
-    <view class="en-note">FIND SOMETHING TO WATCH</view>
+    <view class="en-note">FIND SOMETHING TO WATCH <text class="spark">✦</text></view>
   </view>
 
   <!-- 平台筛选 -->
@@ -44,6 +57,8 @@
     <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
       {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜索')}}
     </view>
+    <!-- 定位针贴纸：搜索框是「找」的动作，配一枚图钉 -->
+    <image class="search-pin" src="/images/board2/cartoon6.png" mode="aspectFit" />
   </view>
 
   <!-- 票星球：粘贴链接模式说明（大麦已支持关键词搜索，不用粘贴了） -->
@@ -81,6 +96,27 @@
     </view>
   </view>
 
+  <!-- ============ 使用教程 / 常见问题（第十五轮新增） ============ -->
+  <view class="card faq">
+    <view class="faq-head" bindtap="toggleFaq" hover-class="press-hover">
+      <view class="faq-head-l">
+        <image class="faq-stk" src="/images/board2/cartoon7.png" mode="aspectFit" />
+        <view class="faq-title title-strong">使用教程 · 常见问题</view>
+      </view>
+      <text class="faq-arrow {{faqOpen ? 'faq-arrow-open' : ''}}">▾</text>
+    </view>
+    <view class="faq-body" wx:if="{{faqOpen}}">
+      <view class="faq-item" wx:for="{{faqList}}" wx:key="q">
+        <view class="faq-q">
+          <text class="spark">✦</text>
+          <text class="faq-q-t">{{item.q}}</text>
+        </view>
+        <view class="faq-a">{{item.a}}</view>
+        <view class="lace" wx:if="{{index < faqList.length - 1}}"></view>
+      </view>
+    </view>
+  </view>
+
   <!-- 搜索失败 -->
   <view class="card fail" wx:if="{{fail}}">
     <view class="fail-t">搜索失败</view>
@@ -97,7 +133,7 @@
   <block wx:if="{{platforms[platformIndex].key === 'maoyan' && !searched && !searching}}">
 
     <view class="sec">
-      <view class="sec-title font-hand">正在热卖</view>
+      <view class="sec-title title-strong">正在热卖</view>
       <view class="en-note">TRENDING NOW</view>
     </view>
 
@@ -142,7 +178,7 @@
     </view>
 
     <view class="stitch-wrap" wx:if="{{hot.length}}">
-      <view class="stitch-tag font-hand">数据来自猫眼 · 每五分钟刷新一次</view>
+      <view class="stitch-tag">数据来自猫眼 · 每五分钟刷新一次</view>
     </view>
   </block>
 

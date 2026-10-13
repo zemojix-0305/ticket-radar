@@ -1,4 +1,9 @@
-.page { padding-bottom: 8px; }
+.page { padding-bottom: 8px; position: relative; }
+
+/* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
+.bg-i-love  { width: 100px; height: 100px; top: 500px; right: -20px; transform: rotate(12deg); }
+.bg-i-swirl { width: 84px;  height: 84px;  top: 140px; left: -14px; }
+.bg-i-star  { width: 26px;  height: 26px;  top: 380px; left: 10%; transform: rotate(-10deg); }
 
 /* ---------- 健康卡 ---------- */
 .health { padding: 16px; }

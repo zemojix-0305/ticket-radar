@@ -1,6 +1,14 @@
 <!-- 我的 -->
 <view class="page">
 
+  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <view class="bg-collage">
+    <image class="bg-stk bg-faint bg-note"   src="/images/board2/collage8.png"  mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-trail"  src="/images/board2/cartoon10.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star7" src="/images/board2/origami19.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-star8" src="/images/board2/origami6.png"  mode="aspectFit" />
+  </view>
+
   <view class="nickname-sheet-mask" wx:if="{{editingName}}" bindtap="toggleEditName"></view>
   <view class="nickname-sheet" wx:if="{{editingName}}">
     <view class="sheet-title">你的昵称</view>

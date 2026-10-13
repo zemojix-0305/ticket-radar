@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="KrKuEGcx3uzBKHGQ2cXbgo">
+<head data-page-node-id="73PFWnPB2GINCieVWYztnl">
+<meta charset="UTF-8" data-page-node-id="ljoaNy9j4JPPkggAfAkYIr">
+<title>第15轮视觉稿：开屏 + 首页头 + FAQ + 支持作者</title>
+<style>
+  body { margin: 0; background: #e8e8ea; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .stage { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; }
+  .phone { width: 375px; background: #fff; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.14); position: relative; }
+  .cap { font-size: 12px; color: #666; padding: 6px 4px 0; }
+  /* ============ 开屏 ============ */
+  .splash { height: 667px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .splash-bg { position: absolute; inset: 0; pointer-events: none; }
+  .splash-bg img { position: absolute; }
+  .stk { position: absolute; animation: pop .4s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(1.4) var(--r, rotate(0)); } to { opacity: 1; transform: scale(1) var(--r, rotate(0)); } }
+  .ticket { position: relative; display: flex; width: 300px; padding: 28px 0; background: #fff; border: 1px solid #F2C7D4; border-radius: 14px; box-shadow: 0 9px 30px rgba(188,53,101,.10); transform: rotate(-3deg); }
+  .tape { position: absolute; top: -9px; left: 50%; width: 75px; height: 20px; background: rgba(188,53,101,.22); transform: translateX(-50%) rotate(-4deg); border-radius: 2px; }
+  .bow { position: absolute; top: -17px; left: 50%; margin-left: -7px; width: 15px; height: 9px; transform: scale(1.6) rotate(-4deg); }
+  .bow::before, .bow::after { content:''; position: absolute; top: 1px; width: 6px; height: 7px; background: #FBE9EF; border: .8px solid #BC3565; }
+  .bow::before { left: 0; border-radius: 70% 15% 70% 15%; transform: rotate(-10deg); }
+  .bow::after { right: 0; border-radius: 15% 70% 15% 70%; transform: rotate(10deg); }
+  .bow i { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #BC3565; border-radius: 1.5px; z-index: 1; }
+  .ticket-main { flex: 1; padding: 0 20px 0 24px; }
+  .ticket-cn { font-size: 36px; font-weight: 600; letter-spacing: 3px; }
+  .ticket-en { margin-top: 9px; font-size: 10px; letter-spacing: 1.5px; color: #9A9A9F; }
+  .ticket-en b { color: #BC3565; }
+  .ticket-slogan { margin-top: 17px; font-size: 13px; color: #BC3565; letter-spacing: 1.5px; }
+  .ticket-stars { display: flex; gap: 5px; margin-top: 13px; }
+  .ticket-stars img { width: 17px; height: 17px; }
+  .perforation { width: 0; border-left: 1.5px dashed #F2C7D4; }
+  .hole { position: absolute; left: 212px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px #F2C7D4; }
+  .hole.t { top: -9px; } .hole.b { bottom: -9px; }
+  .ticket-stub { width: 75px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; }
+  .stub-txt { font-size: 8.5px; letter-spacing: 1px; color: #9A9A9F; }
+  .barcode { width: 48px; height: 28px; background: repeating-linear-gradient(90deg,#1A1A1A 0 1.5px,transparent 1.5px 3.5px,#1A1A1A 3.5px 4.5px,transparent 4.5px 7px); }
+  .stub-no { font-size: 8.5px; letter-spacing: 1px; color: #B9B9BE; }
+  .splash-hint { position: absolute; bottom: 35px; font-size: 11px; letter-spacing: 2.5px; color: #C4C4C9; }
+  /* ============ 演出页头 + FAQ ============ */
+  .head { padding: 20px 16px 4px; position: relative; }
+  .tape-s { position: absolute; top: -6px; left: 14px; width: 40px; height: 11px; background: rgba(188,53,101,.14); transform: rotate(-4deg); border-radius: 2px; }
+  .head-row { display: flex; align-items: center; gap: 7px; }
+  .head-hand { font-size: 21px; font-weight: 600; letter-spacing: .5px; white-space: nowrap; }
+  .head-stks { display: flex; align-items: center; gap: 2px; }
+  .head-stks img { width: 24px; height: 24px; }
+  .head-stks img:last-child { width: 19px; margin-left: -3px; transform: rotate(-8deg); }
+  .en-note { font-size: 9px; letter-spacing: 2.5px; color: #75757A; text-transform: uppercase; margin-top: 4px; }
+  .en-note b { color: #BC3565; }
+  .searchbar { display: flex; gap: 8px; padding: 10px 16px; position: relative; }
+  .search-box { flex: 1; display: flex; align-items: center; height: 38px; padding: 0 14px; background: #F7F7F8; border-radius: 19px; font-size: 13px; color: #75757A; }
+  .search-btn { height: 38px; line-height: 38px; padding: 0 18px; border-radius: 19px; background: #BC3565; color: #fff; font-size: 14px; }
+  .pin { position: absolute; top: -8px; right: 100px; width: 24px; height: 24px; transform: rotate(14deg); }
+  .card { margin: 12px; border: 1px solid #ECECEC; border-radius: 16px; }
+  .faq { padding: 12px 16px; }
+  .faq-head { display: flex; align-items: center; justify-content: space-between; }
+  .faq-head-l { display: flex; align-items: center; gap: 8px; }
+  .faq-head-l img { width: 22px; height: 22px; }
+  .faq-title { font-size: 14px; font-weight: 600; }
+  .faq-arrow { color: #75757A; font-size: 12px; }
+  .faq-item { padding: 9px 0; border-top: 1px solid #ECECEC; }
+  .faq-item:first-of-type { border-top: none; }
+  .faq-q { display: flex; gap: 7px; font-size: 13px; font-weight: 600; line-height: 1.5; }
+  .faq-q b { color: #BC3565; font-size: 11px; margin-top: 2px; }
+  .faq-a { font-size: 12px; color: #6E6E73; line-height: 1.75; margin: 5px 0 8px 18px; }
+  .lace { height: 9px; background-image: radial-gradient(circle, #F2C7D4 2.2px, transparent 2.8px); background-size: 13px 9px; background-repeat: repeat-x; margin: 0 0 8px 18px; }
+  /* ============ 支持作者 ============ */
+  .support { display: flex; align-items: center; gap: 14px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .support-deco { position: absolute; left: -14px; bottom: -18px; opacity: .28; }
+  .support-deco img { width: 76px; height: 76px; transform: rotate(-10deg); }
+  .support-main { flex: 1; min-width: 0; position: relative; z-index: 1; }
+  .support-t-row { display: flex; align-items: center; gap: 7px; }
+  .support-t-row img { width: 19px; height: 19px; }
+  .support-t { font-size: 16px; font-weight: 600; }
+  .support-gh { font-size: 9px; color: #BC3565; background: #FBE9EF; padding: 2px 8px; border-radius: 999px; }
+  .support-d { font-size: 11px; color: #75757A; margin-top: 5px; line-height: 1.5; }
+  .support-btn { padding: 9px 16px; background: #BC3565; color: #fff; border-radius: 18px; font-size: 12px; white-space: nowrap; position: relative; z-index: 1; }
+  /* ============ 背景拼贴演示 ============ */
+  .collage-demo { height: 300px; position: relative; padding: 16px; }
+  .collage-demo .card { background: #fff; }
+  .collage-demo .row { height: 44px; margin: 10px; border: 1px solid #ECECEC; border-radius: 12px; background: #fff; }
+</style>
+</head>
+<body data-page-node-id="g7zRqUElG9rPapd8FBDYtQ">
+<div class="stage" data-page-node-id="J2QVgtC2HxuDlgBSotcjzS">
+
+  <!-- 开屏 -->
+  <div data-page-node-id="wAetBs7Ht5cHvIHc2Xp82D">
+    <div class="cap" data-page-node-id="usrKsutnprY8bhSoB3GLjQ">① 开屏 v4：coquette 手账票根 + 满底高透明拼贴</div>
+    <div class="phone splash" data-page-node-id="omHskFGsasT48uX4AiDmUe">
+      <div class="splash-bg" data-page-node-id="W3DMWeXQSEMpaLHz4FEV6D">
+        <img src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:100px;height:100px;top:8%;right:-20px;transform:rotate(14deg);opacity:.13" data-page-node-id="YJJU9sWvF82ndYvFNyaiNg">
+        <img src="../miniprogram/miniprogram/images/board2/collage3.png" style="width:75px;height:75px;top:22%;left:-15px;transform:rotate(-10deg);opacity:.12" data-page-node-id="sps1sZfjncF8UqQVjuj6I5">
+        <img src="../miniprogram/miniprogram/images/board2/cartoon12.png" style="width:85px;height:85px;bottom:16%;left:-18px;transform:rotate(8deg);opacity:.11" data-page-node-id="t3QEr6kGXFgJgaAfsR7jr0">
+        <img src="../miniprogram/miniprogram/images/board2/collage11.png" style="width:60px;height:60px;bottom:8%;right:6%;transform:rotate(-14deg);opacity:.12" data-page-node-id="FRgw5ShaH5Ye9lssFjLgPb">
+        <img src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:30px;height:30px;top:14%;left:18%;transform:rotate(-12deg);opacity:.15" data-page-node-id="pEkg3zzG5D58CfYneFEMEz">
+        <img src="../miniprogram/miniprogram/images/board2/origami5.png" style="width:26px;height:26px;top:40%;right:10%;transform:rotate(16deg);opacity:.15" data-page-node-id="0kje4XC3FlJv8AgHLwKncF">
+        <img src="../miniprogram/miniprogram/images/board2/origami22.png" style="width:24px;height:24px;bottom:30%;right:20%;transform:rotate(-8deg);opacity:.15" data-page-node-id="AvNtHpKxIvOBdbzunpzia1">
+        <img src="../miniprogram/miniprogram/images/board2/collage8.png" style="width:65px;height:65px;top:60%;right:-15px;transform:rotate(10deg);opacity:.10" data-page-node-id="9mUmri5xmBliH422BkrGEC">
+      </div>
+      <img class="stk" src="../miniprogram/miniprogram/images/board2/cartoon7.png" style="width:60px;top:20%;left:10%;animation-delay:.55s;--r:rotate(0)" data-page-node-id="vvxMjkI7LjKtrzJdCeJLPd">
+      <img class="stk" src="../miniprogram/miniprogram/images/board2/origami12.png" style="width:48px;top:13%;right:16%;animation-delay:.75s;--r:rotate(0)" data-page-node-id="IJb3p3WjmPof45twgi6yqs">
+      <img class="stk" src="../miniprogram/miniprogram/images/board2/origami24.png" style="width:36px;bottom:22%;right:11%;animation-delay:.95s;--r:rotate(0)" data-page-node-id="bb76sFMzDQvEvl4BJO0nWQ">
+      <img class="stk" src="../miniprogram/miniprogram/images/board2/cartoon10.png" style="width:55px;top:30%;left:6%;animation-delay:1.15s;--r:rotate(0)" data-page-node-id="J5lVVDf4b77NGWCyS7xt9v">
+      <img class="stk" src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:50px;bottom:15%;left:16%;animation-delay:1.35s;--r:rotate(0)" data-page-node-id="sWMDY8UcHzplR0QIwRSKTN">
+      <div class="ticket" data-page-node-id="Y4tZkrPKyWnk2in3JjmkJt">
+        <div class="tape" data-page-node-id="H7wvNquqayYk0lvp5msvCp"></div>
+        <div class="bow" data-page-node-id="h7TC96WvoPox9PDDqT11yJ"><i data-page-node-id="faR5Qwtav4z1afh2BYz2kd"></i></div>
+        <div class="ticket-main" data-page-node-id="3LKU6X9r5eNALnUm8I2AsR">
+          <div class="ticket-cn" data-page-node-id="XcKmIigPiVLYwtcKVczeId">余票监控</div>
+          <div class="ticket-en" data-page-node-id="nmzCR1iDYjpN9BDoW8Pjpt">TICKET · RADAR <b data-page-node-id="VdtvZ2VUqEkw3b8gDJOPtg">✦</b></div>
+          <div class="ticket-slogan" data-page-node-id="DN3iWY6LlxB6mhFizg0EDL">盯紧每一张回流票</div>
+          <div class="ticket-stars" data-page-node-id="FsZdbZulHSZBuHoNQ6ToVf">
+            <img src="../miniprogram/miniprogram/images/board2/origami13.png" data-page-node-id="hIFLehBVhQV2G5i5G7R7vt">
+            <img src="../miniprogram/miniprogram/images/board2/origami11.png" style="transform:rotate(12deg)" data-page-node-id="gblgITYVXkB5WyHuQp0k1A">
+            <img src="../miniprogram/miniprogram/images/board2/origami22.png" style="transform:rotate(-10deg)" data-page-node-id="JynQPGGAQjj9ivIjyd5nlI">
+          </div>
+        </div>
+        <div class="perforation" data-page-node-id="4jIVzT96h63MIAsoFF7GEd"></div>
+        <div class="hole t" data-page-node-id="9qXj3AKXUdlqH7PsD4zgUB"></div><div class="hole b" data-page-node-id="auzt9HrHGNodz6r9beiZlE"></div>
+        <div class="ticket-stub" data-page-node-id="ClX2YqQ60EInmvrSPHHEaZ">
+          <div class="stub-txt" data-page-node-id="aewwnAaV4VYQhxpw84J9ZS">ADMIT ONE</div>
+          <div class="barcode" data-page-node-id="ROvbxDBlBTfMoPBX0YGnzO"></div>
+          <div class="stub-no" data-page-node-id="eCSaw0o4RoAGbb4r1AxfIW">NO.2026</div>
+        </div>
+      </div>
+      <div class="splash-hint" data-page-node-id="goHYTrJNxz4AF6GeyIGmAV">轻触任意处进入</div>
+    </div>
+  </div>
+
+  <!-- 演出页：头 + 搜索 + FAQ -->
+  <div data-page-node-id="NOARsDbw7ILXvOYN5B5Bgw">
+    <div class="cap" data-page-node-id="mQdbjZeJh8YSz41pWWvZMM">② 演出页头 + 定位针 + 使用教程 FAQ（白卡上 bg 层只在缝际透出）</div>
+    <div class="phone" style="height:667px;position:relative;overflow:hidden" data-page-node-id="5UwU58lVEm8e3XIwEqjrw5">
+      <div class="splash-bg" data-page-node-id="6lzhk8iv58NhE5DbFxUESR">
+        <img src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:26px;top:230px;left:8%;transform:rotate(-12deg);opacity:.14" data-page-node-id="dr46FPv7Z4FqiCKIitZuLZ">
+        <img src="../miniprogram/miniprogram/images/board2/origami22.png" style="width:22px;top:430px;right:12%;transform:rotate(16deg);opacity:.14" data-page-node-id="yYnouWAviWoN76HEz84rpg">
+      </div>
+      <div class="head" data-page-node-id="Hoqaai79GRN2GoGFoz2kc0">
+        <div class="tape-s" data-page-node-id="ENPyBE7AvUampyU6EBbF5G"></div>
+        <div class="head-row" data-page-node-id="9jH7xXR3ffNk0V5w2h5jWI">
+          <div class="bow" style="position:static;margin:0;transform:none" data-page-node-id="28mDff76lnL5EIzjHTBvow"><i data-page-node-id="4jfondBE6o1EfQK3LvzenQ"></i></div>
+          <div class="head-hand" data-page-node-id="qyiRJBoHPscwPNmzsntow6">今天想看什么</div>
+          <div class="head-stks" data-page-node-id="NAIJFvzuFS6hexMzOdgR9h">
+            <img src="../miniprogram/miniprogram/images/board2/origami21.png" data-page-node-id="A6CDzG2QXOuXJpIJX9gcDG">
+            <img src="../miniprogram/miniprogram/images/board2/cartoon11.png" data-page-node-id="bazibvvHqg1z8nUKnG2MsU">
+          </div>
+        </div>
+        <div class="en-note" data-page-node-id="AJ3VFOGXy8vcrzFFIPCbmo">Find something to watch <b data-page-node-id="rsnSSbRyFTNCRGY7W0jvX8">✦</b></div>
+      </div>
+      <div class="searchbar" data-page-node-id="jw3rftSXDjZ2yeTVq3IIfI">
+        <div class="search-box" data-page-node-id="jSXk3PW5402t7MOBIlwjyo">搜索演出、巡演、场馆</div>
+        <div class="search-btn" data-page-node-id="Lefh8FzyeJMWAfhn4Ula66">搜索</div>
+        <img class="pin" src="../miniprogram/miniprogram/images/board2/cartoon6.png" data-page-node-id="YZqbauq2NnDxbnLeRIgxbE">
+      </div>
+      <div class="card faq" data-page-node-id="sAr75El4pSC1xeVC3NQMZ1">
+        <div class="faq-head" data-page-node-id="MDX8oZnnAwY40L3dZvuluw">
+          <div class="faq-head-l" data-page-node-id="b3CwFBYjXVNoeF8ThwurVd">
+            <img src="../miniprogram/miniprogram/images/board2/cartoon7.png" data-page-node-id="C5XXxJU0Lct2c1kI5WiEis">
+            <div class="faq-title" data-page-node-id="ikW0GMKjmKcuGxwGSP3RTK">使用教程 · 常见问题</div>
+          </div>
+          <div class="faq-arrow" data-page-node-id="z5cFZqSctUhhPgebTahiqD">▾</div>
+        </div>
+        <div class="faq-item" data-page-node-id="dbyeXLHzwq8weCa5sDWGKr">
+          <div class="faq-q" data-page-node-id="oOC7pO9ssyVBoO7D8GiaG6"><b data-page-node-id="yaLdLhvUPIAZDJhdarBQey">✦</b>怎么搜演出？</div>
+          <div class="faq-a" data-page-node-id="03ViCh80YMrG1vmLyGrFH1">顶部先选平台（猫眼 / 摩天轮 / 大麦 / B站都能直接打字搜），输入演出名或艺人名，点「搜索」。</div>
+          <div class="lace" data-page-node-id="ARQD3Ei7KmBAtTuW18NXQ1"></div>
+        </div>
+        <div class="faq-item" data-page-node-id="xBan6EL8cBVq5q4Hxx5GCo">
+          <div class="faq-q" data-page-node-id="gEgfEk5JP5l6v9oq9qVFJh"><b data-page-node-id="yQPThwVHSMyKqJGur8DKbq">✦</b>回流票是什么？</div>
+          <div class="faq-a" data-page-node-id="ZKDgWNhtPZLobA5kEQlnzc">显示「无票 / 售罄」之后又翻回「可售」——开售后回流、别人退票都在这个窗口。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 支持作者 -->
+  <div data-page-node-id="FBejkUPnfeVca6QzNcGVeU">
+    <div class="cap" data-page-node-id="0gFXE84RpyDFphYmUUcya3">③ 支持作者卡：贴纸挪左下不挡按钮 + GitHub 徽章</div>
+    <div class="phone" style="padding-top:40px" data-page-node-id="NQTkKf8syHhVEDXgQRQS7C">
+      <div class="card support" data-page-node-id="ZyuzFDqcbFsORQZP8v5eB8">
+        <div class="support-deco" data-page-node-id="S2GwTuT05231SA9dMRFJIX"><img src="../miniprogram/miniprogram/images/board2/collage13.png" data-page-node-id="B2Dwcgrg8bCpBTd1atVh5C"></div>
+        <div class="support-main" data-page-node-id="FLtu6wtNFNCWm2PIf7G9lS">
+          <div class="support-t-row" data-page-node-id="gMn1aHbj8rHjlW9OqHh77O">
+            <img src="../miniprogram/miniprogram/images/board2/origami13.png" data-page-node-id="XETDONDiWK3CSnoGzJrl5k">
+            <div class="support-t" data-page-node-id="7SQFEA800uGgBPZH1GTAbA">支持作者</div>
+            <span class="support-gh" data-page-node-id="Pwzh53oLm1UxUgkVDPbZ6i">GitHub</span>
+          </div>
+          <div class="support-d" data-page-node-id="XBsZ1FYgVYDsIiAIdd3D7f">项目已在 GitHub 开源 · zemojix-0305/ticket-radar，点个 Star 就是最大的鼓励</div>
+        </div>
+        <div class="support-btn" data-page-node-id="PERt3cvQNHq7AoBtFesZVn">☆ GitHub Star</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 背景拼贴效果 -->
+  <div data-page-node-id="L4FnMhz7naTAaRj1S1p7Pd">
+    <div class="cap" data-page-node-id="v1WV4xVqL7HqsuxKDT3OCp">④ 背景拼贴层效果：贴纸只从卡片缝隙透出（z-index:-1）</div>
+    <div class="phone collage-demo" style="position:relative" data-page-node-id="wmwYe48LvZW7dba8IfL8g5">
+      <div class="splash-bg" data-page-node-id="vUeUWTVuGIMmzDMHflt2ra">
+        <img src="../miniprogram/miniprogram/images/board2/collage16.png" style="width:100px;height:100px;top:40px;right:-20px;transform:rotate(-10deg);opacity:.10" data-page-node-id="5Hc9HlOkFGCoKT8dHkl21r">
+        <img src="../miniprogram/miniprogram/images/board2/origami13.png" style="width:26px;top:20px;left:7%;transform:rotate(-14deg);opacity:.14" data-page-node-id="ThgjZoFjxILrmcnUdYDIEA">
+        <img src="../miniprogram/miniprogram/images/board2/collage4.png" style="width:90px;height:90px;top:150px;left:-16px;transform:rotate(6deg);opacity:.07" data-page-node-id="Rg8QqQeznamwzOaG7xR0yS">
+      </div>
+      <div class="row" data-page-node-id="4m1Al2fPIqoY7Yl7mpOafu"></div><div class="row" data-page-node-id="MEbGhAHf3db5AhhORlPBc4"></div><div class="row" data-page-node-id="KpK8AlvaGYnAgBbS3WCfyq"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,5 +1,11 @@
 /* 讨论区：问题反馈白板风格 */
-.page { padding-bottom: 8px; }
+.page { padding-bottom: 8px; position: relative; }
+
+/* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
+.bg-love2  { width: 100px; height: 100px; top: 400px; left: -20px; transform: rotate(-12deg); }
+.bg-leaf   { width: 90px;  height: 90px;  top: 760px; right: -16px; transform: rotate(10deg); }
+.bg-star5  { width: 26px;  height: 26px;  top: 160px; right: 16%; transform: rotate(-10deg); }
+.bg-star6  { width: 22px;  height: 22px;  top: 1100px; left: 10%; transform: rotate(14deg); }
 
 /* ---------- 顶部标题区 ---------- */
 .board-header {
@@ -19,6 +25,7 @@
   white-space: nowrap;   /* 标题类一律单行 */
 }
 /* 和监控页/演出页同款的手账贴纸点缀 */
+.board-stks { display: flex; align-items: center; gap: 2px; }
 .board-stk {
   width: 30px;
   height: 30px;
@@ -26,6 +33,7 @@
   transform: rotate(10deg);
   opacity: 0.95;
 }
+.board-stk.stk-b { width: 24px; height: 24px; transform: rotate(-8deg); margin-left: -4px; }
 .board-subtitle {
   font-size: 10px;
   color: var(--t3);

@@ -1,22 +1,47 @@
-<!-- 开屏页 v3：一张真·车票 -->
-<!-- 语言：整页纯白，中央一张微倾的车票卡（打孔线+副券条码），
-     手写体大字直接写在票面上，少量贴纸点缀。点任意处进入。 -->
+<!-- 开屏页 v4：coquette 手账票根（第十五轮重做）
+     语言：整页纯白 + 满底高透明度拼贴贴纸（像手账桌面垫的拼贴纸）；
+     中央一张微倾的票根卡——粉色和纸胶带 + 蝴蝶结压在票顶，
+     打孔线分主券/副券；四周贴纸错峰「啪」地贴上。
+     全部文字用系统默认字体（第十五轮起无任何自定义字体）。
+     点任意处进入。 -->
 <view class="splash-page" bindtap="goHome">
 
-  <!-- 少量贴纸：克制，三张封顶 -->
-  <image class="stk stk-star" src="/images/board2/origami11.png" mode="aspectFit" />
-  <image class="stk stk-crane" src="/images/board2/collage15.png" mode="aspectFit" />
-  <image class="stk stk-spark" src="/images/board2/collage11.png" mode="aspectFit" />
+  <!-- 满底拼贴层：透明度 0.10~0.16 的贴纸素材，远看是肌理 -->
+  <view class="splash-bg">
+    <image class="sbg sbg-1" src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="sbg sbg-2" src="/images/board2/collage3.png"  mode="aspectFit" />
+    <image class="sbg sbg-3" src="/images/board2/cartoon12.png" mode="aspectFit" />
+    <image class="sbg sbg-4" src="/images/board2/collage11.png" mode="aspectFit" />
+    <image class="sbg sbg-5" src="/images/board2/origami1.png"  mode="aspectFit" />
+    <image class="sbg sbg-6" src="/images/board2/origami5.png"  mode="aspectFit" />
+    <image class="sbg sbg-7" src="/images/board2/origami22.png" mode="aspectFit" />
+    <image class="sbg sbg-8" src="/images/board2/collage8.png"  mode="aspectFit" />
+  </view>
 
-  <!-- 车票主体 -->
+  <!-- 错峰贴上的贴纸：封顶 5 张，散在票的四周，不压票面文字 -->
+  <image class="stk stk-heart" src="/images/board2/cartoon7.png"  mode="aspectFit" />
+  <image class="stk stk-star"  src="/images/board2/origami12.png" mode="aspectFit" />
+  <image class="stk stk-star2" src="/images/board2/origami24.png" mode="aspectFit" />
+  <image class="stk stk-trail" src="/images/board2/cartoon10.png" mode="aspectFit" />
+  <image class="stk stk-love"  src="/images/board2/collage13.png" mode="aspectFit" />
+
+  <!-- 票根主体 -->
   <view class="ticket">
+    <!-- 和纸胶带 + 蝴蝶结：coquette 签名式组合，压在票顶 -->
     <view class="tape"></view>
+    <view class="bow ticket-bow"><view class="bow-k"></view></view>
 
     <!-- 主券 -->
     <view class="ticket-main">
       <view class="ticket-cn">余票监控</view>
-      <view class="ticket-en">T I C K E T · R A D A R</view>
-      <view class="ticket-slogan">盯紧每一张票</view>
+      <view class="ticket-en">TICKET · RADAR <text class="spark">✦</text></view>
+      <view class="ticket-slogan">盯紧每一张回流票</view>
+      <!-- 三颗小星：粉/蓝/黄，呼应拼贴素材 -->
+      <view class="ticket-stars">
+        <image src="/images/board2/origami13.png" mode="aspectFit" />
+        <image src="/images/board2/origami11.png" mode="aspectFit" />
+        <image src="/images/board2/origami22.png" mode="aspectFit" />
+      </view>
     </view>
 
     <!-- 打孔线 + 副券 -->

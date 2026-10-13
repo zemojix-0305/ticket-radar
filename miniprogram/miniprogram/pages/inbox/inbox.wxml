@@ -1,6 +1,13 @@
 <!-- 消息页：不列微信的通知，而是给「到底有没有在查」的证据 -->
 <view class="page">
 
+  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <view class="bg-collage">
+    <image class="bg-stk bg-faint bg-i-love"  src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-i-swirl" src="/images/board2/cartoon12.png" mode="aspectFit" />
+    <image class="bg-stk bg-visible bg-i-star" src="/images/board2/origami12.png" mode="aspectFit" />
+  </view>
+
   <!-- 推送健康：额度 + 平台连通 + 上次检查 -->
   <view class="card health">
     <view class="health-row">
