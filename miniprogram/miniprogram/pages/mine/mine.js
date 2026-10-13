@@ -136,6 +136,22 @@ Page({
     });
   },
 
+  // 把本次领取同步到云端记账（radar_subs 集合）。
+  // 云函数发推送时从这里扣额度；本地 storage 只是显示缓存。
+  // 同步失败不打断用户：下次领额度时会按云端实际值覆盖回来。
+  syncQuotaToCloud(n) {
+    wx.cloud
+      .callFunction({ name: 'radar', data: { action: 'grantSub', n: n } })
+      .then((r) => {
+        const res = r.result || {};
+        if (res.ok && typeof res.quota === 'number') {
+          wx.setStorageSync(CREDIT_KEY, res.quota);
+          this.setData({ credit: res.quota });
+        }
+      })
+      .catch(() => {});
+  },
+
   // 一次性订阅：点一次「允许」= 换来一条推送额度。
   // 用完再发会报 43101，所以额度见底时回来再点一次就行。
   requestSubscribe() {
@@ -155,6 +171,7 @@ Page({
             credit: n,
             authMsg: `已领到第 ${n} 条额度`,
           });
+          this.syncQuotaToCloud(1);
         } else if (state === 'reject') {
           this.setData({ authMsg: '你拒绝了这次授权，不会收到推送' });
         } else if (state === 'ban') {

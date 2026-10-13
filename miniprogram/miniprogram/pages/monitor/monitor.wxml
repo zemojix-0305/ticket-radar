@@ -1,10 +1,13 @@
 <!-- 监控页：白色灵动风。绣字标题 + 快捷入口 + 圆角任务卡。 -->
 <view class="page">
 
-  <!-- 顶部：极简排版。手写体标题 + 英文小注 + 大数字计数 -->
+  <!-- 顶部：极简排版。手写体标题 + 贴纸点缀 + 大数字计数 -->
   <view class="hero">
     <view class="hero-l">
-      <view class="hero-title font-hand">正在盯的票</view>
+      <view class="hero-title-row">
+        <view class="hero-title font-hand">正在盯的票</view>
+        <image class="hero-stk" src="/images/board2/origami11.png" mode="aspectFit" />
+      </view>
       <view class="en-note">WATCHING NOW</view>
       <view class="hero-count">
         <text class="num hero-ok">{{okCount}}</text>

@@ -27,6 +27,11 @@ const UA =
 const DB_TASKS = 'radar_tasks';
 const DB_STATE = 'radar_state';
 const DB_POSTS = 'radar_posts';
+// 订阅额度云端记账：小程序端只记本地 storage 的话，云函数查不到额度，
+// 推送永远发不出去（这就是「明明有票却收不到提醒」的根因）。
+const DB_SUBS = 'radar_subs';
+// 订阅消息模板 ID——与小程序端 mine.js 的 TMPL_ID 是同一个，改记得两边改。
+const NOTIFY_TMPL = 'YnMbguJ_UqIWb1eUOSMOp1RwdGJoIzhXYISaXFnsF4';
 const CFG_KEY = 'radar_config';
 
 // ===========================================================================
@@ -852,6 +857,40 @@ function errorKind(e) {
 }
 
 // ===========================================================================
+// 回流票判定：只报「从无到有」，别的状态变化不吵人
+// ===========================================================================
+//
+// 用户盯票真正的诉求不是「开售了吗」，而是「售罄之后有没有票放回来」
+// （退票、锁票释放、分批放库存）。所以判定只做一件事：
+// 上一轮 available=false 且这一轮 available=true 的那个瞬间 = 回流。
+
+/**
+ * 对比上一轮和这一轮的场次余票，返回回流的场次名列表。
+ * 上轮抓取失败（prev.ok=false）时不判定——拿失败数据当基线会漏报/误报。
+ */
+function diffRestock(prev, next) {
+  if (!prev || !prev.ok || !next || !next.ok) return [];
+  const before = {};
+  for (const it of prev.items || []) {
+    if (it && it.label != null) before[it.label] = !!it.available;
+  }
+  const back = [];
+  for (const it of next.items || []) {
+    if (it && it.available && before[it.label] === false) back.push(it.label);
+  }
+  return back;
+}
+
+/** 给某个 openid 扣一次订阅额度。扣成功（有额度）返回 true。 */
+async function takeSubQuota(db, openid) {
+  const { data } = await db.collection(DB_SUBS).where({ openid: openid }).limit(1).get();
+  const sub = (data || [])[0];
+  if (!sub || !(sub.quota > 0)) return false;
+  await db.collection(DB_SUBS).doc(sub._id).update({ data: { quota: sub.quota - 1 } });
+  return true;
+}
+
+// ===========================================================================
 // 入口
 // ===========================================================================
 
@@ -893,6 +932,11 @@ exports.main = async (event) => {
       const now = new Date().toISOString();
       const results = [];
       for (const task of tasks || []) {
+        // 先读上一轮状态再覆盖写：回流判定、history 曲线都要拿它当基线。
+        // 文档不存在时 get 会抛错，catch 成 null（第一次跑没有基线，正常）。
+        const prevRes = await db.collection(DB_STATE).doc(task._id).get().catch(() => null);
+        const prev = (prevRes && prevRes.data) || null;
+
         const fn = PLATFORMS[task.adapter];
         const rec = {
           _id: task._id, platform: task.adapter, name: task.name || task._id,
@@ -911,13 +955,52 @@ exports.main = async (event) => {
             rec.error_kind = errorKind(e);
           }
         }
-        // 只保留最近 30 次的有票数量，画曲线用
-        let history = rec.history || [];
+
+        // 回流判定：无 → 有 的场次
+        const back = diffRestock(prev, rec);
+        if (back.length) {
+          rec.transition = 'restock';
+          rec.restock = back;
+        }
+
+        // history 从上一轮接续（旧实现每次都是新对象，曲线永远只有一根柱——bug）
+        let history = (prev && prev.history) || [];
         if (rec.ok) history = history.concat([{ t: now, n: rec.available || 0 }]).slice(-30);
         rec.history = history;
 
+        // 回流推送：一次性订阅，发一条扣一条额度
+        rec.notify = null;
+        if (rec.transition === 'restock' && task._openid) {
+          rec.notify = { attempted: true, sent: false };
+          try {
+            if (await takeSubQuota(db, task._openid)) {
+              const first = (rec.items || []).find((i) => i.available) || {};
+              await cloud.openapi.subscribeMessage.send({
+                touser: task._openid,
+                templateId: NOTIFY_TMPL,
+                page: 'pages/monitor/monitor',
+                data: {
+                  // 模板字段以小程序后台实际配置为准；thing 类字段限 20 字
+                  thing1: { value: String(rec.name || '你盯的场次').slice(0, 20) },
+                  thing2: { value: String('回流票：' + (first.label || '有票了')).slice(0, 20) },
+                },
+              });
+              rec.notify.sent = true;
+            } else {
+              rec.notify.reason = 'no_quota';
+            }
+          } catch (e) {
+            rec.notify.error = String((e && e.errMsg) || (e && e.message) || e);
+          }
+        }
+
         await db.collection(DB_STATE).doc(task._id).set({ data: rec });
-        results.push({ _id: rec._id, ok: rec.ok, n: (rec.items || []).length, error: rec.error });
+        results.push({
+          _id: rec._id, ok: rec.ok,
+          restock: (rec.restock || []).length,
+          notify: rec.notify,
+          error: rec.error,
+        });
       }
       return { ok: true, at: now, tasks: results.length, results: results };
     }
@@ -1030,6 +1113,35 @@ exports.main = async (event) => {
       return { ok: true, _id };
     }
 
+    // --- 订阅额度云端记账 ---------------------------------------------
+    // 用户每点一次「允许通知」，小程序端就调一次 grantSub。
+    // 云函数发推送时从这里扣额度；本地 storage 的数字只是显示缓存。
+    if (action === 'grantSub') {
+      const n = Math.min(5, Math.max(1, Number((event && event.n) || 1)));
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid' };
+      const { data } = await db.collection(DB_SUBS).where({ openid: OPENID }).limit(1).get();
+      let quota;
+      if (data && data.length) {
+        quota = (data[0].quota || 0) + n;
+        await db.collection(DB_SUBS).doc(data[0]._id).update({
+          data: { quota: quota, updatedAt: new Date().toISOString() },
+        });
+      } else {
+        quota = n;
+        await db.collection(DB_SUBS).add({
+          data: { openid: OPENID, quota: quota, updatedAt: new Date().toISOString() },
+        });
+      }
+      return { ok: true, quota: quota };
+    }
+    if (action === 'querySub') {
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid' };
+      const { data } = await db.collection(DB_SUBS).where({ openid: OPENID }).limit(1).get();
+      return { ok: true, quota: (data && data[0] && data[0].quota) || 0 };
+    }
+
     // --- 查询（小程序读这个）-------------------------------------------
     const { data: states } = await db.collection(DB_STATE).limit(100).get();
     return { ok: true, at: new Date().toISOString(), states: states || [] };
@@ -1052,4 +1164,5 @@ exports._internals = {
   fetchStationMap: fetchStationMap,
   resolveStationCode: resolveStationCode,
   errorKind: errorKind,
+  diffRestock: diffRestock,
 };

@@ -40,6 +40,8 @@ extra = (
     "重试加载稍等网络异常暂无记录输入想说的话涂鸦拼贴星星雨滴蝴蝶兔子"
     "叶子千纸鹤拼图爱心支持请喝咖啡星标前往仓库问题反馈建议求助热门正在"
     "搜索车站日期出发地目的地候补候车乘客座位有无余快速全部筛选清空"
+    # 回流票监控相关：FAQ/徽章/说明文案用字兜底
+    "回流瞬间退锁座释放分批库存窗口手速喊推额度允许通知销售罄翻售可购"
 )
 chars.update(extra)
 chars.update(chr(c) for c in range(0x20, 0x7F))  # ASCII 可见区
@@ -72,7 +74,7 @@ print(f"saved {FONT_OUT} ({size/1024:.0f} KB)")
 # 4) 校验：界面关键词必须全覆盖
 from fontTools.ttLib import TTFont
 cmap = TTFont(FONT_OUT).getBestCmap()
-must = "正在盯的票余票监控支持作者加搜演出历史反馈我的有刷新看今天明天出发到达站开屏开始盯一吧数据来自猫眼每五分钟次问题建议留言求助全部置顶"
+must = "正在盯的票余票监控支持作者加搜演出历史反馈我的有刷新看今天明天出发到达站开屏开始盯一吧数据来自猫眼每五分钟次问题建议留言求助全部置顶回流暂未抓失败额候补乘车备注名交换识别热卖买什么想"
 missing = [c for c in must if ord(c) not in cmap]
 if missing:
     print("MISSING:", "".join(missing))

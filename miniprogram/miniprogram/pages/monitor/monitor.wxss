@@ -7,13 +7,26 @@
   justify-content: space-between;
   padding: 26px 20px 16px;
 }
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .hero-title {
-  /* 手写体大标题（龙藏体），手写感字号略放大补视觉尺寸 */
+  /* 手写体大标题（站酷快乐体）。单行不换行——标题折行是排版事故 */
   font-family: "HandCN", "STKaiti", "楷体", serif;
-  font-size: 31px;
-  letter-spacing: 3px;
+  font-size: 29px;
+  letter-spacing: 1px;
   color: var(--t1);
+  white-space: nowrap;
   margin-bottom: 6px;
+}
+.hero-stk {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 6px;
+  transform: rotate(10deg);
+  opacity: 0.95;
 }
 .hero-count { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; }
 .hero-ok { color: var(--t1); }

@@ -5,13 +5,26 @@
 .board-header {
   padding: 28px 18px 16px;
   border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+.board-head-l { flex: 1; min-width: 0; }
 .board-title {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 400;
   color: var(--t1);
   letter-spacing: 3px;
   font-family: "HandCN", "STKaiti", "楷体", serif;
+  white-space: nowrap;   /* 标题类一律单行 */
+}
+/* 和监控页/演出页同款的手账贴纸点缀 */
+.board-stk {
+  width: 30px;
+  height: 30px;
+  margin-top: 2px;
+  transform: rotate(10deg);
+  opacity: 0.95;
 }
 .board-subtitle {
   font-size: 10px;

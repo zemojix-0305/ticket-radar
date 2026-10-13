@@ -3,9 +3,12 @@
 
   <!-- 顶部标题区 -->
   <view class="board-header">
-    <view class="board-title">问题反馈</view>
-    <view class="board-subtitle">FEEDBACK</view>
-    <view class="board-line"></view>
+    <view class="board-head-l">
+      <view class="board-title font-hand">问题反馈</view>
+      <view class="board-subtitle">FEEDBACK</view>
+      <view class="board-line"></view>
+    </view>
+    <image class="board-stk" src="/images/board2/origami11.png" mode="aspectFit" />
   </view>
 
   <!-- 分类筛选 -->

@@ -9,6 +9,14 @@
   color: var(--t1);
   letter-spacing: 2px;
   margin-bottom: 8px;
+  white-space: nowrap;   /* 标题类一律单行 */
+}
+.head-row { display: flex; align-items: center; gap: 8px; }
+.head-stk {
+  width: 28px;
+  height: 28px;
+  transform: rotate(10deg);
+  opacity: 0.95;
 }
 
 /* ---------- 链接粘贴模式说明 ---------- */
