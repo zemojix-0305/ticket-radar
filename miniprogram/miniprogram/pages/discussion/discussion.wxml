@@ -1,9 +1,8 @@
 <!-- 讨论区：问题反馈白板 + 留言墙 -->
 <view class="page">
 
-  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <!-- 背景拼贴层：贴纸素材压到 0.06~0.12 透明度，只在留白处透出 -->
   <view class="bg-collage">
-    <view class="bg-tint bg-tint-mint bg-tint-b"></view>
     <image class="bg-stk bg-faint bg-love2"   src="/images/board2/collage13.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-leaf"    src="/images/board2/collage12.png" mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star5" src="/images/board2/origami1.png"  mode="aspectFit" />
@@ -25,13 +24,15 @@
     </view>
   </view>
 
-  <!-- 分类筛选 -->
-  <view class="board-tabs">
-    <view class="tab {{currentTab===0 ? 'active' : ''}}" data-tab="0" bindtap="onTab" hover-class="press-hover">全部</view>
-    <view class="tab {{currentTab===1 ? 'active' : ''}}" data-tab="1" bindtap="onTab" hover-class="press-hover">问题反馈</view>
-    <view class="tab {{currentTab===2 ? 'active' : ''}}" data-tab="2" bindtap="onTab" hover-class="press-hover">建议留言</view>
-    <view class="tab {{currentTab===3 ? 'active' : ''}}" data-tab="3" bindtap="onTab" hover-class="press-hover">求助求助</view>
-  </view>
+  <!-- 分类筛选：van-tabs 只当切换条，内容在 tabs 外 -->
+  <van-tabs active="{{currentTab}}" bind:change="onTab" swipeable animated
+    color="#445C38" title-active-color="#2A2620" title-inactive-color="#6E6558"
+    line-width="26px" line-height="3px">
+    <van-tab title="全部"></van-tab>
+    <van-tab title="问题反馈"></van-tab>
+    <van-tab title="建议留言"></van-tab>
+    <van-tab title="求助留言"></van-tab>
+  </van-tabs>
 
   <!-- 搜索栏 -->
   <view class="searchbar">
@@ -65,7 +66,8 @@
   </view>
 
   <!-- 帖子流 - 留言墙：手账便签 + 小夹子 -->
-  <view class="post-board" wx:for="{{posts}}" wx:key="_id">
+  <view class="post-board press-card" wx:for="{{posts}}" wx:key="_id"
+        bindtap="onNoteTap" data-index="{{index}}" hover-class="press-card-hover">
     <view class="note-wrap" style="transform: rotate({{item.rot}}deg);">
       <!-- 便签纸背景（8 种轮换，含自带的小夹子） -->
       <image class="note-bg" src="/images/board/note{{item.noteIdx}}.png" mode="widthFix" />
@@ -108,7 +110,7 @@
 
 </view>
 
-<!-- 发帖弹窗 -->
+<!-- 发帖弹窗（app.wxss 纸面 .sheet） -->
 <view class="mask" wx:if="{{showPost}}" bindtap="closePost"></view>
 <view class="sheet" wx:if="{{showPost}}">
   <view class="sheet-grab"></view>
@@ -188,3 +190,6 @@
     </view>
   </view>
 </view>
+
+<van-toast id="van-toast" />
+<van-dialog id="van-dialog" />

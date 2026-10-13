@@ -11,6 +11,9 @@ const TMPL_ID = 'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4';
 const CREDIT_KEY = 'wx_subscribe_credit';
 const USER_KEY = 'radar_user_profile';
 
+// vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
+import Toast from '/vant/toast/toast';
+
 function makeUid() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
@@ -64,12 +67,13 @@ Page({
     const name = (this.data.user.nickname || '').trim();
     if (!name) {
       this.setData({ editingName: false });
-      return wx.showToast({ title: '昵称不能为空', icon: 'none' });
+      Toast('昵称不能为空');
+      return;
     }
     const u = Object.assign({}, this.data.user, { nickname: name });
     this.setData({ user: u, editingName: false });
     wx.setStorageSync(USER_KEY, u);
-    wx.showToast({ title: '已保存', icon: 'success' });
+    Toast({ type: 'success', message: '已保存' });
   },
 
   toggleEditName() {
@@ -81,7 +85,7 @@ Page({
     if (!uid) return;
     wx.setClipboardData({
       data: uid,
-      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
+      success: () => Toast({ type: 'success', message: '已复制' }),
     });
   },
 
@@ -89,7 +93,7 @@ Page({
   goStar() {
     wx.setClipboardData({
       data: 'https://github.com/zemojix-0305/ticket-radar',
-      success: () => wx.showToast({ title: '链接已复制，去点个 Star 吧', icon: 'none' }),
+      success: () => Toast('链接已复制，去点个 Star 吧'),
     });
   },
 
@@ -132,7 +136,7 @@ Page({
     if (!this.data.code) return;
     wx.setClipboardData({
       data: this.data.code,
-      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
+      success: () => Toast({ type: 'success', message: '已复制' }),
     });
   },
 
@@ -214,7 +218,7 @@ Page({
             ? `${why}已领 ${got} 条，累计 ${this.data.credit} 条。剩下的手动点「再领一条额度」也一样。`
             : `${why}没领到，请点「允许通知」手动领一次。`,
       });
-      if (got > 0) wx.showToast({ title: `已领 ${got} 条`, icon: 'success' });
+      if (got > 0) Toast({ type: 'success', message: `已领 ${got} 条` });
     };
 
     const next = () => {

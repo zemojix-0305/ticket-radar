@@ -6,6 +6,9 @@
 // 留言墙视觉：每条帖子随机（按 _id 稳定）套一张手账便签做背景，
 // 顶部盖一个小夹子/图钉——素材在 images/board/，工具脚本 tools/cut_board_assets.py。
 
+import Toast from '/vant/toast/toast';
+import Dialog from '/vant/dialog/dialog';
+
 const USER_KEY = 'radar_user_profile';
 const POSTS_DB = 'radar_posts';
 const PAGE_SIZE = 20;
@@ -147,6 +150,16 @@ Page({
       });
   },
 
+  // 分类切换：van-tabs 用 e.detail.index；回退 dataset.tab（旧写法兼容）
+  onTab(e) {
+    const idx = e.detail && typeof e.detail.index === 'number'
+      ? e.detail.index
+      : Number(e.currentTarget.dataset.tab);
+    if (isNaN(idx) || idx === this.data.currentTab) return;
+    this.setData({ currentTab: idx });
+    this.loadPosts(true);
+  },
+
   onInput(e) {
     this.setData({ kw: e.detail.value });
   },
@@ -169,14 +182,13 @@ Page({
   openPost() {
     const u = this.data.user;
     if (!u.nickname || !u.avatar) {
-      wx.showModal({
+      Dialog.confirm({
         title: '先设置头像和昵称',
-        content: '去「我的」页点一下头像、填个昵称，再来发帖。这样讨论区才知道你是谁。',
-        confirmText: '去设置',
-        success: (r) => {
-          if (r.confirm) wx.switchTab({ url: '/pages/mine/mine' });
-        },
-      });
+        message: '去「我的」页点一下头像、填个昵称，再来发帖。这样讨论区才知道你是谁。',
+        confirmButtonText: '去设置',
+      }).then(() => {
+        wx.switchTab({ url: '/pages/mine/mine' });
+      }).catch(() => {});
       return;
     }
     this.setData({ showPost: true, postContent: '', postTags: '', postType: 0, postSticker: 'note1', previewBg: stickerBg('note1') });
@@ -213,8 +225,8 @@ Page({
 
   submitPost() {
     const content = (this.data.postContent || '').trim();
-    if (!content) return wx.showToast({ title: '写点什么再发', icon: 'none' });
-    if (content.length > 500) return wx.showToast({ title: '太长了，限制 500 字', icon: 'none' });
+    if (!content) return Toast({ message: '写点什么再发', type: 'none' });
+    if (content.length > 500) return Toast({ message: '太长了，限制 500 字', type: 'none' });
 
     const u = this.data.user;
     const tags = (this.data.postTags || '')
@@ -240,12 +252,12 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '发布失败');
-        wx.showToast({ title: '已发布', icon: 'success' });
+        Toast({ message: '已发布', type: 'success' });
         this.setData({ showPost: false, postContent: '', postTags: '', postType: 0 });
         this.loadPosts(true);
       })
       .catch((e) => {
-        wx.showModal({ title: '发布失败', content: String(e.message || e), showCancel: false });
+        Dialog.alert({ title: '发布失败', message: String(e.message || e) });
       });
   },
 });

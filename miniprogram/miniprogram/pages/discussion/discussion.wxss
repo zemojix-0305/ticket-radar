@@ -48,26 +48,7 @@
   margin-top: 10px;
 }
 
-/* ---------- 分类筛选 ---------- */
-.board-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 14px 18px 10px;
-  border-bottom: 1px solid var(--line);
-}
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 8px 0;
-  font-size: 13px;
-  color: var(--t2);
-  border-radius: 16px;
-}
-.tab.active {
-  background: var(--accent-weak);
-  color: var(--accent);
-  font-weight: 500;
-}
+/* ---------- 分类筛选：van-tabs 当切换条，纸感主题在 app.wxss 覆盖 ---------- */
 
 /* ---------- 搜索栏 ---------- */
 .searchbar {
@@ -181,14 +162,6 @@
   line-height: 1.7;
   word-break: break-word;
 }
-.post-type-tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(78, 107, 224, 0.08);
-  color: var(--accent);
-  flex-shrink: 0;
-}
 /* 标签贴纸：白底虚线框，像贴在便签上的小标签 */
 .post-tags {
   display: flex;
@@ -244,61 +217,14 @@
   align-items: center;
   justify-content: center;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(78, 107, 224, 0.25);
+  box-shadow: 0 4px 12px rgba(42, 38, 32, 0.18);
 }
 .fab-icon {
   font-size: 22px;
-  color: #FFFFFF;
+  color: var(--on-brand);
 }
 
-/* ---------- 弹层 ---------- */
-.sheet {
-  background: var(--card);
-  border-radius: 32px 32px 0 0;
-  padding: 20px 20px calc(32px + env(safe-area-inset-bottom));
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 100;
-}
-.sheet-grab {
-  width: 36px;
-  height: 4px;
-  background: var(--line);
-  border-radius: 2px;
-  margin: 0 auto 16px;
-}
-.sheet-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--t1);
-  margin-bottom: 6px;
-}
-.sheet-sub {
-  font-size: 12px;
-  color: var(--t3);
-  margin-bottom: 20px;
-}
-.field {
-  margin-bottom: 16px;
-}
-.field-lbl {
-  font-size: 13px;
-  color: var(--t2);
-  margin-bottom: 8px;
-}
-.input {
-  width: 100%;
-  height: 44px;
-  padding: 0 14px;
-  background: var(--bg);
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  font-size: 15px;
-  color: var(--t1);
-  box-sizing: border-box;
-}
+/* ---------- 弹层（纸面样式来自 app.wxss 的 .sheet / .field / .input / .field-lbl）---------- */
 .post-area {
   height: 120px;
   padding: 12px 14px;

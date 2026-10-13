@@ -144,3 +144,48 @@ miniprogram/
 小程序不能直接请求票务平台：微信要求请求域名先 ICP 备案、再配进白名单，
 而那些平台不可能给一个陌生小程序开白名单。云函数运行在腾讯服务器上，
 不受这个限制——**这也是为什么必须有云函数，前端自己抓不了**。
+
+---
+
+## 设计系统：纸感票根手账（第 17 轮）
+
+完整规范见仓库根目录 **`DESIGN.md`**（改任何页面样式前先读它）。要点：
+
+- **语言**：北港茶式手账纸感 × 票根隐喻。暖白期刊纸 `#F7F2E7` + 暖墨 `#2A2620`，
+  单一强调色茶绿 `#445C38`；语义色朱砂 `#A23B2E`（热卖/回流/售罄）、琥珀 `#7E6118`（额度提醒）。
+- **形状规则**：纸 = 裁纸直角 2px，功能 = 药丸 999px，全站统一。
+- **字体**：全部系统默认，零自定义字体声明（硬规则）。
+- **公共组件**都在 `miniprogram/app.wxss`：`.card` `.tag` `.stamp` `.perf` `.barcode`
+  `.tape` `.bow` `.lace` `.btn` `.sheet` `.bg-collage` 等，直接用 class，不要各写各的。
+- **对比度**：`python tools/check_palette.py`，19 项 WCAG AA 全过（改色板必须重跑）。
+
+### Vant Weapp 组件库
+
+`miniprogram/vant/` 是从 [@vant/weapp](https://github.com/youzan/vant-weapp) v1.11.7
+**手工 vendor 的 dist**（共 19 个组件目录，约 380KB），不走 npm 构建，导入即用。
+**不要改 `miniprogram/vant/` 里的文件**；要加组件就从官方 dist 拷对应目录进来。
+
+已接入：`van-tabs`/`van-tab`（shows 平台切换、discussion 分类切换）、
+`van-toast`/`van-dialog`（全站反馈，替代原生 showToast/showModal）。
+
+```js
+// js 顶部
+import Toast from '/vant/toast/toast';
+import Dialog from '/vant/dialog/dialog';
+Toast('文字');                                  // 或 Toast({ type: 'success', message: '文字' })
+Dialog.confirm({ title, message }).then(() => {}).catch(() => {});
+```
+
+```json
+// page.json
+"usingComponents": { "van-toast": "/vant/toast/index", "van-dialog": "/vant/dialog/index" }
+```
+
+```xml
+<!-- wxml 末尾 -->
+<van-toast id="van-toast" />
+<van-dialog id="van-dialog" />
+```
+
+纸感主题靠 vant 的 `addGlobalClass` 机制由 `app.wxss` 里的 `page .van-*` 选择器覆盖，
+新增组件若要改样式，加在 app.wxss 的「Vant Weapp 纸感主题覆盖」区。

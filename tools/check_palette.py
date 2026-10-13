@@ -7,29 +7,26 @@ from __future__ import annotations
 
 #: 与 miniprogram/miniprogram/app.wxss 里的 page{} 同源，改一处记得改两处。
 #:
-#: 白底 Y2K × coquette 天使系（第十六轮）。相纸白底 + 细线分区；
-#: 主色长春花蓝 #4E6BE0；辅色薄荷 teal / 薰衣草 lav / 银；语义色：绿/灰/红/琥珀。
+#: 纸感票根手账（第十七轮）。暖白期刊纸底 + 墨色文字 + 单一茶绿强调色；
+#: 语义色：朱砂（热卖/回流/售罄）、琥珀（额度提醒）；形状：纸直角 + 药丸。
 PALETTE = {
-    "bg": "#FBFCFE",       # 相纸白
-    "card": "#FFFFFF",     # 卡片纯白
-    "brand": "#4461CF",    # 长春花蓝（Y2K 主色）
-    "brand-deep": "#3A54B8",
-    "mint": "#0E6E5F",     # 薄荷 teal（Y2K 辅色）
-    "lav": "#6A5BC4",      # 薰衣草（Y2K 辅色）
-    "t1": "#23283B",       # 正文（蓝黑墨水色）
-    "t2": "#5A6070",       # 次要
-    "t3": "#6B7385",       # 提示
-    "ok": "#1E7A46",       # 有票：绿
-    "none": "#6A6A6F",     # 无票：灰（与 ok 色相差大，色弱可辨）
-    "bad": "#BC3B2C",      # 异常：红
-    "warn": "#96690A",     # 提醒：琥珀
-    "ok-weak": "#E6F4EB",  # 浅底
-    "none-weak": "#F4F4F5",
-    "bad-weak": "#FBEAE7",
-    "warn-weak": "#FBF3DC",
-    "brand-weak": "#EDF2FE",
-    "mint-weak": "#E2F4EF",
-    "lav-weak": "#F0EDFB",
+    "bg": "#F7F2E7",       # 页面底：暖白期刊纸
+    "card": "#FDFBF4",     # 卡片纸
+    "paper-deep": "#EFE8D7",  # 牛皮纸块
+    "brand": "#445C38",    # 茶绿（唯一强调色）
+    "brand-deep": "#36492C",
+    "t1": "#2A2620",       # 主文字：暖墨
+    "t2": "#57503F",       # 次要
+    "t3": "#6E6558",       # 提示/占位
+    "ok": "#445C38",       # 有票/在售：茶绿
+    "none": "#6E6558",     # 无票/未开售：墨灰
+    "bad": "#A23B2E",      # 售罄/异常：朱砂
+    "warn": "#7E6118",     # 提醒：琥珀
+    "ok-weak": "#E9EDDF",  # 茶绿浅底
+    "none-weak": "#F3EDDE",
+    "bad-weak": "#F5E4E0",
+    "warn-weak": "#F4EBD4",
+    "brand-weak": "#E9EDDF",
 }
 
 #: (用途, 前景, 背景, 是否大字)。大字阈值 3.0，普通文本 4.5。
@@ -39,20 +36,21 @@ CHECKS = [
     ("提示文字", "t3", "card", False),
     ("正文/纸底", "t1", "bg", False),
     ("次要/纸底", "t2", "bg", False),
-    ("有票标签", "ok", "card", False),
-    ("无票标签", "none", "card", False),
-    ("异常标签", "bad", "card", False),
-    ("提醒标签", "warn", "card", False),
+    ("占位/纸底", "t3", "bg", False),
+    ("次要/牛皮纸底", "t2", "paper-deep", False),
+    ("有票印章", "ok", "card", False),
+    ("无票印章", "none", "card", False),
+    ("售罄印章", "bad", "card", False),
+    ("提醒印章", "warn", "card", False),
     ("主色链接", "brand", "card", False),
-    ("白字/主按钮", "card", "brand", False),
-    ("大数字/纸底", "ok", "bg", True),
-    ("大数字/主色", "brand", "bg", True),
-    # pastel 浅底上的深字
-    ("薄荷底/深绿字", "ok", "ok-weak", False),
-    ("灰底/灰字", "none", "none-weak", False),
-    ("蓝浅底/长春花字", "brand", "brand-weak", False),
-    ("薄荷浅底/teal字", "mint", "mint-weak", False),
-    ("薰衣草浅底/紫字", "lav", "lav-weak", False),
+    ("纸白字/主按钮", "card", "brand", False),
+    ("大数字/纸底", "brand", "bg", True),
+    # 浅底上的深字
+    ("茶绿浅底/绿字", "ok", "ok-weak", False),
+    ("灰浅底/灰字", "none", "none-weak", False),
+    ("朱砂浅底/红字", "bad", "bad-weak", False),
+    ("琥珀浅底/琥珀字", "warn", "warn-weak", False),
+    ("茶绿浅底/主色字", "brand", "brand-weak", False),
 ]
 
 

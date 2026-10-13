@@ -1,61 +1,75 @@
-<!-- 开屏页 v4：coquette 手账票根（第十五轮重做）
-     语言：整页纯白 + 满底高透明度拼贴贴纸（像手账桌面垫的拼贴纸）；
-     中央一张微倾的票根卡——粉色和纸胶带 + 蝴蝶结压在票顶，
-     打孔线分主券/副券；四周贴纸错峰「啪」地贴上。
-     全部文字用系统默认字体（第十五轮起无任何自定义字体）。
-     点任意处进入。 -->
+<!-- 开屏页 v5：整屏票根（第十七轮）
+     整个屏幕就是一张票：顶部撕条（编号）→ 打孔线 → 主券（标题/口号/场次信息/印章）
+     → 打孔线 → 副券（条码/进入按钮）。
+     语言：暖白期刊纸 + 暖墨 + 茶绿只给「进入」与印章；高透明贴纸拼贴在四角。
+     全部文字系统默认字体；点任意处进入，2.4s 自动进入（逻辑在 splash.js）。 -->
 <view class="splash-page" bindtap="goHome">
 
-  <!-- 满底拼贴层：透明度 0.10~0.16 的贴纸素材，远看是肌理 -->
+  <!-- 拼贴层：高透明贴纸，只在四角留白处透出 -->
   <view class="splash-bg">
     <image class="sbg sbg-1" src="/images/board2/collage13.png" mode="aspectFit" />
-    <image class="sbg sbg-2" src="/images/board2/collage3.png"  mode="aspectFit" />
-    <image class="sbg sbg-3" src="/images/board2/cartoon12.png" mode="aspectFit" />
-    <image class="sbg sbg-4" src="/images/board2/collage11.png" mode="aspectFit" />
-    <image class="sbg sbg-5" src="/images/board2/origami1.png"  mode="aspectFit" />
-    <image class="sbg sbg-6" src="/images/board2/origami5.png"  mode="aspectFit" />
-    <image class="sbg sbg-7" src="/images/board2/origami22.png" mode="aspectFit" />
-    <image class="sbg sbg-8" src="/images/board2/collage8.png"  mode="aspectFit" />
+    <image class="sbg sbg-2" src="/images/board2/cartoon12.png" mode="aspectFit" />
+    <image class="sbg sbg-3" src="/images/board2/collage3.png"  mode="aspectFit" />
+    <image class="sbg sbg-4" src="/images/board2/origami1.png" mode="aspectFit" />
+    <image class="sbg sbg-5" src="/images/board2/origami22.png" mode="aspectFit" />
   </view>
 
-  <!-- 错峰贴上的贴纸：封顶 5 张，散在票的四周，不压票面文字 -->
-  <image class="stk stk-heart" src="/images/board2/cartoon7.png"  mode="aspectFit" />
-  <image class="stk stk-star"  src="/images/board2/origami12.png" mode="aspectFit" />
-  <image class="stk stk-star2" src="/images/board2/origami24.png" mode="aspectFit" />
-  <image class="stk stk-trail" src="/images/board2/cartoon10.png" mode="aspectFit" />
-  <image class="stk stk-love"  src="/images/board2/collage13.png" mode="aspectFit" />
+  <!-- 右侧竖排水印：票报语气，极淡 -->
+  <view class="watermark"><text class="watermark-t">TICKET · RADAR · ADMIT ONE · 2026</text></view>
 
-  <!-- 票根主体 -->
+  <!-- ============ 票根本体：整个屏幕 ============ -->
   <view class="ticket">
-    <!-- 和纸胶带 + 蝴蝶结：coquette 签名式组合，压在票顶 -->
-    <view class="tape"></view>
-    <view class="bow ticket-bow"><view class="bow-k"></view></view>
+
+    <!-- 顶部撕条：名称 + 编号，下沿打孔线撕开 -->
+    <view class="ticket-top anim" style="animation-delay:.05s">
+      <text class="top-name">TICKET-RADAR</text>
+      <text class="top-no">NO. 2026</text>
+    </view>
+    <view class="perf ticket-perf anim" style="animation-delay:.12s"></view>
 
     <!-- 主券 -->
     <view class="ticket-main">
-      <view class="ticket-cn">余票监控</view>
-      <view class="ticket-en">TICKET · RADAR <text class="spark">✦</text></view>
-      <view class="ticket-slogan">盯紧每一张回流票</view>
-      <!-- 三颗小星：粉/蓝/黄，呼应拼贴素材 -->
-      <view class="ticket-stars">
-        <image src="/images/board2/origami13.png" mode="aspectFit" />
-        <image src="/images/board2/origami11.png" mode="aspectFit" />
-        <image src="/images/board2/origami22.png" mode="aspectFit" />
+      <view class="ticket-eyebrow anim" style="animation-delay:.2s">ADMIT ONE · 余票监控</view>
+      <view class="ticket-title anim" style="animation-delay:.28s">票务雷达</view>
+      <view class="ticket-slogan anim" style="animation-delay:.36s">盯紧每一场演出，不错过每一次回流</view>
+
+      <!-- 场次信息格：真票的演出信息区 -->
+      <view class="ticket-info anim" style="animation-delay:.46s">
+        <view class="info-cell">
+          <text class="info-lbl">日期 DATE</text>
+          <text class="info-v">2026.10</text>
+        </view>
+        <view class="info-cell">
+          <text class="info-lbl">场次 SESSION</text>
+          <text class="info-v">全平台</text>
+        </view>
+        <view class="info-cell">
+          <text class="info-lbl">座位 SEAT</text>
+          <text class="info-v">自由座</text>
+        </view>
+      </view>
+
+      <!-- 印章：盖在主券留白处 -->
+      <view class="stamp stamp-green ticket-stamp anim-fade" style="animation-delay:.7s">监控中</view>
+
+      <!-- 胶带 + 贴纸：贴在主券两角 -->
+      <view class="tape ticket-tape anim-fade" style="animation-delay:.62s"></view>
+      <image class="ticket-stk stk-a" src="/images/board2/origami12.png" mode="aspectFit" />
+      <image class="ticket-stk stk-b" src="/images/board2/cartoon7.png"  mode="aspectFit" />
+    </view>
+
+    <!-- 副券：打孔线分开 -->
+    <view class="perf ticket-perf anim" style="animation-delay:.56s"></view>
+    <view class="ticket-stub anim" style="animation-delay:.66s">
+      <view class="stub-l">
+        <view class="barcode stub-barcode"></view>
+        <text class="stub-no">NO. 000001</text>
+      </view>
+      <view class="stub-r">
+        <view class="btn-enter">进入</view>
+        <text class="stub-hint">轻触任意处进入</text>
       </view>
     </view>
 
-    <!-- 打孔线 + 副券 -->
-    <view class="perforation"></view>
-    <view class="hole hole-top"></view>
-    <view class="hole hole-bottom"></view>
-
-    <view class="ticket-stub">
-      <view class="stub-txt">ADMIT ONE</view>
-      <view class="barcode"></view>
-      <view class="stub-no">NO.2026</view>
-    </view>
   </view>
-
-  <!-- 底部提示 -->
-  <view class="splash-hint">轻触任意处进入</view>
 </view>

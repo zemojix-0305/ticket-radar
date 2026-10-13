@@ -1,13 +1,13 @@
 .page { padding-bottom: 8px; position: relative; }
 
-/* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
+/* ---------- 背景拼贴定位（素材见 wxml）---------- */
 .bg-youme   { width: 110px; height: 110px; top: 520px; right: -22px; transform: rotate(-10deg); }
 .bg-cloud   { width: 100px; height: 100px; top: 900px; left: -18px; transform: rotate(6deg); }
 .bg-sparkle { width: 70px;  height: 70px;  top: 180px; right: 6%; }
 .bg-star3   { width: 26px;  height: 26px;  top: 330px; left: 7%; transform: rotate(-14deg); }
 .bg-star4   { width: 22px;  height: 22px;  top: 720px; right: 14%; transform: rotate(12deg); }
 
-/* ---------- 顶部：极简排版 ---------- */
+/* ---------- 顶部 hero ---------- */
 .hero {
   display: flex;
   align-items: center;
@@ -21,11 +21,10 @@
   gap: 8px;
 }
 .hero-title {
-  /* 粗黑体大标题：干净、不土；手账感由胶带+贴纸表达 */
   font-size: 26px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: var(--t1);
+  color: var(--ink);
   white-space: nowrap;
   margin-bottom: 6px;
 }
@@ -36,14 +35,14 @@
   height: 30px;
   margin-bottom: 6px;
   transform: rotate(10deg);
-  opacity: 0.95;
+  opacity: 0.9;
 }
 .hero-stk.stk-b { width: 24px; height: 24px; transform: rotate(-8deg); margin-left: -4px; }
 .hero-count { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; }
-.hero-ok { color: var(--t1); }
-.hero-total { color: var(--t3); }
-.hero-sep { font-size: 20px; font-weight: 300; color: var(--t3); margin: 0 2px; }
-.hero-sub { font-size: 13px; color: var(--t2); margin-left: 4px; }
+.hero-ok { color: var(--ink); }
+.hero-total { color: var(--ink3); }
+.hero-sep { font-size: 20px; font-weight: 300; color: var(--ink3); margin: 0 2px; }
+.hero-sub { font-size: 13px; color: var(--ink2); margin-left: 4px; }
 .hero-add {
   display: flex;
   flex-direction: column;
@@ -53,16 +52,16 @@
   height: 44px;
   padding: 0;
   background: var(--accent);
-  border-radius: 22px;
+  border-radius: var(--r);
+  color: var(--on-brand);
   line-height: 1.15;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(78, 107, 224, 0.25);
 }
 .hero-add::after { border: none; }
-.hero-plus { font-size: 21px; color: #FFFFFF; }
-.hero-add-t { font-size: 11px; color: #FFFFFF; }
+.hero-plus { font-size: 21px; color: var(--on-brand); }
+.hero-add-t { font-size: 11px; color: var(--on-brand); }
 
-/* ---------- 快捷入口：4 列一行，线性图标 + 灰字，克制不抢戏 ---------- */
+/* ---------- 快捷入口：纸卡 + 线性图标（近墨色）---------- */
 .quick-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -83,17 +82,17 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--none-weak);
+  background: var(--card2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .quick-t {
   font-size: 12px;
-  color: var(--t2);
+  color: var(--ink2);
 }
 
-/* 图标统一近黑，克制 */
+/* 图标统一近墨色，克制 */
 .quick-cross {
   position: relative;
   width: 15px;
@@ -103,17 +102,16 @@
 .quick-cross::after {
   content: '';
   position: absolute;
-  background: var(--t2);
+  background: var(--ink2);
   border-radius: 2px;
 }
 .quick-cross::before { width: 15px; height: 3px; left: 0; top: 6px; }
 .quick-cross::after { width: 3px; height: 15px; left: 6px; top: 0; }
 
-/* 扫一扫 */
 .scan-frame {
   width: 15px;
   height: 15px;
-  border: 2px solid var(--t2);
+  border: 2px solid var(--ink2);
   border-radius: 3px;
   position: relative;
 }
@@ -124,15 +122,14 @@
   right: 2px;
   top: 50%;
   height: 2px;
-  background: var(--t2);
+  background: var(--ink2);
   transform: translateY(-50%);
 }
 
-/* 搜索 */
 .search-mag {
   width: 12px;
   height: 12px;
-  border: 2px solid var(--t2);
+  border: 2px solid var(--ink2);
   border-radius: 50%;
   position: relative;
 }
@@ -143,12 +140,11 @@
   bottom: -3px;
   width: 6px;
   height: 2px;
-  background: var(--t2);
+  background: var(--ink2);
   transform: rotate(45deg);
   border-radius: 2px;
 }
 
-/* 图表 */
 .chart-bars {
   display: flex;
   align-items: flex-end;
@@ -157,40 +153,40 @@
 }
 .chart-bars view {
   width: 4px;
-  background: var(--t2);
+  background: var(--ink2);
   border-radius: 2px;
 }
 .chart-bars view:nth-child(1) { height: 7px; }
 .chart-bars view:nth-child(2) { height: 13px; }
 .chart-bars view:nth-child(3) { height: 10px; }
 
-/* ---------- 筛选 ---------- */
+/* ---------- 筛选：药丸容器，选中 accent 实心 ---------- */
 .segs {
   display: flex;
   gap: 2px;
   margin: 4px 12px 2px;
   padding: 3px;
   background: var(--card);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--line);
 }
 .seg {
   flex: 1;
   text-align: center;
   padding: 7px 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 13px;
-  color: var(--t2);
+  color: var(--ink2);
   letter-spacing: 0.3px;
-  transition: all 0.15s;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .seg-on {
-  background: var(--brand);
+  background: var(--accent);
   color: var(--on-brand);
   font-weight: 500;
 }
-.seg-hover { background: var(--brand-weak); }
-.seg-on.seg-hover { background: var(--brand-deep); }
+.seg-hover { background: var(--accent-weak); }
+.seg-on.seg-hover { background: var(--accent-deep); }
 
 /* ---------- 额度条 ---------- */
 .credit {
@@ -200,20 +196,20 @@
   margin: 12px 12px 0;
   padding: 10px 14px;
   background: var(--card);
-  border-radius: var(--r-sm);
+  border-radius: var(--r);
   border: 1px solid var(--line);
 }
 .credit-empty { background: var(--warn-weak); }
 .credit-l { min-width: 0; }
-.credit-t { display: block; font-size: 14px; color: var(--brand); }
+.credit-t { display: block; font-size: 14px; color: var(--accent); }
 .credit-empty .credit-t { color: var(--warn); }
-.credit-s { display: block; font-size: 12px; color: var(--t2); margin-top: 2px; }
+.credit-s { display: block; font-size: 12px; color: var(--ink2); margin-top: 2px; }
 .credit-n { font-size: 17px; font-weight: 600; }
 .credit-go {
   font-size: 13px;
-  color: var(--brand);
-  border: 1px solid var(--brand-line);
-  border-radius: 20px;
+  color: var(--accent);
+  border: 1px solid var(--line2);
+  border-radius: var(--r-pill);
   padding: 4px 12px;
   flex-shrink: 0;
   margin-left: 12px;
@@ -229,7 +225,7 @@
   margin: 10px 12px 0;
   padding: 10px 12px;
   background: var(--warn-weak);
-  border-radius: var(--r-sm);
+  border-radius: var(--r);
 }
 .banner-t {
   flex: 1;
@@ -250,8 +246,8 @@
 
 /* ---------- 失败卡片 ---------- */
 .fail { padding: 16px; }
-.fail-t { font-size: 15px; color: var(--bad); margin-bottom: 6px; }
-.fail-b { font-size: 13px; color: var(--t2); line-height: 1.6; }
+.fail-t { font-size: 15px; color: var(--stamp); margin-bottom: 6px; }
+.fail-b { font-size: 13px; color: var(--ink2); line-height: 1.6; }
 .fail-btn { margin-top: 12px; }
 
 /* ---------- 骨架 ---------- */
@@ -271,32 +267,33 @@
   overflow: hidden;
   border: 1px solid var(--line);
 }
+/* 顶部 4px 状态线：ok=accent / none=bar-idle / bad=stamp */
 .task-topline {
-  height: 5px;
+  height: 4px;
   width: 100%;
 }
-.task-topline.task-bar-ok { background: var(--ok); }
+.task-topline.task-bar-ok { background: var(--accent); }
 .task-topline.task-bar-none { background: var(--bar-idle); }
-.task-topline.task-bar-bad { background: var(--bad); }
+.task-topline.task-bar-bad { background: var(--stamp); }
 .task-body { padding: 14px 16px 16px; }
 .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-/* 海报缩略图：竞品同款「卡片带图」。旧任务没有 poster 字段时 wx:if 自动隐藏 */
 .task-poster {
   width: 46px;
   height: 62px;
-  border-radius: 8px;
+  border-radius: var(--r);
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--bg-soft);
+  background: var(--card2);
 }
 .task-l { flex: 1; min-width: 0; }
 .task-name {
   font-size: 16px;
   font-weight: 500;
-  color: var(--t1);
+  color: var(--ink);
   line-height: 1.35;
 }
-.task-sub { display: block; margin-top: 4px; font-size: 12px; color: var(--t3); }
+.task-sub { display: block; margin-top: 4px; font-size: 12px; color: var(--ink3); }
+/* 虚线 foot 分隔 */
 .task-foot {
   display: flex;
   align-items: center;
@@ -306,16 +303,16 @@
   border-top: 1px dashed var(--line);
 }
 .task-foot-r { display: flex; align-items: center; gap: 12px; }
-.link { font-size: 12px; color: var(--brand); }
+.link { font-size: 12px; color: var(--accent); }
 
 /* ---------- 抓取失败 ---------- */
 .err {
   margin-top: 10px;
   padding: 10px 12px;
-  background: var(--bad-weak);
-  border-radius: var(--r-sm);
+  background: var(--stamp-weak);
+  border-radius: var(--r);
 }
-.err-t { display: block; font-size: 13px; color: var(--bad); margin-bottom: 4px; }
+.err-t { display: block; font-size: 13px; color: var(--stamp); margin-bottom: 4px; }
 
 /* ---------- 展开的明细 ---------- */
 .items { margin-top: 12px; }
@@ -326,14 +323,14 @@
   padding: 9px 0;
   border-top: 1px solid var(--line);
 }
-.i-label { flex: 1; min-width: 0; font-size: 14px; color: var(--t1); }
+.i-label { flex: 1; min-width: 0; font-size: 14px; color: var(--ink); }
 .i-st { flex-shrink: 0; }
 
 /* ---------- 弹层 ---------- */
 .acts { display: flex; gap: 10px; margin-top: 18px; }
 .acts .btn { flex: 1; }
 
-/* ---------- FAQ（常见问题 · 使用教程）---------- */
+/* ---------- FAQ ---------- */
 .faq { padding: 14px 16px; margin-bottom: 12px; }
 .faq-head {
   display: flex;
@@ -342,8 +339,8 @@
 }
 .faq-head-l { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .faq-stk { width: 24px; height: 24px; flex-shrink: 0; }
-.faq-title { font-size: 15px; font-weight: 600; color: var(--t1); letter-spacing: 0.5px; }
-.faq-arrow { font-size: 13px; color: var(--t3); transition: transform 0.2s; flex-shrink: 0; }
+.faq-title { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: 0.5px; }
+.faq-arrow { font-size: 13px; color: var(--ink3); transition: transform 0.2s; flex-shrink: 0; }
 .faq-arrow.open { transform: rotate(180deg); }
 .faq-list { margin-top: 12px; }
 .faq-item { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -353,21 +350,21 @@
   align-items: flex-start;
   gap: 8px;
   font-size: 14px;
-  color: var(--t1);
+  color: var(--ink);
   line-height: 1.5;
 }
-.faq-dot { color: var(--brand); font-size: 12px; margin-top: 2px; flex-shrink: 0; }
+.faq-dot { color: var(--accent); font-size: 12px; margin-top: 2px; flex-shrink: 0; }
 .faq-a {
   margin-top: 8px;
   padding: 10px 12px;
-  background: var(--bg);
-  border-radius: var(--r-sm);
+  background: var(--paper);
+  border-radius: var(--r);
   font-size: 13px;
-  color: var(--t2);
+  color: var(--ink2);
   line-height: 1.7;
 }
 
-/* ---------- 分享画布 ---------- */
+/* ---------- 分享画布（逻辑不动）---------- */
 .share-canvas {
   position: fixed;
   left: -9999px;
@@ -376,8 +373,7 @@
   height: 180px;
 }
 
-
-/* 空状态的千纸鹤点缀 */
+/* ---------- 空状态的千纸鹤点缀 ---------- */
 .empty-stk {
   width: 74px;
   height: 74px;

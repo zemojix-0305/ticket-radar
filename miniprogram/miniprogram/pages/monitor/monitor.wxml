@@ -1,10 +1,8 @@
-<!-- 监控页：白色 coquette 风。粗黑体标题 + 快捷入口 + 圆角任务卡。 -->
+<!-- 监控页：纸感票根手账风。标题 + 大数字计数 + 纸卡任务列表 -->
 <view class="page">
 
-  <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
+  <!-- 背景拼贴层：仅保留 bg-stk 拼贴 -->
   <view class="bg-collage">
-    <view class="bg-tint bg-tint-blue bg-tint-a"></view>
-    <view class="bg-tint bg-tint-lav bg-tint-c"></view>
     <image class="bg-stk bg-faint bg-youme"  src="/images/board2/collage16.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-cloud"  src="/images/board2/collage4.png"  mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star3" src="/images/board2/origami13.png" mode="aspectFit" />
@@ -12,7 +10,7 @@
     <image class="bg-stk bg-faint bg-sparkle" src="/images/board2/collage11.png" mode="aspectFit" />
   </view>
 
-  <!-- 顶部：极简排版。粗黑体标题 + 胶带/蝴蝶结/贴纸点缀 + 大数字计数 -->
+  <!-- 顶部 hero -->
   <view class="hero">
     <view class="tape"></view>
     <view class="hero-l">
@@ -42,27 +40,19 @@
   <!-- 快捷入口 -->
   <view class="quick-grid">
     <view class="quick-item press-card" bindtap="openAdd" hover-class="press-card-hover">
-      <view class="quick-icon qi-add">
-        <view class="quick-cross"></view>
-      </view>
+      <view class="quick-icon qi-add"><view class="quick-cross"></view></view>
       <text class="quick-t">加监控</text>
     </view>
     <view class="quick-item press-card" bindtap="scanQr" hover-class="press-card-hover">
-      <view class="quick-icon qi-scan">
-        <view class="scan-frame"></view>
-      </view>
+      <view class="quick-icon qi-scan"><view class="scan-frame"></view></view>
       <text class="quick-t">扫一扫</text>
     </view>
     <view class="quick-item press-card" bindtap="goShows" hover-class="press-card-hover">
-      <view class="quick-icon qi-search">
-        <view class="search-mag"></view>
-      </view>
+      <view class="quick-icon qi-search"><view class="search-mag"></view></view>
       <text class="quick-t">搜演出</text>
     </view>
     <view class="quick-item press-card" bindtap="goHistory" hover-class="press-card-hover">
-      <view class="quick-icon qi-chart">
-        <view class="chart-bars"><view></view><view></view><view></view></view>
-      </view>
+      <view class="quick-icon qi-chart"><view class="chart-bars"><view></view><view></view><view></view></view></view>
       <text class="quick-t">历史</text>
     </view>
   </view>
@@ -75,13 +65,13 @@
 
   <!-- 筛选 -->
   <view class="segs" wx:if="{{states.length > 1}}">
-    <view class="seg {{filter === 'all' ? 'seg-on' : ''}}" data-f="all" bindtap="onFilter" hover-class="seg-hover">全部 {{states.length}}</view>
-    <view class="seg {{filter === 'ok' ? 'seg-on' : ''}}" data-f="ok" bindtap="onFilter" hover-class="seg-hover">有票 {{okCount}}</view>
-    <view class="seg {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{states.length - okCount}}</view>
+    <view class="seg press {{filter === 'all' ? 'seg-on' : ''}}" data-f="all" bindtap="onFilter" hover-class="seg-hover">全部 {{states.length}}</view>
+    <view class="seg press {{filter === 'ok' ? 'seg-on' : ''}}" data-f="ok" bindtap="onFilter" hover-class="seg-hover">有票 {{okCount}}</view>
+    <view class="seg press {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{states.length - okCount}}</view>
   </view>
 
   <!-- 额度条 -->
-  <view class="credit {{credit > 0 ? '' : 'credit-empty'}}" bindtap="goMine" hover-class="press-card-hover">
+  <view class="credit press-card {{credit > 0 ? '' : 'credit-empty'}}" bindtap="goMine" hover-class="press-card-hover">
     <view class="credit-l">
       <text class="credit-t">还能收 <text class="credit-n">{{credit > 0 ? credit : 0}}</text> 条推送</text>
       <text class="credit-s">{{credit > 0 ? '用完了点这领新的' : '去领额度，否则有票也收不到'}}</text>
@@ -108,9 +98,7 @@
     <image class="empty-stk" src="/images/board2/collage15.png" mode="aspectFit" />
     <view class="empty-mark"></view>
     <view class="empty-title">还没在盯任何场次</view>
-    <view class="empty-sub">
-      去「搜演出」找想看的场次，<br />点一下就能开始监控。
-    </view>
+    <view class="empty-sub">去「搜演出」找想看的场次，<br />点一下就能开始监控。</view>
     <view class="empty-acts">
       <button class="btn btn-primary press" bindtap="goShows" hover-class="press-hover">去找演出</button>
     </view>
@@ -118,16 +106,10 @@
 
   <!-- 任务列表 -->
   <view class="task-list" wx:if="{{filtered.length}}">
-    <view
-      class="task-card press-card"
-      wx:for="{{filtered}}"
-      wx:key="_id"
-      hover-class="press-card-hover"
-      hover-stay-time="80"
-    >
+    <view class="task-card press-card" wx:for="{{filtered}}" wx:key="_id" hover-class="press-card-hover" hover-stay-time="80">
       <view class="task-topline {{item.barClass}}"></view>
       <view class="task-body">
-        <view class="task-top" bindtap="toggle" data-id="{{item._id}}">
+        <view class="task-top press" bindtap="toggle" data-id="{{item._id}}" hover-class="press-hover">
           <image class="task-poster" wx:if="{{item.poster}}" src="{{item.poster}}" mode="aspectFill" lazy-load />
           <view class="task-l">
             <view class="task-name">{{item.name}}</view>
@@ -167,7 +149,7 @@
     <view class="empty-sub">换回「全部」看看。</view>
   </view>
 
-  <!-- 常见问题 · 使用教程 -->
+  <!-- FAQ -->
   <view class="card faq">
     <view class="faq-head" bindtap="toggleFaq" hover-class="press-hover">
       <view class="faq-head-l">
@@ -190,7 +172,7 @@
   <view class="safe"></view>
 </view>
 
-<!-- 添加任务的底部弹层 -->
+<!-- 添加弹层 -->
 <view class="mask" wx:if="{{showAdd}}" bindtap="closeAdd"></view>
 <view class="sheet" wx:if="{{showAdd}}">
   <view class="sheet-grab"></view>
@@ -232,5 +214,8 @@
   </view>
 </view>
 
-<!-- 分享卡片用的离屏画布 -->
+<!-- 分享卡片离屏画布（逻辑一律不动） -->
 <canvas type="2d" id="shareCanvas" class="share-canvas" />
+
+<van-toast id="van-toast" />
+<van-dialog id="van-dialog" />

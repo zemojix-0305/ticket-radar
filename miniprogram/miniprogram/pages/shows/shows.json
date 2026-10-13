@@ -1,1 +1,12 @@
-{ "usingComponents": {}, "navigationBarTitleText": "找演出", "enablePullDownRefresh": false }
+{
+  "usingComponents": {
+    "van-tabs": "/vant/tabs/index",
+    "van-tab": "/vant/tab/index",
+    "van-toast": "/vant/toast/index",
+    "van-dialog": "/vant/dialog/index"
+  },
+  "navigationBarTitleText": "找演出",
+  "navigationBarBackgroundColor": "#F7F2E7",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": false
+}

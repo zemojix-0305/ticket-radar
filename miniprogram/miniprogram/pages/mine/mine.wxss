@@ -1,3 +1,6 @@
+/* 我的页 v5：纸感票根手账（第十七轮）
+   资料卡 / 额度卡 / 绑定卡 / 支持作者卡，全部落在暖白期刊纸上。
+   支持作者卡保持默认字体 + 朴素排版（对齐用户给的参考截图）。 */
 .page { padding-bottom: 8px; position: relative; }
 
 /* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
@@ -30,15 +33,21 @@
   flex-shrink: 0;
 }
 .avatar-wrap::after { border: none; }
-.avatar { display: block; width: 56px; height: 56px; }
+.avatar {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
 .profile-info { flex: 1; min-width: 0; }
 .nickname-row { display: flex; align-items: center; gap: 8px; }
-.nickname { font-size: 17px; font-weight: 500; color: var(--t1); }
-.nickname-edit { color: var(--brand); }
-.nickname-edit-btn { font-size: 15px; color: var(--t3); }
+.nickname { font-size: 17px; font-weight: 500; color: var(--ink); }
+.nickname-edit { color: var(--accent); }
+.nickname-edit-btn { font-size: 15px; color: var(--ink3); }
 .uid-row { display: flex; align-items: center; gap: 9px; margin-top: 5px; }
-.uid { font-size: 12px; color: var(--t3); background: var(--bg); padding: 3px 9px; border-radius: 11px; }
-.uid-copy { font-size: 12px; color: var(--brand); }
+.uid { font-size: 12px; color: var(--ink2); background: var(--card2); padding: 3px 9px; border-radius: var(--r-pill); }
+.uid-copy { font-size: 12px; color: var(--accent); }
 
 /* ---------- 昵称弹层 ---------- */
 .nickname-sheet-mask {
@@ -46,19 +55,19 @@
 }
 .nickname-sheet {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 91;
-  background: var(--card); border-radius: 26px 26px 0 0;
+  background: var(--card); border-radius: 12px 12px 0 0;
   padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
 }
 .nickname-sheet .sheet-title { margin-bottom: 14px; }
 .nickname-input {
-  width: 100%; box-sizing: border-box; height: 46px;
-  background: var(--bg); border-radius: 16px;
-  padding: 0 14px; font-size: 16px; color: var(--t1);
+  width: 100%; box-sizing: border-box; height: 44px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 0 14px; font-size: 16px; color: var(--ink);
 }
 
 /* ---------- 额度 ---------- */
 .quota { padding: 16px 18px; position: relative; }
-/* coquette 蝴蝶结：额度卡右上角的小巧思 */
+/* 蝴蝶结：额度卡右上角的小巧思 */
 .quota-bow {
   position: absolute;
   top: 12px;
@@ -67,37 +76,42 @@
   opacity: 0.9;
 }
 .quota-v { display: flex; align-items: baseline; margin-bottom: 14px; }
-.quota-n { color: var(--brand); }
+.quota-n { color: var(--accent); }
 .acts { display: flex; gap: 10px; margin-top: 14px; }
 .acts .btn { flex: 1; }
-.acts:first-of-type { margin-top: 0; }
 .quota .acts { margin-top: 0; }
-.quota-msg { display: block; font-size: 13px; color: var(--ok); margin-top: 10px; }
+.quota-msg { display: block; font-size: 13px; color: var(--accent); margin-top: 10px; line-height: 1.6; }
 
 /* ---------- 推送绑定 ---------- */
 .bind { padding: 14px 18px; }
 .bind-head { display: flex; align-items: center; justify-content: space-between; }
-.bind-arrow { font-size: 14px; color: var(--t3); transition: transform .2s; }
+.bind-arrow { font-size: 14px; color: var(--ink3); transition: transform .2s; }
 .bind-arrow-open { transform: rotate(180deg); }
-.code-box { background: var(--none-weak); border-radius: var(--r-sm); padding: 11px 13px; margin-top: 12px; }
-.code { font-size: 13px; color: var(--t1); word-break: break-all; display: block; line-height: 1.6; }
-.cmd { margin-top: 12px; padding: 10px 12px; background: var(--brand-weak); border-radius: var(--r-sm); }
+.code-box { background: var(--card2); border-radius: var(--r); padding: 11px 13px; margin-top: 12px; }
+.code { font-size: 13px; color: var(--ink); word-break: break-all; display: block; line-height: 1.6; }
+.cmd { margin-top: 12px; padding: 10px 12px; background: var(--accent-weak); border-radius: var(--r); }
 .cmd-c {
   display: block;
   font-size: 12px;
-  color: var(--brand);
+  color: var(--accent);
   word-break: break-all;
 }
 
-/* ---------- 支持作者 ---------- */
+/* ---------- 支持作者：默认字体 + 朴素排版 ---------- */
 .support {
   position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   overflow: hidden;
+  padding: 18px;
 }
-/* 支持作者：默认字体 + 朴素排版（对齐参考截图：标题/说明/Star 按钮） */
+.support-tape {
+  top: -8px;
+  left: 18px;
+  width: 64px;
+  transform: rotate(-5deg);
+}
 .support-main {
   flex: 1;
   min-width: 0;
@@ -105,21 +119,22 @@
 .support-t {
   font-size: 17px;
   font-weight: 600;
-  color: var(--t1);
+  color: var(--ink);
   letter-spacing: 0.5px;
 }
 .support-d {
   font-size: 12px;
-  color: var(--t3);
+  color: var(--ink3);
   margin-top: 5px;
   line-height: 1.5;
 }
 .support-btn {
   flex-shrink: 0;
   padding: 9px 18px;
-  background: var(--brand);
-  color: #FFFFFF;
-  border-radius: 18px;
+  background: var(--accent);
+  color: var(--on-brand);
+  border-radius: var(--r-pill);
   font-size: 13px;
   white-space: nowrap;
+  letter-spacing: 0.5px;
 }

@@ -1,11 +1,10 @@
-<!-- 场次页：进来就有热门演出逛，想搜再搜；12306 是携程式的站站选择。 -->
+<!-- 场次页 v5：纸感票根手账（第十七轮）
+     语言：暖白期刊纸 + 平台用 van-tabs 切换 + 演出卡带印章状态。
+     全部文字系统默认字体；交互反馈走 vant Toast/Dialog（纸感主题）。 -->
 <view class="page">
 
-  <!-- 背景拼贴层：board2 贴纸素材，透明度压到 0.07~0.14，
-       只在留白缝隙透出（z-index:-1，盖在白卡片底下） -->
+  <!-- 背景拼贴层：贴纸透明度压到 0.06~0.12，只在留白缝隙透出 -->
   <view class="bg-collage">
-    <view class="bg-tint bg-tint-blue bg-tint-a"></view>
-    <view class="bg-tint bg-tint-mint bg-tint-c"></view>
     <image class="bg-stk bg-faint bg-love"   src="/images/board2/collage13.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-swirl"  src="/images/board2/cartoon12.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-burst"  src="/images/board2/collage3.png"  mode="aspectFit" />
@@ -13,7 +12,7 @@
     <image class="bg-stk bg-visible bg-star2" src="/images/board2/origami22.png" mode="aspectFit" />
   </view>
 
-  <!-- 顶部：粗黑体标题 + 胶带/蝴蝶结/贴纸点缀（和监控页同款语法） -->
+  <!-- 顶部：标题 + 英文小注 + 胶带/蝴蝶结/贴纸 -->
   <view class="head">
     <view class="tape"></view>
     <view class="head-row">
@@ -27,19 +26,22 @@
     <view class="en-note">FIND SOMETHING TO WATCH <text class="spark">✦</text></view>
   </view>
 
-  <!-- 平台筛选 -->
-  <view class="platform-bar">
-    <view
-      class="platform-chip {{platformIndex === index ? 'platform-on' : ''}}"
-      wx:for="{{platforms}}"
-      wx:key="key"
-      data-idx="{{index}}"
-      bindtap="onPlatform"
-      hover-class="press-hover"
-    >
-      {{item.label}}
-    </view>
-  </view>
+  <!-- 平台筛选：vant Tabs（纸感主题，app.wxss 覆盖） -->
+  <van-tabs
+    class="platform-tabs"
+    active="{{platformIndex}}"
+    swipeable
+    animated
+    ellipsis="{{false}}"
+    color="#445C38"
+    title-active-color="#2A2620"
+    title-inactive-color="#6E6558"
+    line-width="26px"
+    line-height="3px"
+    bind:change="onPlatform"
+  >
+    <van-tab wx:for="{{platforms}}" wx:key="key" title="{{item.label}}"></van-tab>
+  </van-tabs>
 
   <!-- 搜索栏 / 链接粘贴 / 12306 线路表单 -->
   <view class="searchbar" wx:if="{{platforms[platformIndex].key !== 'rail12306'}}">
@@ -59,11 +61,11 @@
     <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
       {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜索')}}
     </view>
-    <!-- 定位针贴纸：搜索框是「找」的动作，配一枚图钉 -->
+    <!-- 定位针贴纸：斜贴在搜索栏右上角 -->
     <image class="search-pin" src="/images/board2/cartoon6.png" mode="aspectFit" />
   </view>
 
-  <!-- 票星球：粘贴链接模式说明（大麦已支持关键词搜索，不用粘贴了） -->
+  <!-- 票星球：粘贴链接模式说明 -->
   <view class="link-hint" wx:if="{{platforms[platformIndex].linkOnly}}">
     这个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里就能盯它的回流票——状态从「无票」翻回「可售」的第一时间推给你。
   </view>
@@ -98,8 +100,9 @@
     </view>
   </view>
 
-  <!-- ============ 使用教程 / 常见问题（第十五轮新增） ============ -->
+  <!-- ============ 使用教程 / 常见问题 ============ -->
   <view class="card faq">
+    <view class="tape faq-tape"></view>
     <view class="faq-head" bindtap="toggleFaq" hover-class="press-hover">
       <view class="faq-head-l">
         <image class="faq-stk" src="/images/board2/cartoon7.png" mode="aspectFit" />
@@ -136,7 +139,7 @@
 
     <view class="sec">
       <view class="sec-title title-strong">正在热卖</view>
-      <view class="en-note">TRENDING NOW <text class="spark">✦</text></view>
+      <view class="stamp stamp-red sec-stamp">ON SALE</view>
     </view>
 
     <view class="card sk-card" wx:if="{{hotLoading}}">
@@ -159,8 +162,8 @@
         <view class="show-main">
           <view class="show-name">{{item.name}}</view>
           <view class="show-meta">
-            <text class="tag tag-brand">{{item.platformLabel}}</text>
-            <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
+            <text class="tag">{{item.platformLabel}}</text>
+            <text class="stamp {{item.statusCls}}" wx:if="{{item.status}}">{{item.status}}</text>
           </view>
           <view class="show-sub">
             <text wx:if="{{item.city}}">{{item.city}}</text>
@@ -204,8 +207,8 @@
         <view class="show-main">
           <view class="show-name">{{item.name}}</view>
           <view class="show-meta">
-            <text class="tag tag-brand">{{item.platformLabel}}</text>
-            <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
+            <text class="tag">{{item.platformLabel}}</text>
+            <text class="stamp {{item.statusCls}}" wx:if="{{item.status}}">{{item.status}}</text>
             <text class="tag tag-none" wx:if="{{!item.status && item.city}}">{{item.city}}</text>
           </view>
           <view class="show-sub">
@@ -241,4 +244,8 @@
   </view>
 
   <view class="safe"></view>
+
+  <!-- vant 反馈节点（函数式 API 需要页面里有这两个组件） -->
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
 </view>

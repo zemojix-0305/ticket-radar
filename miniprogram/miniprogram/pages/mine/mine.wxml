@@ -3,7 +3,6 @@
 
   <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
   <view class="bg-collage">
-    <view class="bg-tint bg-tint-lav bg-tint-a"></view>
     <image class="bg-stk bg-faint bg-note"   src="/images/board2/collage8.png"  mode="aspectFit" />
     <image class="bg-stk bg-faint bg-trail"  src="/images/board2/cartoon10.png" mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star7" src="/images/board2/origami19.png" mode="aspectFit" />
@@ -94,6 +93,7 @@
 
   <!-- 支持作者：默认字体 + 朴素排版（对齐用户给的参考截图） -->
   <view class="card support">
+    <view class="tape support-tape"></view>
     <view class="support-main">
       <view class="support-t">支持作者</view>
       <view class="support-d">项目已开源，点个 Star 就是最大的鼓励</view>

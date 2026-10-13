@@ -1,4 +1,7 @@
 // 演出详情页：云函数 detail action 拉场次×票档，「盯这场」写 radar_tasks。
+import Toast from '/vant/toast/toast';
+import Dialog from '/vant/dialog/dialog';
+
 const CREDIT_KEY = 'radar_credit';
 
 Page({
@@ -64,14 +67,13 @@ Page({
   addMonitor() {
     const credit = wx.getStorageSync(CREDIT_KEY) || 0;
     if (credit <= 0) {
-      wx.showModal({
+      Dialog.confirm({
         title: '先领一下推送额度',
-        content: '微信的订阅消息是「点一次允许换一条推送」。现在额度是 0，加了监控也收不到提醒。',
-        confirmText: '去领额度',
-        success: (r) => {
-          if (r.confirm) wx.switchTab({ url: '/pages/mine/mine' });
-        },
-      });
+        message: '微信的订阅消息是「点一次允许换一条推送」。现在额度是 0，加了监控也收不到提醒。',
+        confirmButtonText: '去领额度',
+      }).then(() => {
+        wx.switchTab({ url: '/pages/mine/mine' });
+      }).catch(() => {});
       return;
     }
     const p = this.data.platform;
@@ -82,7 +84,7 @@ Page({
     else if (p === 'bilibili') params = { project_id: this.data.id };
     else if (p === 'piaoxingqiu') params = { show_id: this.data.id };
     else {
-      wx.showToast({ title: '这个平台暂不能直接盯', icon: 'none' });
+      Toast('这个平台暂不能直接盯');
       return;
     }
     const docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
@@ -102,13 +104,13 @@ Page({
         },
       })
       .then(() => {
-        wx.showToast({ title: '已开始盯', icon: 'success' });
+        Toast({ type: 'success', message: '已开始盯' });
         this.setData({ adding: false });
         setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
       })
       .catch((e) => {
         this.setData({ adding: false });
-        wx.showModal({ title: '添加失败', content: String(e.message || e), showCancel: false });
+        Dialog.alert({ title: '添加失败', message: String(e.message || e) });
       });
   },
 });

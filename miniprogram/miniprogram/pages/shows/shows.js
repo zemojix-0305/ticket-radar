@@ -9,6 +9,10 @@
 const HISTORY_KEY = 'radar_search_history';
 const CREDIT_KEY = 'wx_subscribe_credit';
 
+// vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
+import Toast from '/vant/toast/toast';
+import Dialog from '/vant/dialog/dialog';
+
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。
 // 平台辨识靠文字，彩色只留给「有票/无票/异常」三个语义状态。
 // （曾经给三个平台各配了一个低饱和色，反而成了全页最吵的地方。）
@@ -197,8 +201,8 @@ Page({
     const from = (this.data.from || '').trim();
     const to = (this.data.to || '').trim();
     const date = this.data.date;
-    if (!from || !to) return wx.showToast({ title: '填出发地和目的地', icon: 'none' });
-    if (!date) return wx.showToast({ title: '选乘车日期', icon: 'none' });
+    if (!from || !to) { Toast('填出发地和目的地'); return; }
+    if (!date) { Toast('选乘车日期'); return; }
     if (this.data.searching) return;
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
@@ -234,13 +238,20 @@ Page({
       price: row.price || '',
       dateRange: row.dateRange || row.showDate || row.showTimeRange || '',
       status: row.status || '',
+      // 印章颜色：可买=茶绿，关闭=朱砂，其余=墨灰
+      statusCls: /有票|在售|可售|可购|预售/.test(row.status || '')
+        ? 'stamp-green'
+        : (/售罄|不可购|停售/.test(row.status || '') ? 'stamp-red' : 'stamp-ink'),
       // 12306 专有
       route: row.route || '',
     };
   },
 
   onPlatform(e) {
-    const idx = Number(e.currentTarget.dataset.idx);
+    // 兼容两种触发：van-tabs 的 change（e.detail.index）与旧点击（dataset.idx）
+    const idx = e.detail && typeof e.detail.index === 'number'
+      ? e.detail.index
+      : Number(e.currentTarget.dataset.idx);
     this.setData({ platformIndex: idx, rows: [], searched: false, fail: '', hot: [] });
     // 切平台就换一批热卖（每平台都有自己的榜单）
     this.loadHot();
@@ -292,6 +303,7 @@ Page({
   clearHistory() {
     wx.removeStorageSync(HISTORY_KEY);
     this.setData({ history: [] });
+    Toast('已清空');
   },
 
   clearAll() {
@@ -306,14 +318,15 @@ Page({
     const credit = wx.getStorageSync(CREDIT_KEY) || 0;
 
     if (credit <= 0) {
-      wx.showModal({
+      Dialog.confirm({
         title: '先领一下推送额度',
-        content: '微信的订阅消息是「点一次允许换一条推送」。现在额度是 0，加了监控也收不到提醒。',
-        confirmText: '去领额度',
-        success: (r) => {
-          if (r.confirm) wx.switchTab({ url: '/pages/mine/mine' });
-        },
-      });
+        message: '微信的订阅消息是「点一次允许换一条推送」。现在额度是 0，加了监控也收不到提醒。',
+        confirmButtonText: '去领额度',
+      })
+        .then(() => {
+          wx.switchTab({ url: '/pages/mine/mine' });
+        })
+        .catch(() => {});
       return;
     }
 
@@ -338,7 +351,7 @@ Page({
       params = { from: this.data.from, to: this.data.to, date: this.data.date };
       name = row.name || (this.data.from + ' → ' + this.data.to);
     } else {
-      wx.showToast({ title: '不支持该平台', icon: 'none' });
+      Toast('不支持该平台');
       return;
     }
 
@@ -358,13 +371,13 @@ Page({
         },
       })
       .then(() => {
-        wx.showToast({ title: '已开始盯', icon: 'success' });
+        Toast({ type: 'success', message: '已开始盯' });
         this.setData({ adding: '' });
         setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
       })
       .catch((e) => {
         this.setData({ adding: '' });
-        wx.showModal({ title: '添加失败', content: String(e.message || e), showCancel: false });
+        Dialog.alert({ title: '添加失败', message: String(e.message || e) });
       });
   },
 });

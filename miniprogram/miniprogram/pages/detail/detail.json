@@ -1,5 +1,9 @@
 {
   "navigationBarTitleText": "演出详情",
-  "navigationBarBackgroundColor": "#FFFFFF",
-  "navigationBarTextStyle": "black"
+  "navigationBarBackgroundColor": "#F7F2E7",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "van-toast": "/vant/toast/index",
+    "van-dialog": "/vant/dialog/index"
+  }
 }

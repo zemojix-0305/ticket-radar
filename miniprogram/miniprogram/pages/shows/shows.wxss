@@ -1,3 +1,6 @@
+/* 场次页 v5：纸感票根手账（第十七轮）
+   暖白期刊纸底 + 纸卡片 + 印章状态 + 胶带贴纸；
+   演出卡像一张小票：海报在左、信息在右、底部虚线撕线。 */
 .page { padding-bottom: 8px; position: relative; }
 
 /* ---------- 背景拼贴层定位（素材见 wxml，样式在 app.wxss）---------- */
@@ -7,18 +10,18 @@
 .bg-star1  { width: 30px;  height: 30px;  top: 210px; left: 8%; transform: rotate(-12deg); }
 .bg-star2  { width: 24px;  height: 24px;  top: 470px; right: 12%; transform: rotate(16deg); }
 
-/* ---------- 顶部：粗黑体标题 + 英文小注 ---------- */
+/* ---------- 顶部：标题 + 英文小注 ---------- */
 .head {
-  padding: 26px 20px 4px;
+  padding: 26px 20px 6px;
   position: relative;   /* 容纳胶带 */
 }
 .head-hand {
   font-size: 24px;
   font-weight: 600;
-  color: var(--t1);
+  color: var(--ink);
   letter-spacing: 0.5px;
   margin-bottom: 8px;
-  white-space: nowrap;   /* 标题类一律单行 */
+  white-space: nowrap;
 }
 .head-row { display: flex; align-items: center; gap: 8px; }
 .head-stks { display: flex; align-items: center; gap: 2px; }
@@ -30,35 +33,20 @@
 }
 .head-stk.stk-b { width: 22px; height: 22px; transform: rotate(-8deg); margin-left: -4px; }
 
-/* ---------- 链接粘贴模式说明 ---------- */
-.link-hint {
-  margin: 0 16px 6px;
-  padding: 12px 14px;
-  background: var(--bg-soft);
-  border-radius: var(--r-sm);
-  font-size: 12px;
-  color: var(--t2);
-  line-height: 1.7;
+/* ---------- 平台 Tabs（vant，主题在 app.wxss） ---------- */
+.platform-tabs {
+  margin: 6px 8px 0;
 }
 
-/* ---------- 平台筛选 ---------- */
-.platform-bar {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px 4px;
-  flex-wrap: wrap;
-}
-.platform-chip {
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--t2);
-  background: var(--bg-soft);
-  letter-spacing: 0.3px;
-}
-.platform-on {
-  background: var(--t1);
-  color: var(--on-brand);
+/* ---------- 链接粘贴模式说明 ---------- */
+.link-hint {
+  margin: 10px 16px 6px;
+  padding: 12px 14px;
+  background: var(--card2);
+  border-radius: var(--r);
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.7;
 }
 
 /* ---------- 搜索栏 ---------- */
@@ -67,6 +55,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
+  position: relative;
 }
 .search-box {
   flex: 1;
@@ -75,14 +64,15 @@
   align-items: center;
   height: 42px;
   padding: 0 14px;
-  background: var(--bg-soft);
-  border-radius: 21px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
 }
-/* 车票小图标：圆角票身 + 中间虚线打孔线，微微倾斜 */
+/* 车票小图标：票身 + 中间虚线打孔线，微微倾斜 */
 .search-ico {
   width: 17px;
   height: 12px;
-  border: 2px solid var(--brand);
+  border: 2px solid var(--accent);
   border-radius: 3px;
   flex-shrink: 0;
   position: relative;
@@ -94,33 +84,33 @@
   left: 50%;
   top: 0.5px;
   bottom: 0.5px;
-  border-left: 1.5px dashed var(--brand);
+  border-left: 1.5px dashed var(--accent);
 }
 .search-inp {
   flex: 1;
   min-width: 0;
   margin-left: 9px;
   font-size: 15px;
-  color: var(--t1);
+  color: var(--ink);
 }
-.search-ph { color: var(--t3); font-size: 14px; }
-.search-clear { font-size: 13px; color: var(--t3); padding-left: 8px; }
+.search-ph { color: var(--ink3); font-size: 14px; }
+.search-clear { font-size: 13px; color: var(--ink3); padding-left: 8px; }
 
 .search-btn {
   flex-shrink: 0;
   height: 42px;
   line-height: 42px;
   padding: 0 18px;
-  border-radius: 21px;
-  background: var(--brand);
+  border-radius: var(--r);
+  background: var(--accent);
   color: var(--on-brand);
   font-size: 15px;
   font-weight: 500;
+  letter-spacing: 1px;
 }
 .search-btn.disabled { background: var(--disabled); }
 
-/* 定位针贴纸：斜贴在搜索栏右上角，像把搜索框「钉」在纸上 */
-.searchbar { position: relative; }
+/* 定位针贴纸：斜贴在搜索栏右上角 */
 .search-pin {
   position: absolute;
   top: -10px;
@@ -132,27 +122,28 @@
   pointer-events: none;
 }
 
-/* ---------- 使用教程 / 常见问题（第十五轮）---------- */
+/* ---------- 使用教程 / 常见问题 ---------- */
 .faq { padding: 0; }
+.faq-tape { top: -8px; left: 20px; }
 .faq-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 16px 16px 14px;
 }
 .faq-head-l { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .faq-stk { width: 24px; height: 24px; flex-shrink: 0; }
-.faq-title { font-size: 15px; color: var(--t1); white-space: nowrap; }
-.faq-arrow { font-size: 13px; color: var(--t3); transition: transform 0.2s; flex-shrink: 0; }
+.faq-title { font-size: 15px; color: var(--ink); white-space: nowrap; }
+.faq-arrow { font-size: 13px; color: var(--ink3); transition: transform 0.2s; flex-shrink: 0; }
 .faq-arrow-open { transform: rotate(180deg); }
 .faq-body { padding: 0 16px 6px; }
 .faq-item { padding: 2px 0 6px; }
 .faq-q { display: flex; align-items: flex-start; gap: 7px; }
 .faq-q .spark { margin-top: 2px; flex-shrink: 0; }
-.faq-q-t { font-size: 14px; font-weight: 600; color: var(--t1); line-height: 1.5; }
+.faq-q-t { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.5; }
 .faq-a {
   font-size: 13px;
-  color: var(--t2);
+  color: var(--ink2);
   line-height: 1.75;
   margin: 5px 0 10px 19px;
 }
@@ -164,7 +155,7 @@
   padding: 18px 16px 14px;
   border: 1px solid var(--line);
   border-radius: var(--r);
-  background: var(--card);   /* 白底：别让背景拼贴层透进表单里 */
+  background: var(--card);
 }
 .rail-top {
   display: flex;
@@ -175,7 +166,7 @@
 .rail-station-lbl {
   font-size: 11px;
   letter-spacing: 1.5px;
-  color: var(--t3);
+  color: var(--ink3);
   margin-bottom: 6px;
 }
 .rail-station-inp {
@@ -183,7 +174,7 @@
   height: 40px;
   font-size: 17px;
   font-weight: 500;
-  color: var(--t1);
+  color: var(--ink);
 }
 .rail-swap {
   flex-shrink: 0;
@@ -200,12 +191,12 @@
   right: 4px;
   top: 50%;
   height: 1.5px;
-  background: var(--line);
+  background: var(--line2);
 }
 .rail-swap-arrow {
   position: relative;
   font-size: 17px;
-  color: var(--brand);
+  color: var(--accent);
   background: var(--card);
   padding: 0 3px;
   z-index: 1;
@@ -218,7 +209,7 @@
   justify-content: space-between;
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px dashed var(--line2);
 }
 .rail-dates {
   display: flex;
@@ -229,81 +220,95 @@
 }
 .rail-date-chip {
   padding: 6px 13px;
-  border-radius: 999px;
-  background: var(--bg-soft);
+  border-radius: var(--r-pill);
+  background: var(--card2);
   font-size: 13px;
-  color: var(--t2);
+  color: var(--ink2);
   white-space: nowrap;
 }
 .rail-date-chip.chip-on {
-  background: var(--brand-weak);
-  color: var(--brand);
+  background: var(--accent-weak);
+  color: var(--accent);
   font-weight: 500;
 }
 .rail-date-pick { flex-shrink: 0; }
 .rail-bottom .search-btn { height: 38px; line-height: 38px; padding: 0 16px; font-size: 14px; }
 
-/* ---------- 演出卡：海报左 + 信息右 ---------- */
+/* ---------- 分区标题：标题 + 印章 ---------- */
+.sec-stamp {
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  align-self: center;
+}
+
+/* ---------- 演出卡：小票样式 ---------- */
 .hot-list { padding: 0 12px; }
 .show-card {
   display: flex;
   gap: 14px;
-  padding: 16px 4px;
-  border-bottom: 1px solid var(--line);
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  position: relative;
 }
-.show-card:last-child { border-bottom: none; }
 .poster {
   width: 84px;
   height: 112px;
-  border-radius: 10px;
+  border-radius: var(--r);
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--bg-soft);
+  background: var(--card2);
+  border: 1px solid var(--line);
 }
 .poster-img { width: 100%; height: 100%; display: block; }
-.poster-blank { background: var(--bg-soft); }
+.poster-blank { background: var(--card2); }
 
 .show-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .show-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--t1);
+  color: var(--ink);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.show-meta { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 6px; }
+.show-meta { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.show-meta .stamp { font-size: 10px; padding: 1px 7px; letter-spacing: 1.5px; }
 .show-sub {
   margin-top: 5px;
   font-size: 12px;
-  color: var(--t3);
+  color: var(--ink3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .show-foot {
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
+  border-top: 1px dashed var(--line);
 }
 .show-more {
   margin-left: auto;
   font-size: 12px;
-  color: var(--brand);
+  color: var(--accent);
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 .show-price {
   font-size: 14px;
   font-weight: 600;
-  color: var(--t1);
+  color: var(--ink);
 }
 
-/* 「盯」：钴蓝实心小药丸，全页唯一彩色 CTA */
+/* 「盯」：茶绿小药丸，全页唯一彩色 CTA */
 .btn-watch {
   flex-shrink: 0;
   min-width: 56px;
@@ -311,13 +316,13 @@
   line-height: 32px;
   text-align: center;
   padding: 0 16px;
-  border-radius: 16px;
-  background: var(--brand);
+  border-radius: var(--r-pill);
+  background: var(--accent);
   color: var(--on-brand);
   font-size: 14px;
   font-weight: 500;
 }
-.btn-watch-busy { background: var(--none-weak); color: var(--t3); }
+.btn-watch-busy { background: var(--card2); color: var(--ink3); }
 
 /* 刺绣字说明 */
 .stitch-wrap {
@@ -328,21 +333,21 @@
 
 /* ---------- 失败 / 骨架 ---------- */
 .fail { padding: 16px; }
-.fail-t { font-size: 15px; color: var(--bad); margin-bottom: 6px; }
-.fail-b { font-size: 13px; color: var(--t2); line-height: 1.6; }
+.fail-t { font-size: 15px; color: var(--stamp); margin-bottom: 6px; }
+.fail-b { font-size: 13px; color: var(--ink2); line-height: 1.6; }
 .sk-card { padding: 16px; }
 .sk-t { height: 16px; }
 
 /* ---------- 搜索历史 ---------- */
 .hist { padding: 14px 16px; }
 .hist-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-.hist-title { font-size: 14px; font-weight: 500; color: var(--t1); }
-.hist-clear { font-size: 12px; color: var(--t3); }
+.hist-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+.hist-clear { font-size: 12px; color: var(--ink3); }
 .hist-body { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   padding: 6px 13px;
-  background: var(--bg-soft);
-  border-radius: 16px;
+  background: var(--card2);
+  border-radius: var(--r-pill);
   font-size: 13px;
-  color: var(--t2);
+  color: var(--ink2);
 }

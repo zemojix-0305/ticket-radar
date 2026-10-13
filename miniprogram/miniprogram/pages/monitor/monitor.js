@@ -1,4 +1,6 @@
 // 监控页：首屏回答三个问题——我在盯几个、现在有没有票、上次什么时候查的。
+import Toast from '/vant/toast/toast';
+import Dialog from '/vant/dialog/dialog';
 //
 // 两条原则（跟 Python 那边保持一致）：
 //   1. 结论先行——卡片第一眼告诉你「有票还是没票」，不是先列车次；
@@ -227,7 +229,7 @@ Page({
       .fields({ node: true, size: true })
       .exec((res) => {
         if (!res || !res[0] || !res[0].node) {
-          wx.showToast({ title: '当前版本不支持分享', icon: 'none' });
+          Toast('当前版本不支持分享');
           return;
         }
         const canvas = res[0].node;
@@ -303,18 +305,18 @@ Page({
                 if (act.tapIndex === 0) {
                   wx.saveImageToPhotosAlbum({
                     filePath: out2.tempFilePath,
-                    success: () => wx.showToast({ title: '已存相册' }),
+                    success: () => Toast({ type: 'success', message: '已存相册' }),
                     fail: (err) =>
-                      wx.showToast({ title: '保存失败：相册权限', icon: 'none' }),
+                      Toast('保存失败：相册权限'),
                   });
                 } else {
                   // 微信没有"直接转发图片"的开放接口，退回到分享小程序
-                  wx.showToast({ title: '点右上角 ··· 转发给好友', icon: 'none' });
+                  Toast('点右上角 ··· 转发给好友');
                 }
               },
             });
           },
-          fail: () => wx.showToast({ title: '生成图片失败', icon: 'none' }),
+          fail: () => Toast('生成图片失败'),
         });
       });
   },
@@ -369,13 +371,13 @@ Page({
       },
       fail: (err) => {
         if (err.errMsg && err.errMsg.indexOf('cancel') >= 0) return;
-        wx.showModal({ title: '扫码失败', content: err.errMsg || '未知错误', showCancel: false });
+        Dialog.alert({ title: '扫码失败', message: err.errMsg || '未知错误' });
       },
     });
   },
 
   handleScanned(text) {
-    if (!text) return wx.showToast({ title: '没扫到内容', icon: 'none' });
+    if (!text) return Toast('没扫到内容');
 
     // 1) 大麦链接：detail.damai.cn/item.htm?id=xxx 或 m.damai.cn
     if (/damai\.cn/i.test(text)) {
@@ -405,10 +407,9 @@ Page({
       return this.prefillAdd('rail12306', railMatch[1] + ' ' + railMatch[2]);
     }
 
-    wx.showModal({
+    Dialog.alert({
       title: '识别不了这个二维码',
-      content: '目前只支持猫眼/摩天轮/12306 的链接或纯文本车次。扫到内容：' + text.slice(0, 80),
-      showCancel: false,
+      message: '目前只支持猫眼/摩天轮/12306 的链接或纯文本车次。扫到内容：' + text.slice(0, 80),
     });
   },
 
@@ -420,7 +421,7 @@ Page({
       'form.id': idValue,
       showAdd: true,
     });
-    wx.showToast({ title: '已填入，检查下再点开始盯', icon: 'none' });
+    Toast('已填入，检查下再点开始盯');
   },
 
   quickSubscribe() {
@@ -439,7 +440,7 @@ Page({
     const self = this;
     const p = PLATFORMS[this.data.platformIndex];
     const f = this.data.form;
-    if (!f.id || !f.id.trim()) return wx.showToast({ title: '先把上面那栏填了', icon: 'none' });
+    if (!f.id || !f.id.trim()) return Toast('先把上面那栏填了');
 
     let params = {};
     if (p.key === 'maoyan') {
@@ -456,8 +457,8 @@ Page({
       params = /^\d{5,}$/.test(v) ? { project_id: v } : { url: v };
     } else {
       const seg = f.id.trim().split(/\s*[-到>]\s*|\s+/).filter(Boolean);
-      if (seg.length < 2) return wx.showToast({ title: '要填两个站名', icon: 'none' });
-      if (!f.date) return wx.showToast({ title: '12306 要选乘车日期', icon: 'none' });
+      if (seg.length < 2) return Toast('要填两个站名');
+      if (!f.date) return Toast('12306 要选乘车日期');
       params = { from: seg[0], to: seg[1], date: f.date };
     }
 
@@ -478,12 +479,12 @@ Page({
         },
       })
       .then(() => {
-        wx.showToast({ title: '已开始盯，稍等出结果' });
+        Toast('已开始盯，稍等出结果');
         self.setData({ showAdd: false, form: { name: '', id: '', city: '', date: '' } });
         setTimeout(() => self.refresh(), 2500);
       })
       .catch((e) =>
-        wx.showModal({ title: '添加失败', content: String(e.message || e), showCancel: false })
+        Dialog.alert({ title: '添加失败', message: String(e.message || e) })
       );
   },
 });

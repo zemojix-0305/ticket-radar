@@ -1,1 +1,1 @@
-{ "usingComponents": {}, "navigationBarTitleText": "余票历史", "enablePullDownRefresh": true }
+{ "usingComponents": {}, "navigationBarTitleText": "余票历史", "navigationBarBackgroundColor": "#F7F2E7", "enablePullDownRefresh": true }

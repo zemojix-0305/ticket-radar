@@ -1,124 +1,128 @@
 /* ==========================================================================
-   全局设计令牌 + 通用组件
+   全局设计令牌 + 通用组件（第十七轮：纸感票根手账）
    --------------------------------------------------------------------------
-   风格：白底 Y2K × coquette 天使系（第十六轮）。
-   · 底色仍以白为主（相纸白 #FBFCFE），但不再抗拒浅色块：
-     极浅蓝天灰 --bg-soft / 长春花蓝浅底 --brand-weak 大面积用；
-   · 主色：长春花蓝 #4461CF（periwinkle，Y2K 的电子天使感），
-     白底对比 4.7:1，过 WCAG AA；
-   · 辅色：薄荷 teal / 薰衣草 lav / 银 —— 全部从参考图来
-     （天使翅膀、百合、锦鲤、音符、Y2K 旋涡那一系浅色）；
-   · coquette 小巧思：和纸胶带（蓝）+ 纯 CSS 蝴蝶结 .bow + 蕾丝点线 .lace
-     + Y2K 小星 ✦（.spark）；
-   · 拼贴墙：每页垫一层 .bg-collage（board2 贴纸素材，透明度 0.08~0.16），
-     只在卡片留白处露出来，像桌面上垫的拼贴纸；
-   · 全部文字回归系统默认字体（第十五轮起不再有任何 font-family 声明）；
-   · 平台名一律本名：大麦 / 猫眼 / 摩天轮 / B站会员购 / 票星球 / 12306。
+   风格语言 = 北港茶式手账纸感 × 票根隐喻。
+   参考：用户给的北港茶小程序（暖白期刊纸 + 手绘细线 + 大量留白 + 胶带拼贴）
+   与两张复古票根（打孔线 / 副券 / 条码 / 编号 / 印章）。
 
-   硬规则不变：
-   1. 零渐变（蕾丝点线/条码用的是 repeating 图案，不是颜色渐变）。
-   2. 彩色只来自长春花蓝 + 语义色（有票绿/无票灰/异常红/提醒琥珀）。
-   3. 所有可点元素必须有按压反馈（hover-class）。
-   4. 对比度用 tools/check_palette.py 校验（WCAG AA）。
+   设计原则（来自 taste-skill 的反 AI 味规则，按本项目情境化）：
+   · DESIGN_VARIANCE 8：不对称拼贴、微倾斜胶带、撕边纸角；
+   · MOTION 5：只做克制的入场与按压反馈，cubic-bezier(0.22,1,0.36,1)；
+   · DENSITY 4：日常工具密度，留白透气；
+   · 单一强调色（茶绿）+ 语义色（朱砂=热卖/回流/售罄，琥珀=额度提醒）；
+   · 不用纯黑 #000 与纯白 #fff（墨色 #2A2620 / 纸白 #FDFBF4）；
+   · 形状系统全站统一：纸 = 裁纸直角 2px，功能 = 药丸 999px；
+   · 阴影一律染背景色（暖墨调），禁纯黑投影；
+   · 全部文字回归系统默认字体（第十五轮起无任何自定义字体）；
+   · 拼贴素材用 board2 贴纸，透明度 0.05~0.12，只在留白处透出。
+
+   配色均过 WCAG AA（tools/check_palette.py 校验）。
    ========================================================================== */
 
 page {
-  --bg: #FBFCFE;          /* 相纸白：比纯白多一丁点冷调 */
-  --bg-soft: #F0F4FC;     /* 输入框/代码块的极浅蓝天灰 */
+  /* ---------- 纸 ---------- */
+  --paper:      #F7F2E7;   /* 页面底：暖白期刊纸（干净，不发黄） */
+  --paper-deep: #EFE8D7;   /* 牛皮纸块 / 胶带压深区 */
+  --card:       #FDFBF4;   /* 卡片纸：比页面亮一档 */
+  --card2:      #F3EDDE;   /* 卡内嵌块（代码盒等） */
 
-  --card: #FFFFFF;
+  /* ---------- 墨 ---------- */
+  --ink:        #2A2620;   /* 主文字：暖黑 */
+  --ink2:       #57503F;   /* 次文字 */
+  --ink3:       #6E6558;   /* 弱文字 / 占位符（纸面 5.1:1） */
+  --line:       #D9D0BC;   /* 纸边细线 */
+  --line2:      #C4B99F;   /* 打孔线 / 强分隔 */
 
-  --ink: #23283B;         /* 蓝黑墨水色，比纯黑柔和 */
+  /* ---------- 茶绿（唯一强调色：品牌 / 可交互 / 有票） ---------- */
+  --accent:      #445C38;  /* 纸面 6.6:1 */
+  --accent-deep: #36492C;
+  --accent-weak: #E9EDDF;
 
-  --brand: #4461CF;       /* 长春花蓝，Y2K 主色（白底 5.5:1） */
-  --brand-deep: #3A54B8;  /* 深一档（白底 6.7:1） */
-  --brand-weak: #EDF2FE;
-  --brand-line: #C7D5F7;
+  /* ---------- 朱砂（语义：热卖 / 回流 / 售罄 / 错误） ---------- */
+  --stamp:      #A23B2E;   /* 纸面 5.9:1 */
+  --stamp-weak: #F5E4E0;
 
-  /* accent = brand 的别名（monitor 页样式引用的是 accent 名） */
-  --accent: #4461CF;
-  --accent-weak: #EDF2FE;
+  /* ---------- 琥珀（语义：额度提醒 / 公告） ---------- */
+  --warn:       #8A6A1B;
+  --warn-weak:  #F4EBD4;
 
-  /* Y2K 辅色：薄荷 / 薰衣草 / 银（弱底色用于标签和装饰） */
-  --mint: #0E6E5F;
-  --mint-weak: #E2F4EF;
-  --lav: #6A5BC4;
-  --lav-weak: #F0EDFB;
-  --silver: #8E9BB3;
+  /* ---------- 形状与节奏 ---------- */
+  --r:      2px;      /* 纸：裁纸直角 */
+  --r-sm:   2px;
+  --r-pill: 999px;    /* 功能：药丸 */
+  --gut:    12px;
 
-  --ok: #1E7A46;
-  --ok-weak: #E6F4EB;
-  --none: #6A6A6F;
-  --none-weak: #F4F4F5;
-  --bad: #BC3B2C;
-  --bad-weak: #FBEAE7;
-  --warn: #96690A;
-  --warn-weak: #FBF3DC;
+  --on-brand:  #FDFBF4;  /* 绿底上的纸白字 */
+  --disabled:  #DCD5C4;
+  --bar-idle:  #EAE3D2;
 
-  --t1: #23283B;
-  --t2: #5A6070;
-  --t3: #6B7385;
-  --line: #E8EDF6;
-
-  --r: 16px;
-  --r-sm: 12px;
-  --gut: 12px;
-
-  --on-brand: #FFFFFF;
-  --disabled: #E5E5E7;
-  --bar-idle: #EDEDEF;
-
-  --shadow: none;           /* 极简风：不用阴影，分区靠细线 */
-  --shadow-brand: none;
-
-  background: var(--bg);
+  background: var(--paper);
   font-size: 14px;
-  color: var(--t1);
+  color: var(--ink);
   letter-spacing: 0.2px;
 }
 
-/* ---------- 标题强调 ----------
-   第十五轮：所有自定义字体（龙藏体/站酷快乐体/楷体）全部取消，
-   全站文字回归系统默认字体。标题只靠字重和字距做层级。 */
+/* ==========================================================================
+   旧令牌别名（兼容各页历史类名，全部指向新色板；新代码请用新名）
+   ========================================================================== */
+page {
+  --bg:         var(--paper);
+  --bg-soft:    var(--card2);
+  --brand:      var(--accent);
+  --brand-deep: var(--accent-deep);
+  --brand-weak: var(--accent-weak);
+  --brand-line: var(--line2);
+  --accent-weak: var(--accent-weak);
+  --ok:         var(--accent);
+  --ok-weak:    var(--accent-weak);
+  --none:       var(--ink3);
+  --none-weak:  var(--card2);
+  --bad:        var(--stamp);
+  --bad-weak:   var(--stamp-weak);
+  --t1:         var(--ink);
+  --t2:         var(--ink2);
+  --t3:         var(--ink3);
+}
+
+/* ---------- 标题强调：只靠字重与字距做层级（系统默认字体） ---------- */
 .title-strong {
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 
-/* ---------- 英文小注 ----------
-   参考图 MUSHROOM BAKERY 的排法：小号大写 + 大字距。 */
+/* ---------- 英文小注：小号大写 + 大字距（北港茶式双语排版） ---------- */
 .en-note {
   font-size: 10px;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: var(--t3);
+  color: var(--ink3);
 }
 
-/* ---------- 刺绣字点缀 ----------
-   虚线描边胶囊 = 缝线，绣在界面上的小标签（字体已回归系统默认）。 */
+/* ---------- 缝线标签：虚线描边胶囊，绣在界面上的小标签 ---------- */
 .stitch-tag {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 3px 12px;
-  border: 1.5px dashed #B8B8BC;
-  border-radius: 999px;
+  border: 1.5px dashed var(--line2);
+  border-radius: var(--r-pill);
   font-size: 12px;
-  color: var(--t2);
+  color: var(--ink2);
   line-height: 18px;
 }
 
-/* ---------- 卡片：极简风用细线代替阴影 ---------- */
-.card {
+/* ---------- 纸卡片：裁纸直角 + 1px 纸边线 ---------- */
+.card, .paper {
   background: var(--card);
   border-radius: var(--r);
   margin: var(--gut);
   overflow: hidden;
   border: 1px solid var(--line);
+  position: relative;
 }
 .card-pad { padding: 18px 20px; }
 
-/* ---------- inset grouped list（设置类页面）---------- */
+/* ---------- 分组列表（设置类页面） ---------- */
 .group { margin: var(--gut); background: var(--card); border-radius: var(--r); border: 1px solid var(--line); }
 .g-row {
   display: flex;
@@ -139,9 +143,9 @@ page {
 .g-row:last-child::after { display: none; }
 
 /* ---------- 文字 ---------- */
-.t1 { font-size: 16px; font-weight: 600; color: var(--t1); letter-spacing: 0.2px; }
-.t2 { font-size: 13px; color: var(--t2); letter-spacing: 0.2px; }
-.t3 { font-size: 12px; color: var(--t3); letter-spacing: 0.3px; }
+.t1 { font-size: 16px; font-weight: 600; color: var(--ink); letter-spacing: 0.2px; }
+.t2 { font-size: 13px; color: var(--ink2); letter-spacing: 0.2px; }
+.t3 { font-size: 12px; color: var(--ink3); letter-spacing: 0.3px; }
 .num {
   font-size: 32px;
   font-weight: 700;
@@ -150,21 +154,41 @@ page {
   letter-spacing: -0.5px;
 }
 
-/* ---------- 状态标签 ---------- */
+/* ---------- 纸签（状态标签）：药丸 + 纸边线 ---------- */
 .tag {
   display: inline-block;
-  padding: 3px 11px;
-  border-radius: 999px;
-  font-size: 12px;
-  line-height: 18px;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  line-height: 17px;
   white-space: nowrap;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--line);
+  color: var(--ink2);
+  background: var(--paper);
 }
-.tag-ok { color: var(--ok); background: var(--ok-weak); }
-.tag-none { color: var(--none); background: var(--none-weak); }
-.tag-bad { color: var(--bad); background: var(--bad-weak); }
-.tag-warn { color: var(--warn); background: var(--warn-weak); }
-.tag-brand { color: var(--brand); background: var(--brand-weak); }
+.tag-ok, .tag-brand { color: var(--accent); border-color: rgba(68, 92, 56, 0.35); background: var(--accent-weak); }
+.tag-none { color: var(--ink3); }
+.tag-bad { color: var(--stamp); border-color: rgba(162, 59, 46, 0.30); background: var(--stamp-weak); }
+.tag-warn { color: var(--warn); border-color: rgba(126, 97, 24, 0.30); background: var(--warn-weak); }
+
+/* ---------- 印章（票根语言）：双线框 + 微斜，盖在状态上 ---------- */
+.stamp {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  line-height: 16px;
+  transform: rotate(-3deg);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.stamp-red   { color: var(--stamp); }
+.stamp-green { color: var(--accent); }
+.stamp-ink   { color: var(--ink3); }
 
 /* ---------- 按压反馈 ---------- */
 .press { transition: opacity 0.15s ease; }
@@ -172,44 +196,44 @@ page {
 .press-card { transition: opacity 0.15s ease, transform 0.15s ease; }
 .press-card-hover { opacity: 0.92; transform: scale(0.985); }
 
-/* ---------- 按钮 ---------- */
+/* ---------- 按钮：纸 = 直角，主按钮茶绿实心 ---------- */
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 46px;
-  padding: 0 22px;
-  border-radius: 23px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--r);
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   box-sizing: border-box;
 }
 .btn::after { border: none; }
 .btn-primary {
-  background: var(--brand);
+  background: var(--accent);
   color: var(--on-brand);
 }
 .btn-primary[disabled] { background: var(--disabled); color: var(--on-brand); }
 .btn-ghost {
-  background: var(--bg-soft);
-  color: var(--t1);
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line2);
 }
 .btn-line {
   background: transparent;
-  color: var(--t2);
+  color: var(--ink2);
   border: 1px solid var(--line);
 }
 
-/* ---------- 空状态 ----------
-   空状态必须给出下一步动作。装饰 = 一根简笔横线 + 楷体短语。 */
+/* ---------- 空状态：给出下一步动作 ---------- */
 .empty { padding: 48px 32px; text-align: center; }
 .empty-mark {
   width: 44px;
   height: 2px;
   margin: 0 auto 18px;
-  background: var(--line);
+  background: var(--line2);
   position: relative;
 }
 .empty-mark::before,
@@ -220,18 +244,18 @@ page {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--line2);
   background: var(--card);
 }
 .empty-mark::before { left: -16px; }
 .empty-mark::after { right: -16px; }
-.empty-title { font-size: 15px; font-weight: 500; color: var(--t1); margin-bottom: 7px; }
-.empty-sub { font-size: 13px; color: var(--t3); line-height: 1.8; letter-spacing: 0.2px; }
+.empty-title { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 7px; }
+.empty-sub { font-size: 13px; color: var(--ink3); line-height: 1.8; letter-spacing: 0.2px; }
 
 /* ---------- 骨架屏 ---------- */
 .sk {
   background: var(--bar-idle);
-  border-radius: 8px;
+  border-radius: 4px;
   animation: sk-pulse 1.4s ease infinite;
 }
 @keyframes sk-pulse {
@@ -239,11 +263,11 @@ page {
   50% { opacity: 0.45; }
 }
 
-/* ---------- 底部弹层 ---------- */
+/* ---------- 底部弹层：纸面 + 顶部胶带 ---------- */
 .mask {
   position: fixed;
   left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(26, 26, 26, 0.32);
+  background: rgba(42, 38, 32, 0.36);
   z-index: 90;
 }
 .sheet {
@@ -251,33 +275,33 @@ page {
   left: 0; right: 0; bottom: 0;
   z-index: 91;
   background: var(--card);
-  border-radius: 24px 24px 0 0;
+  border-radius: 12px 12px 0 0;
   padding: 14px 20px calc(20px + env(safe-area-inset-bottom));
 }
 .sheet-grab {
   width: 36px; height: 4px; border-radius: 2px;
-  background: var(--bar-idle); margin: 0 auto 16px;
+  background: var(--line2); margin: 0 auto 16px;
 }
 .sheet-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; letter-spacing: 0.2px; }
-.sheet-sub { font-size: 12px; color: var(--t3); margin-bottom: 16px; line-height: 1.7; }
+.sheet-sub { font-size: 12px; color: var(--ink3); margin-bottom: 16px; line-height: 1.7; }
 
-/* ---------- 表单 ---------- */
+/* ---------- 表单：纸面输入框 ---------- */
 .field { margin-bottom: 16px; }
-.field-lbl { font-size: 13px; color: var(--t2); margin-bottom: 8px; letter-spacing: 0.2px; }
+.field-lbl { font-size: 13px; color: var(--ink2); margin-bottom: 8px; letter-spacing: 0.2px; }
 .input, .input-pick {
   width: 100%;
   box-sizing: border-box;
-  height: 46px;
-  padding: 0 16px;
-  background: var(--bg-soft);
-  border-radius: var(--r-sm);
+  height: 44px;
+  padding: 0 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
   font-size: 15px;
-  color: var(--t1);
+  color: var(--ink);
 }
-.input-pick { line-height: 46px; }
+.input-pick { line-height: 44px; }
 
-/* ---------- 分区标题 ----------
-   不用圆点：手写体中文 + 英文小注，参考图的双语排版。 */
+/* ---------- 分区标题 ---------- */
 .sec {
   display: flex;
   align-items: baseline;
@@ -287,31 +311,29 @@ page {
 .sec-title {
   font-size: 19px;
   font-weight: 600;
-  color: var(--t1);
+  color: var(--ink);
   letter-spacing: 0.5px;
   white-space: nowrap;   /* 标题类一律单行，折行=排版事故 */
 }
 
-/* ---------- 和纸胶带点缀 ----------
-   手账感的核心小巧思：一条半透明玫瑰粉胶带斜贴在页面标题左上角，
-   像把这一块「贴」上去的。纯 CSS，不占包体积。
-   父容器需要 position:relative。 */
+/* ---------- 和纸胶带（手账感核心）：半透明 + 微斜 + 暖墨投影 ---------- */
 .tape {
   position: absolute;
   top: -7px;
   left: 16px;
-  width: 54px;
-  height: 15px;
-  background: rgba(78, 107, 224, 0.14);
+  width: 56px;
+  height: 16px;
+  background: rgba(68, 92, 56, 0.16);
   transform: rotate(-4deg);
-  border-radius: 2px;
+  border-radius: 1px;
+  box-shadow: 0 1px 3px rgba(42, 38, 32, 0.07);
   pointer-events: none;
 }
+.tape-red   { background: rgba(162, 59, 46, 0.14); }
+.tape-kraft { background: rgba(207, 190, 152, 0.55); }
+.tape-wide  { width: 88px; }
 
-/* ---------- 蝴蝶结点缀（coquette）----------
-   三个部件：左右两个环（::before/::after）+ 中间结 .bow-k。
-   纯 CSS，不占包体积。用法：
-   <view class="bow"><view class="bow-k"></view></view> */
+/* ---------- 蝴蝶结（保留的巧思，改茶绿） ---------- */
 .bow {
   position: relative;
   width: 30px;
@@ -325,8 +347,8 @@ page {
   top: 2px;
   width: 12px;
   height: 14px;
-  background: var(--brand-weak);
-  border: 1.5px solid var(--brand);
+  background: var(--accent-weak);
+  border: 1.5px solid var(--accent);
 }
 .bow::before {
   left: 1px;
@@ -345,24 +367,70 @@ page {
   width: 8px;
   height: 8px;
   margin: -4px 0 0 -4px;
-  background: var(--brand);
+  background: var(--accent);
   border-radius: 3px;
   z-index: 1;
 }
-.sec-more { font-size: 12px; color: var(--t3); letter-spacing: 0.2px; }
+
+.sec-more { font-size: 12px; color: var(--ink3); letter-spacing: 0.2px; }
 
 /* ---------- 底部安全留白 ---------- */
 .safe { height: 28px; }
 
-/* ---------- 背景拼贴层（coquette 手账墙，第十五轮）----------
+/* ---------- 打孔线（票根语言）：虚线 + 两侧半圆缺口 ---------- */
+.perf {
+  position: relative;
+  height: 0;
+  border-top: 1.5px dashed var(--line2);
+}
+.perf::before,
+.perf::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--line2);
+  box-sizing: border-box;
+}
+.perf::before { left: -8px; }
+.perf::after  { right: -8px; }
+/* 卡片内的打孔线：缺口色 = 卡片纸色 */
+.perf-on-card::before,
+.perf-on-card::after { background: var(--card); }
+
+/* ---------- 条码（票根副券）：硬边条纹，不是渐变 ---------- */
+.barcode {
+  height: 40px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 2px, transparent 2px 5px,
+    var(--ink) 5px 6px, transparent 6px 10px,
+    var(--ink) 10px 13px, transparent 13px 15px
+  );
+}
+
+/* ---------- 蕾丝点线（软分隔） ---------- */
+.lace {
+  height: 9px;
+  background-image: radial-gradient(circle, var(--line2) 2.2px, transparent 2.8px);
+  background-size: 13px 9px;
+  background-repeat: repeat-x;
+  background-position: center top;
+  opacity: 0.9;
+}
+
+/* ---------- 四角星（文字符号，不引入字体） ---------- */
+.spark { color: var(--accent); font-size: 12px; }
+.spark-lg { color: var(--accent); font-size: 16px; }
+
+/* ---------- 背景拼贴层（手账墙） ----------
    每个页面 .page 里放一个 <view class="bg-collage">，内嵌若干
-   <image class="bg-stk">，素材直接用 images/board2 里的贴纸。
-   三个设计约束：
-   1. z-index:-1 —— 压在一切内容（含卡片白底）之下，只在留白缝隙透出，
-      绝不在文字上糊一层；
-   2. 透明度 0.06~0.14 —— 「透明度很高的拼贴素材」，远看是肌理，近看才认出；
-   3. pointer-events:none —— 纯装饰，不抢点击。
-   注意：父级 .page 需要 position:relative（各页 wxss 已加）。 */
+   <image class="bg-stk">，素材用 images/board2 贴纸。
+   约束：z-index:-1 压在内容下；透明度 0.05~0.12（远看肌理近看才认出）；
+   pointer-events:none 不抢点击。父级 .page 需 position:relative。 */
 .bg-collage {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -372,37 +440,69 @@ page {
   z-index: -1;
 }
 .bg-stk { position: absolute; }
-.bg-faint  { opacity: 0.09; }   /* 大块素材：最淡 */
-.bg-soft   { opacity: 0.13; }   /* 中等素材 */
-.bg-visible { opacity: 0.18; }  /* 小星星：稍亮，点到为止 */
+.bg-faint  { opacity: 0.06; }
+.bg-soft   { opacity: 0.09; }
+.bg-visible { opacity: 0.12; }
 
-/* ---------- Y2K 浅色光晕（第十六轮）----------
-   参考图是「天使系」的浅色空气感：浅蓝/薄荷/薰衣草的大色块。
-   用纯色圆（不是渐变）以很低的存在感垫在页面角落，配合拼贴层
-   做出「相纸上有光」的感觉。用法：放在 .bg-collage 里。 */
-.bg-tint {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
+/* ==========================================================================
+   Vant Weapp 纸感主题覆盖
+   --------------------------------------------------------------------------
+   vant 组件开启了 addGlobalClass:true，app.wxss 的选择器可以穿透进
+   组件内部。用 page 后代选择器抬高优先级，压过组件自带样式。
+   ========================================================================== */
+page .van-tabs__wrap { background: transparent; }
+page .van-tab {
+  color: var(--ink3);
+  font-size: 14px;
+  letter-spacing: 0.5px;
 }
-.bg-tint-blue  { background: var(--brand-weak); }
-.bg-tint-mint  { background: var(--mint-weak); }
-.bg-tint-lav   { background: var(--lav-weak); }
-.bg-tint-a { width: 260px; height: 260px; top: -90px; right: -70px; opacity: 0.85; }
-.bg-tint-b { width: 200px; height: 200px; top: 38%; left: -80px; opacity: 0.7; }
-.bg-tint-c { width: 230px; height: 230px; bottom: -60px; right: -60px; opacity: 0.6; }
-
-/* ---------- 蕾丝点线（coquette 分隔线）----------
-   一行等距小圆点，模仿蕾丝花边。用于分区之间，比直线软。 */
-.lace {
-  height: 9px;
-  background-image: radial-gradient(circle, var(--brand-line) 2.2px, transparent 2.8px);
-  background-size: 13px 9px;
-  background-repeat: repeat-x;
-  background-position: center top;
-  opacity: 0.9;
+page .van-tab--active {
+  color: var(--ink);
+  font-weight: 600;
 }
-
-/* ---------- Y2K 四角星（文字符号，不引入字体）---------- */
-.spark { color: var(--brand); font-size: 12px; }
-.spark-lg { color: var(--brand); font-size: 16px; }
+page .van-tabs__line {
+  background: var(--accent);
+  border-radius: 1px;
+}
+page .van-toast {
+  background: var(--ink);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+page .van-toast__text {
+  color: var(--paper);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+page .van-toast__icon { color: var(--paper); }
+page .van-toast__loading { color: var(--paper); }
+page .van-dialog {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+page .van-dialog__header {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  padding-top: 22px;
+}
+page .van-dialog__message {
+  color: var(--ink2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+page .van-dialog__message-text { color: var(--ink2); }
+page .van-dialog__cancel,
+page .van-dialog__confirm {
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+page .van-dialog__cancel { color: var(--ink2); }
+page .van-dialog__confirm { color: var(--accent); font-weight: 500; }
+page .van-dialog__footer--round-button .van-dialog__cancel,
+page .van-dialog__footer--round-button .van-dialog__confirm { border-radius: var(--r-pill); }
+page .van-hairline--top-bottom::after,
+page .van-hairline--top::after { border-color: var(--line); }
+page .van-overlay { background: rgba(42, 38, 32, 0.36); }

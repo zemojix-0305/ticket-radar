@@ -1,1 +1,8 @@
-{ "usingComponents": {} }
+{
+  "navigationBarBackgroundColor": "#F7F2E7",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "van-toast": "/vant/toast/index",
+    "van-dialog": "/vant/dialog/index"
+  }
+}
