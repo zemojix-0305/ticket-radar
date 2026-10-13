@@ -6,7 +6,7 @@
     "van-dialog": "/vant/dialog/index"
   },
   "navigationBarTitleText": "找演出",
-  "navigationBarBackgroundColor": "#F7F2E7",
+  "navigationBarBackgroundColor": "#F7F7FA",
   "navigationBarTextStyle": "black",
   "enablePullDownRefresh": false
 }

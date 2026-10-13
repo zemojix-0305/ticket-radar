@@ -187,9 +187,9 @@ miniprogram/
 
 ### Vant Weapp 组件库
 
-`miniprogram/vant/` 是从 [@vant/weapp](https://github.com/youzan/vant-weapp) v1.11.7
+`miniprogram/miniprogram/vant/` 是从 [@vant/weapp](https://github.com/youzan/vant-weapp) v1.11.7
 **手工 vendor 的 dist**（共 19 个组件目录，约 380KB），不走 npm 构建，导入即用。
-**不要改 `miniprogram/vant/` 里的文件**；要加组件就从官方 dist 拷对应目录进来。
+**不要改 `miniprogram/miniprogram/vant/` 里的文件**；要加组件就从官方 dist 拷对应目录进来。
 
 已接入：`van-tabs`/`van-tab`（shows 平台切换、discussion 分类切换）、
 `van-toast`/`van-dialog`（全站反馈，替代原生 showToast/showModal）。

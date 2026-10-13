@@ -3,6 +3,6 @@
     "van-toast": "/vant/toast/index"
   },
   "navigationBarTitleText": "我的",
-  "navigationBarBackgroundColor": "#F7F2E7",
+  "navigationBarBackgroundColor": "#F7F7FA",
   "navigationBarTextStyle": "black"
 }

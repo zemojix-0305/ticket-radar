@@ -5,6 +5,6 @@
     "van-toast": "/vant/toast/index",
     "van-dialog": "/vant/dialog/index"
   },
-  "navigationBarBackgroundColor": "#F7F2E7",
+  "navigationBarBackgroundColor": "#F7F7FA",
   "navigationBarTitleText": "讨论区"
 }
