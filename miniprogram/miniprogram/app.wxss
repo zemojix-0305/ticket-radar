@@ -1,8 +1,179 @@
-page{background:#F5F6F7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;}
-.card{background:#fff;border-radius:10px;padding:14px 16px;margin:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
-.row{display:flex;align-items:center;justify-content:space-between;}
-.dim{color:#9CA3AF;font-size:12px;}
-.muted{color:#6B7280;font-size:13px;}
-.ok{color:#0F6E56;background:#E1F5EE;}
-.bad{color:#B42318;background:#FEE4E2;}
-.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;}
+/* ==========================================================================
+   全局设计令牌 + 通用组件
+   --------------------------------------------------------------------------
+   为什么所有颜色都写在这里的变量里：
+   换整套配色只改这一个文件，不用满项目找硬编码色值。
+   要换主色时同步跑一次 `python tools/make_tabicons.py --brand "#xxxxxx"`，
+   tabBar 图标会跟着重出，否则图标和界面会对不上。
+   ========================================================================== */
+page {
+  /* 品牌色——主色，用于选中态、主按钮、强调文字 */
+  --brand: #185FA5;
+  --brand-weak: #E6F1FB;
+  --brand-line: #B5D4F4;
+
+  /* 语义色——状态永远用语义色，不要拿主色代替，
+     否则用户分不清「有票了」和「这是个按钮」 */
+  --ok: #0F7B3D;          /* 有票 */
+  --ok-weak: #E1F5EE;
+  --none: #6B7280;        /* 无票 / 售罄 */
+  --none-weak: #F1F2F4;
+  --bad: #B42318;         /* 抓取失败 */
+  --bad-weak: #FEE4E2;
+  --warn: #854F0B;        /* 需要用户处理：额度不足、任务要过期 */
+  --warn-weak: #FAEEDA;
+
+  /* 中性色 */
+  --bg: #F4F5F7;
+  --card: #FFFFFF;
+  --t1: #1F2329;
+  --t2: #6B7280;
+  --t3: #9CA3AF;
+  --line: rgba(0, 0, 0, 0.08);
+
+  /* 圆角与间距 */
+  --r: 14px;
+  --r-sm: 8px;
+  --gut: 12px;
+
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  color: var(--t1);
+}
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--r);
+  margin: var(--gut);
+  overflow: hidden;
+}
+.card-pad { padding: 14px 16px; }
+
+/* ---------- 文字 ---------- */
+.t1 { font-size: 16px; font-weight: 500; color: var(--t1); }
+.t2 { font-size: 13px; color: var(--t2); }
+.t3 { font-size: 12px; color: var(--t3); }
+.num {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 状态标签 ----------
+   状态一律「颜色 + 文字」，不靠颜色单独传达信息（色盲也要读得懂） */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.tag-ok { color: var(--ok); background: var(--ok-weak); }
+.tag-none { color: var(--none); background: var(--none-weak); }
+.tag-bad { color: var(--bad); background: var(--bad-weak); }
+.tag-warn { color: var(--warn); background: var(--warn-weak); }
+.tag-brand { color: var(--brand); background: var(--brand-weak); }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-sm);
+  font-size: 15px;
+  line-height: 1;
+}
+.btn::after { border: none; }
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary[disabled] { background: #C9CDD4; color: #fff; }
+.btn-ghost { background: var(--none-weak); color: var(--t2); }
+
+/* ---------- 空状态 ----------
+   空状态必须给出下一步动作，只写「暂无数据」是偷懒 */
+.empty {
+  padding: 44px 32px;
+  text-align: center;
+}
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--brand-weak);
+}
+.empty-title {
+  font-size: 15px;
+  color: var(--t1);
+  margin-bottom: 6px;
+}
+.empty-sub { font-size: 13px; color: var(--t3); line-height: 1.6; }
+
+/* ---------- 骨架屏 ---------- */
+/* 等待时给形状而不是转圈：用户知道「马上有内容，长这样」 */
+.sk {
+  background: linear-gradient(90deg, #ECEEF1 25%, #F5F6F8 37%, #ECEEF1 63%);
+  background-size: 400% 100%;
+  animation: sk-shine 1.4s ease infinite;
+  border-radius: 4px;
+}
+@keyframes sk-shine {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ---------- 底部弹层 ---------- */
+.mask {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+}
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 91;
+  background: var(--card);
+  border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+}
+.sheet-grab {
+  width: 32px; height: 4px; border-radius: 2px;
+  background: #DCDEE2; margin: -8px auto 12px;
+}
+.sheet-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.sheet-sub { font-size: 12px; color: var(--t3); margin-bottom: 14px; line-height: 1.6; }
+
+/* ---------- 表单 ---------- */
+.field { margin-bottom: 12px; }
+.field-lbl { font-size: 13px; color: var(--t2); margin-bottom: 6px; }
+.input, .input-pick {
+  width: 100%;
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 12px;
+  background: var(--none-weak);
+  border-radius: var(--r-sm);
+  font-size: 15px;
+  color: var(--t1);
+}
+.input-pick { line-height: 42px; }
+
+/* ---------- 分区标题 ---------- */
+.sec {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 18px 16px 8px;
+}
+.sec-title { font-size: 14px; font-weight: 500; color: var(--t1); }
+.sec-more { font-size: 12px; color: var(--t3); }
+
+/* ---------- 底部安全留白 ---------- */
+.safe { height: 24px; }

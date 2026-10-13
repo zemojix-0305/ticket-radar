@@ -1,0 +1,69 @@
+<!-- 消息页：不列微信的通知，而是给「到底有没有在查」的证据 -->
+<view class="page">
+
+  <!-- 推送健康：额度 + 平台连通 + 上次检查 -->
+  <view class="card health">
+    <view class="health-row">
+      <view class="health-l">
+        <view class="t3">推送额度</view>
+        <view class="health-v">
+          <text class="num health-n {{credit > 0 ? '' : 'health-bad'}}">{{credit}}</text>
+          <text class="t2"> 条</text>
+        </view>
+      </view>
+      <view class="health-l">
+        <view class="t3">平台连通</view>
+        <view class="health-v">
+          <text class="num health-n">{{healthy}}</text>
+          <text class="t2"> / {{total}} 正常</text>
+        </view>
+      </view>
+      <view class="health-l">
+        <view class="t3">上次检查</view>
+        <view class="health-v"><text class="t2">{{lastCheckRel || '—'}}</text></view>
+      </view>
+    </view>
+
+    <view class="notice notice-warn" wx:if="{{credit === 0}}">
+      额度用完了，现在有票也推不出去。点下面按钮重新领。
+    </view>
+    <view class="notice notice-ok" wx:else>
+      一切正常。有余票变化会立刻推到你微信。
+    </view>
+
+    <view class="btn btn-primary health-btn" bindtap="goMine">
+      {{credit > 0 ? '去领更多额度' : '现在去领额度'}}
+    </view>
+  </view>
+
+  <!-- 活动流 -->
+  <view class="sec">
+    <text class="sec-title">检查记录</text>
+    <text class="sec-more">只记状态变化，不刷屏</text>
+  </view>
+
+  <view class="card empty" wx:if="{{!activity.length}}">
+    <view class="empty-icon"></view>
+    <view class="empty-title">还没有记录</view>
+    <view class="empty-sub">
+      余票数量发生变化时，这里会留下一条。<br />
+      没有变化说明一切正常——没票的时候本来就该安静。
+    </view>
+  </view>
+
+  <view class="act" wx:for="{{activity}}" wx:key="t">
+    <view class="act-dot {{item.kind}}"></view>
+    <view class="act-l">
+      <view class="act-top">
+        <text class="act-name">{{item.name}}</text>
+        <text class="t3">{{item.rel}}</text>
+      </view>
+      <view class="act-detail">
+        <text class="tag {{item.kindTag}}">{{item.kindLabel}}</text>
+        <text class="t2 act-txt">{{item.detail}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe"></view>
+</view>

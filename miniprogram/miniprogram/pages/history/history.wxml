@@ -1,0 +1,79 @@
+<!-- 历史页：把盯过的过程算成结论。数据不够就明说数据不够。 -->
+<view class="page">
+
+  <!-- 汇总 -->
+  <view class="sum" wx:if="{{!loading && totalTasks}}">
+    <view class="sum-i">
+      <view class="num sum-n">{{totalTasks}}</view>
+      <view class="t3">个在盯</view>
+    </view>
+    <view class="sum-sep"></view>
+    <view class="sum-i">
+      <view class="num sum-n">{{totalSamples}}</view>
+      <view class="t3">次采样</view>
+    </view>
+    <view class="sum-sep"></view>
+    <view class="sum-i">
+      <view class="num sum-n">{{enoughCount}}</view>
+      <view class="t3">个能看出规律</view>
+    </view>
+  </view>
+
+  <view class="card fail" wx:if="{{fail}}">
+    <view class="fail-t">读不到历史</view>
+    <view class="fail-b">{{fail}}</view>
+  </view>
+
+  <view class="card sk-card" wx:if="{{loading && !rows.length}}">
+    <view class="sk sk-t" style="width:50%"></view>
+    <view class="sk" style="width:100%;height:58px;margin-top:14px"></view>
+  </view>
+
+  <!-- 一个监控都没有 -->
+  <view class="card empty" wx:if="{{!loading && !rows.length && !fail}}">
+    <view class="empty-icon"></view>
+    <view class="empty-title">还没有可分析的数据</view>
+    <view class="empty-sub">
+      先去加一个监控。<br />
+      历史是盯出来的——盯得越久，这里越有用。
+    </view>
+  </view>
+
+  <!-- 每个监控一张 -->
+  <view class="card h" wx:for="{{rows}}" wx:key="_id">
+    <view class="h-head">
+      <view class="h-l">
+        <view class="t1 h-name">{{item.name}}</view>
+        <view class="t3 h-sub">{{item.platform}} · 采了 {{item.samples}} 次 · 跨度 {{item.span}}</view>
+      </view>
+      <text class="tag {{item.ok ? 'tag-ok' : 'tag-bad'}}">{{item.ok ? '正常' : '抓取失败'}}</text>
+    </view>
+
+    <!-- 余票柱状图 -->
+    <view class="spark" wx:if="{{item.samples > 1}}">
+      <view class="spark-b {{item.bars[0].n > 0 ? '' : 'zero'}}" wx:for="{{item.bars}}" wx:for-item="b" wx:key="index" style="height:{{b.h}}%"></view>
+    </view>
+    <view class="spark-ph" wx:elif="{{item.samples <= 1}}">
+      只采了 {{item.samples}} 次，画不出曲线
+    </view>
+
+    <view class="h-metrics" wx:if="{{item.enough}}">
+      <view class="m-i">
+        <view class="num m-n">{{item.peak}}</view>
+        <view class="t3">峰值余票</view>
+      </view>
+      <view class="m-i">
+        <view class="num m-n">{{item.drops}}</view>
+        <view class="t3">放票次数</view>
+      </view>
+      <view class="m-i">
+        <view class="num m-n">{{item.samples}}</view>
+        <view class="t3">采样数</view>
+      </view>
+    </view>
+
+    <view class="verdict {{item.tone}}">{{item.verdict}}</view>
+  </view>
+
+  <view class="safe"></view>
+</view>

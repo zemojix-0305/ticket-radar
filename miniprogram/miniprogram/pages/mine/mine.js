@@ -1,4 +1,4 @@
-// 「我的」页：拿登录 code（换 openid 用）+ 申请订阅通知额度。
+// 「我的」页：订阅额度（主角）+ 微信绑定（折叠）+ 我们不做什么。
 //
 // 为什么页面上显示的是 code 而不是 openid：换 openid 需要 AppSecret，
 // 而 AppSecret 绝不能打进小程序包里（任何人反编译都能拿到）。
@@ -20,11 +20,24 @@ Page({
     batching: false,
     batchGot: 0,
     batchTotal: 0,
+    bindOpen: false,
   },
 
   onLoad() {
     this.refreshCode();
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+  },
+
+  onShow() {
+    // 从别的 tab 领完额度切回来，数字要跟着变
+    this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+  },
+
+  toggleBind() {
+    const open = !this.data.bindOpen;
+    this.setData({ bindOpen: open });
+    // 展开时才去取 code：平时不需要，也避免白白发一次登录请求
+    if (open && !this.data.code) this.refreshCode();
   },
 
   onPullDownRefresh() {

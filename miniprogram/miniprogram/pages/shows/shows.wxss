@@ -1,0 +1,137 @@
+.page { padding-bottom: 8px; }
+
+/* ---------- 搜索栏 ---------- */
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.search-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--none-weak);
+  border-radius: 19px;
+}
+/* 放大镜：用 CSS 画的，不额外占一张图片请求 */
+.search-ico {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--t3);
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+}
+.search-ico::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 6px;
+  height: 1.5px;
+  background: var(--t3);
+  transform: rotate(45deg);
+}
+.search-inp {
+  flex: 1;
+  min-width: 0;
+  margin-left: 9px;
+  font-size: 15px;
+  color: var(--t1);
+}
+.search-ph { color: var(--t3); font-size: 14px; }
+.search-clear { font-size: 13px; color: var(--t3); padding-left: 8px; }
+
+.search-btn {
+  flex-shrink: 0;
+  height: 38px;
+  line-height: 38px;
+  padding: 0 16px;
+  border-radius: 19px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 15px;
+}
+.search-btn.disabled { background: #C9CDD4; }
+
+/* ---------- 结果行 ---------- */
+.row-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border-radius: var(--r);
+  margin: var(--gut);
+  padding: 12px;
+}
+.poster {
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--none-weak);
+}
+.poster-img { width: 100%; height: 100%; display: block; }
+.poster-blank { background: var(--brand-weak); }
+
+.row-main { flex: 1; min-width: 0; }
+.row-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t1);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.row-meta { margin-top: 5px; }
+.row-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--t3);
+}
+.row-price { color: var(--none); }
+
+.row-add {
+  flex-shrink: 0;
+  width: 52px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  border-radius: 16px;
+  background: var(--brand-weak);
+  color: var(--brand);
+  font-size: 14px;
+}
+.row-add-busy { background: var(--none-weak); color: var(--t3); }
+
+/* ---------- 失败 / 骨架 ---------- */
+.fail { padding: 16px; }
+.fail-t { font-size: 15px; color: var(--bad); margin-bottom: 6px; }
+.fail-b { font-size: 13px; color: var(--t2); line-height: 1.6; }
+.sk-card { padding: 16px; }
+.sk-t { height: 16px; }
+
+/* ---------- 搜索历史 ---------- */
+.hist { padding: 14px 16px; }
+.hist-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.hist-title { font-size: 14px; font-weight: 500; color: var(--t1); }
+.hist-clear { font-size: 12px; color: var(--t3); }
+.hist-body { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 12px;
+  background: var(--none-weak);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--t2);
+}

@@ -1,0 +1,63 @@
+.page { padding-bottom: 8px; }
+
+/* ---------- 健康卡 ---------- */
+.health { padding: 16px; }
+.health-row { display: flex; }
+.health-l { flex: 1; text-align: center; }
+.health-l:first-child { text-align: left; }
+.health-v { display: flex; align-items: baseline; margin-top: 4px; }
+.health-n { color: var(--ok); }
+.health-bad { color: var(--warn); }
+
+.notice {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.notice-warn { background: var(--warn-weak); color: var(--warn); }
+.notice-ok { background: var(--ok-weak); color: var(--ok); }
+
+.health-btn { margin-top: 14px; }
+
+/* ---------- 活动流 ---------- */
+.act {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 12px;
+  padding: 12px 14px;
+  background: var(--card);
+  border-radius: var(--r);
+  margin-bottom: 8px;
+}
+.act-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+  background: var(--t3);
+}
+.act-dot.check { background: var(--t3); }
+.act-dot.change { background: var(--ok); }
+.act-dot.fail { background: var(--bad); }
+
+.act-l { flex: 1; min-width: 0; }
+.act-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.act-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.act-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+.act-txt { flex: 1; min-width: 0; }

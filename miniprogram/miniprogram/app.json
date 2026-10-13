@@ -1,11 +1,54 @@
 {
-  "pages": ["pages/index/index", "pages/mine/mine"],
+  "pages": [
+    "pages/monitor/monitor",
+    "pages/shows/shows",
+    "pages/history/history",
+    "pages/inbox/inbox",
+    "pages/mine/mine"
+  ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F5F6F7",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTitleText": "余票监控",
-    "navigationBarTextStyle": "black",
-    "enablePullDownRefresh": true
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#9CA3AF",
+    "selectedColor": "#185FA5",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/monitor/monitor",
+        "text": "监控",
+        "iconPath": "images/tab_monitor.png",
+        "selectedIconPath": "images/tab_monitor_on.png"
+      },
+      {
+        "pagePath": "pages/shows/shows",
+        "text": "场次",
+        "iconPath": "images/tab_shows.png",
+        "selectedIconPath": "images/tab_shows_on.png"
+      },
+      {
+        "pagePath": "pages/history/history",
+        "text": "历史",
+        "iconPath": "images/tab_history.png",
+        "selectedIconPath": "images/tab_history_on.png"
+      },
+      {
+        "pagePath": "pages/inbox/inbox",
+        "text": "消息",
+        "iconPath": "images/tab_inbox.png",
+        "selectedIconPath": "images/tab_inbox_on.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "images/tab_mine.png",
+        "selectedIconPath": "images/tab_mine_on.png"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

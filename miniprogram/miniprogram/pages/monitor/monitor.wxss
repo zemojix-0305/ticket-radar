@@ -1,0 +1,117 @@
+.page { padding-bottom: 8px; }
+
+/* ---------- 额度条 ---------- */
+.credit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 12px 0;
+  padding: 10px 14px;
+  background: var(--brand-weak);
+  border-radius: var(--r-sm);
+}
+.credit-empty { background: var(--warn-weak); }
+.credit-l { min-width: 0; }
+.credit-t { display: block; font-size: 14px; color: var(--brand); }
+.credit-empty .credit-t { color: var(--warn); }
+.credit-s { display: block; font-size: 12px; color: var(--t2); margin-top: 2px; }
+.credit-n { font-size: 17px; font-weight: 600; }
+.credit-go {
+  font-size: 13px;
+  color: var(--brand);
+  border: 1px solid var(--brand-line);
+  border-radius: 20px;
+  padding: 4px 12px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+.credit-empty .credit-go { color: var(--warn); border-color: var(--warn); }
+
+/* ---------- 概览 ---------- */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 12px;
+}
+.hero-line { display: flex; align-items: baseline; }
+.hero-n { color: var(--ok); }
+.hero-total { color: var(--t3); }
+.hero-sep { font-size: 18px; color: var(--t3); margin: 0 4px; }
+.hero-sub { font-size: 13px; color: var(--t2); margin-top: 2px; }
+.hero-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  background: var(--brand);
+  border-radius: 18px;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+.hero-add::after { border: none; }
+.hero-plus { font-size: 22px; color: #fff; }
+.hero-add-t { font-size: 11px; color: #fff; }
+
+/* ---------- 失败卡片 ---------- */
+.fail { padding: 16px; }
+.fail-t { font-size: 15px; color: var(--bad); margin-bottom: 6px; }
+.fail-b { font-size: 13px; color: var(--t2); line-height: 1.6; }
+.fail-btn { margin-top: 12px; }
+
+/* ---------- 骨架 ---------- */
+.sk-card { padding: 16px; }
+.sk-t { height: 16px; }
+
+/* ---------- 空状态补充 ---------- */
+.empty-acts { margin-top: 18px; display: flex; justify-content: center; }
+
+/* ---------- 任务卡 ---------- */
+.task { display: flex; }
+.task-bar { width: 4px; flex-shrink: 0; }
+.task-bar-ok { background: var(--ok); }
+.task-bar-none { background: #DCDEE2; }
+.task-bar-bad { background: var(--bad); }
+.task-body { flex: 1; min-width: 0; padding: 14px 16px; }
+.task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.task-l { flex: 1; min-width: 0; }
+.task-name { display: block; }
+.task-sub { display: block; margin-top: 3px; }
+.task-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.task-foot-r { display: flex; align-items: center; gap: 12px; }
+.link { font-size: 12px; color: var(--brand); }
+
+/* ---------- 抓取失败 ---------- */
+.err {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bad-weak);
+  border-radius: var(--r-sm);
+}
+.err-t { display: block; font-size: 13px; color: var(--bad); margin-bottom: 4px; }
+
+/* ---------- 展开的明细 ---------- */
+.items { margin-top: 12px; }
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+.i-label { flex: 1; min-width: 0; font-size: 14px; color: var(--t1); }
+.i-st { flex-shrink: 0; }
+
+/* ---------- 弹层 ---------- */
+.acts { display: flex; gap: 10px; margin-top: 18px; }
+.acts .btn { flex: 1; }

@@ -1,10 +1,11 @@
 /**
  * ticket-radar 微信云函数
  *
- * 干三件事：
+ * 干四件事：
  *   probe —— 测各平台从「腾讯云 IP」能不能抓到数据（部署后先跑这个）
  *   poll  —— 轮询所有启用的任务，把结果写进云数据库
  *   query —— 小程序读最新结果
+ *   find  —— 按关键词搜演出，小程序「场次」页用（用户不用自己找 id）
  *
  * 为什么云函数要重写一遍解析：本地版是 Python，而云开发只跑 Node.js。
  * 所以这里的解析逻辑是从 radar/adapters/ 翻成 JS 的，改那边记得同步这里。
@@ -196,8 +197,95 @@ const MORE_PUBLIC = '/pub';
 
 const MORE_SOLD_OUT = ['sold out', '售罄', '已售完', '缺货'];
 
+function moreHeaders() {
+  return {
+    'User-Agent': UA,
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/plain, */*',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    Origin: 'https://moretickets.com',
+    Referer: 'https://moretickets.com/',
+  };
+}
+
+/**
+ * 按关键词搜巡演，返回候选行。
+ *
+ * 路径 ``/show/search/v1`` **没有** ``/pub`` 前缀——跟 session/list 那个
+ * 接口不一样，写错了只会拿到 12123 的空壳。
+ *
+ * ⚠️ 搜「孙燕姿」回来的 title 是 ``Sun Yanzi <AUT NIHILO> Tour In GUANGZHOU``。
+ * 摩天轮的演出名**本来就是英文原文**，不是我们没匹配上。所以小程序列表里
+ * 一定要把 location（Guangzhou, CN）显示出来，否则用户看到一堆英文会以为搜错了。
+ */
+async function findMoretickets(keyword, limit) {
+  const body = {
+    keyword: keyword,
+    homeUiExperiment: true,
+    offset: 0,
+    length: Math.min(Number(limit) || 20, 50),
+  };
+  const r = await request(`${MORE_BASE}/show/search/v1`, {
+    method: 'POST',
+    headers: moreHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  let data;
+  try {
+    data = JSON.parse(r.body);
+  } catch (e) {
+    throw new Error('摩天轮搜索返回的不是 JSON（它只认 POST + JSON）');
+  }
+  const code = data.statusCode;
+  if (code !== 0 && code !== 200 && code !== '0') {
+    throw new Error('摩天轮搜索失败：statusCode=' + code + ' ' + (data.message || data.msg || ''));
+  }
+
+  const rows = Array.isArray(data.data) ? data.data : [];
+  const out = [];
+  for (const row of rows) {
+    if (!row || !row.tourId) continue;
+    // 字段名是实测出来的，别照想象写：
+    //   title/showName 演出名、location 城市、showDate 档期、
+    //   price 是**对象** {minSalePrice, currencySymbol}、imgUrl 海报。
+    const price = row.price || {};
+    out.push({
+      tourId: row.tourId,
+      name: row.title || row.showName || row.tourId,
+      city: row.location || row.cityCode || '',
+      venue: row.venueName || '',
+      dateRange: row.showDate || '',
+      price:
+        price.minSalePrice != null
+          ? String(price.currencySymbol || '') + price.minSalePrice
+          : '',
+      poster: row.imgUrl || '',
+    });
+    if (out.length >= body.length) break;
+  }
+  return out;
+}
+
 async function pollMoretickets(params) {
-  const tourId = params.tour_id;
+  let tourId = params.tour_id;
+
+  // 没给 tour_id 就按关键词自己搜。
+  // 这一条是小程序「场次」页能用的关键：用户只要打「孙燕姿」三个字，
+  // 不用去别的 App 里翻链接、抠 tour_id——竞品逼用户干的就是这件事。
+  if (!tourId) {
+    const kw = String(params.keyword || '').trim();
+    if (!kw) throw new Error('既没给 tour_id 也没给 keyword');
+    const rows = await findMoretickets(kw, 1);
+    if (!rows.length) {
+      throw new Error(
+        '摩天轮搜不到「' + kw + '」。它是二手票平台，' +
+          '冷门场次确实可能没挂单；换个说法（英文名/城市名）再试。',
+      );
+    }
+    tourId = rows[0].tourId;
+  }
+
   if (!tourId) throw new Error('缺少 tour_id');
 
   // 真实路径和 body 都是实测出来的，别凭印象改：
@@ -207,14 +295,7 @@ async function pollMoretickets(params) {
   // 那个码不是业务状态，是「你姿势不对」。
   const r = await request(`${MORE_BASE}${MORE_PUBLIC}/session/city/list/v1`, {
     method: 'POST',
-    headers: {
-      'User-Agent': UA,
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/plain, */*',
-      'Accept-Language': 'zh-CN,zh;q=0.9',
-      Origin: 'https://moretickets.com',
-      Referer: 'https://moretickets.com/',
-    },
+    headers: moreHeaders(),
     body: JSON.stringify({ tourId: tourId }),
   });
 
@@ -504,6 +585,17 @@ exports.main = async (event) => {
         results.push({ _id: rec._id, ok: rec.ok, n: (rec.items || []).length, error: rec.error });
       }
       return { ok: true, at: now, tasks: results.length, results: results };
+    }
+
+    // --- 搜索（小程序「场次」页用）-------------------------------------
+    // 用户只打关键词，我们去平台把候选捞回来。不用让用户去别的 App
+    // 翻链接抠 id——那一步 90% 的人会放弃。
+    if (action === 'find') {
+      const keyword = String((event && event.keyword) || '').trim();
+      const limit = (event && event.limit) || 20;
+      if (!keyword) return { ok: false, error: '关键词是空的' };
+      const rows = await findMoretickets(keyword, limit);
+      return { ok: true, keyword, rows };
     }
 
     // --- 查询（小程序读这个）-------------------------------------------
