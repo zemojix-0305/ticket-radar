@@ -18,6 +18,8 @@ Page({
     authMsg: '',
     credit: 0,
     batching: false,
+    batchGot: 0,
+    batchTotal: 0,
   },
 
   onLoad() {
@@ -93,45 +95,64 @@ Page({
 
   // 连领 5 条：省得一次一次点。
   //
-  // 为什么能连着领：微信一次性订阅是「点一次给一条」，可以累加。
-  // 授权弹窗里如果勾了「总是保持以上选择」，后面几次就不再弹窗直接通过，
-  // 但额度照加——这才是攒额度的正确姿势，否则你得连点五次「允许」。
+  // 为什么要排队而不是并发：wx.requestSubscribeMessage 同一时间只能弹一个窗，
+  // 并发调用直接 fail。
   //
-  // 为什么要排队而不是并发：wx.requestSubscribeMessage 连续瞬间调用会被微信
-  // 判定为频繁调用直接失败，所以每次之间留 400ms。
+  // 为什么失败不立刻放弃：微信对连续调用有节流，间隔太短会被拒，
+  // 但那只是「等一下再来」而不是「不能领」。所以失败后退避重试，
+  // 真试不出来再让人手动点——批量只是省事，不该比手动更不可靠。
   requestSubscribeBatch() {
     if (this.data.batching) return;
-    this.setData({ batching: true, authMsg: '正在连续领取 5 条…' });
+    this.setData({ batching: true, authMsg: '正在领取…', batchGot: 0, batchTotal: 5 });
 
     let got = 0;
+    let retry = 0;
     const total = 5;
+
+    const done = (why) => {
+      this.setData({
+        batching: false,
+        batchGot: 0,
+        batchTotal: 0,
+        authMsg:
+          got > 0
+            ? `${why}已领 ${got} 条，累计 ${this.data.credit} 条。剩下的手动点「再领一条额度」也一样。`
+            : `${why}没领到，请点「允许通知」手动领一次。`,
+      });
+      if (got > 0) wx.showToast({ title: `已领 ${got} 条`, icon: 'success' });
+    };
 
     const next = () => {
       if (got >= total) {
-        this.setData({
-          batching: false,
-          authMsg: `已连领 ${got} 条，累计 ${this.data.credit} 条`,
-        });
-        wx.showToast({ title: `已领 ${got} 条`, icon: 'success' });
+        done('');
         return;
       }
+      // 失败重试用递增间隔（1s → 2s → 3s），三次还不行就交给人
+      const wait = retry === 0 ? 1000 : retry * 1000;
+
+      if (retry >= 3) {
+        done('微信挡住了连领（模拟器里尤其容易这样）。');
+        return;
+      }
+
       wx.requestSubscribeMessage({
         tmplIds: [TMPL_ID],
         success: (res) => {
           if (res[TMPL_ID] === 'accept') {
             got += 1;
+            retry = 0;
             const n = (wx.getStorageSync(CREDIT_KEY) || 0) + 1;
             wx.setStorageSync(CREDIT_KEY, n);
-            this.setData({ authorized: true, credit: n });
+            this.setData({ authorized: true, credit: n, batchGot: got });
+          } else {
+            // 用户点了拒绝：重试也没用，直接收工
+            retry = 3;
           }
-          setTimeout(next, 400);
+          setTimeout(next, 1000);
         },
         fail: () => {
-          // 中间某次失败就停下，别把剩下的也弄失败
-          this.setData({
-            batching: false,
-            authMsg: `领到第 ${got} 条时中断了，可以再点一次继续`,
-          });
+          retry += 1;
+          setTimeout(next, wait);
         },
       });
     };

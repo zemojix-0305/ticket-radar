@@ -49,7 +49,7 @@
         {{authorized ? '再领一条额度' : '允许通知'}}
       </button>
       <button class="ghost" bindtap="requestSubscribeBatch" disabled="{{batching}}">
-        {{batching ? '领取中…' : '连领 5 条'}}
+        {{batching ? '领取中 ' + batchGot + '/' + batchTotal : '连领 5 条'}}
       </button>
     </view>
     <text class="ok" wx:if="{{authorized}}">{{authMsg}}</text>
@@ -58,6 +58,10 @@
     <text class="hint">
       小技巧：弹窗里勾上「总是保持以上选择，不再询问」，
       之后再点就不用反复确认了，额度照加。
+    </text>
+    <text class="hint">
+      模拟器里微信会拦连续授权，连领容易只成 1 条；
+      真机预览里成功率更高。不成功就手动点「再领一条额度」，效果一样。
     </text>
   </view>
 
