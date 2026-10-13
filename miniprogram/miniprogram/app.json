@@ -3,30 +3,30 @@
     "pages/monitor/monitor",
     "pages/shows/shows",
     "pages/history/history",
-    "pages/inbox/inbox",
+    "pages/discussion/discussion",
     "pages/mine/mine"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F5F1E8",
+    "navigationBarBackgroundColor": "#F7F7FA",
     "navigationBarTitleText": "余票监控",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
-    "color": "#86827A",
-    "selectedColor": "#4F6E80",
-    "backgroundColor": "#FFFDF8",
+    "color": "#6C6C75",
+    "selectedColor": "#1C1C1E",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/monitor/monitor",
-        "text": "监控",
-        "iconPath": "images/tab_monitor.png",
-        "selectedIconPath": "images/tab_monitor_on.png"
+        "text": "首页",
+        "iconPath": "images/tab_home.png",
+        "selectedIconPath": "images/tab_home_on.png"
       },
       {
         "pagePath": "pages/shows/shows",
-        "text": "场次",
+        "text": "演出",
         "iconPath": "images/tab_shows.png",
         "selectedIconPath": "images/tab_shows_on.png"
       },
@@ -37,10 +37,10 @@
         "selectedIconPath": "images/tab_history_on.png"
       },
       {
-        "pagePath": "pages/inbox/inbox",
-        "text": "消息",
-        "iconPath": "images/tab_inbox.png",
-        "selectedIconPath": "images/tab_inbox_on.png"
+        "pagePath": "pages/discussion/discussion",
+        "text": "讨论",
+        "iconPath": "images/tab_discuss.png",
+        "selectedIconPath": "images/tab_discuss_on.png"
       },
       {
         "pagePath": "pages/mine/mine",

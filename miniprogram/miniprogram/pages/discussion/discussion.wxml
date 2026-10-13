@@ -1,0 +1,95 @@
+<!-- 讨论区：帖子流 + 搜索 + 发帖 -->
+<view class="page">
+
+  <!-- 搜索栏 -->
+  <view class="searchbar">
+    <view class="search-box">
+      <text class="search-ico"></text>
+      <input
+        class="search-inp"
+        placeholder="搜帖子 / 场次 / 关键词"
+        placeholder-class="search-ph"
+        value="{{kw}}"
+        confirm-type="search"
+        bindinput="onInput"
+        bindconfirm="doSearch"
+      />
+      <text class="search-clear press" wx:if="{{kw}}" bindtap="clearSearch" hover-class="press-hover">清除</text>
+    </view>
+    <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="doSearch" hover-class="press-hover">
+      {{searching ? '搜着' : '搜'}}
+    </view>
+  </view>
+
+  <!-- 失败 -->
+  <view class="card fail" wx:if="{{fail}}">
+    <view class="fail-t">读不到帖子</view>
+    <view class="fail-b">{{fail}}</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="card empty" wx:if="{{!loading && !posts.length && !fail}}">
+    <view class="empty-mark"></view>
+    <view class="empty-title">还没有帖子</view>
+    <view class="empty-sub">来发第一条。</view>
+  </view>
+
+  <!-- 帖子流 -->
+  <view class="post-card" wx:for="{{posts}}" wx:key="_id">
+    <view class="post-head">
+      <image class="post-avatar" src="{{item.avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
+      <view class="post-meta">
+        <text class="post-name">{{item.nickname}}</text>
+        <text class="t3">{{item.rel}}</text>
+      </view>
+    </view>
+    <view class="post-body">{{item.content}}</view>
+    <view class="post-tags" wx:if="{{item.tags && item.tags.length}}">
+      <text class="post-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{posts.length && hasMore}}" bindtap="loadMore" hover-class="press-hover">
+    <text class="t3">{{loading ? '加载中…' : '加载更多'}}</text>
+  </view>
+  <view class="load-more" wx:if="{{posts.length && !hasMore}}">
+    <text class="t3">没有更多了</text>
+  </view>
+
+  <!-- 发帖悬浮按钮 -->
+  <view class="fab" bindtap="openPost" hover-class="press-hover">
+    <text class="fab-plus">＋</text>
+  </view>
+
+  <view class="safe"></view>
+</view>
+
+<!-- 发帖弹层 -->
+<view class="mask" wx:if="{{showPost}}" bindtap="closePost"></view>
+<view class="sheet" wx:if="{{showPost}}">
+  <view class="sheet-grab"></view>
+  <view class="sheet-title">发一条帖子</view>
+  <view class="sheet-sub">友善交流，禁止黄牛广告、转账引流。违者删帖。</view>
+
+  <view class="field">
+    <view class="field-lbl">内容（500 字内）</view>
+    <textarea
+      class="input post-area"
+      placeholder="例如：孙燕姿广州二开大概什么时候？"
+      maxlength="500"
+      value="{{postContent}}"
+      bindinput="onPostInput"
+    />
+  </view>
+
+  <view class="field">
+    <view class="field-lbl">标签（最多 3 个，空格分隔）</view>
+    <input class="input" placeholder="孙燕姿 广州 二开" value="{{postTags}}" bindinput="onTagInput" />
+  </view>
+
+  <view class="acts">
+    <button class="btn btn-ghost press" bindtap="closePost" hover-class="press-hover">取消</button>
+    <button class="btn btn-primary press" bindtap="submitPost" hover-class="press-hover">发布</button>
+  </view>
+</view>

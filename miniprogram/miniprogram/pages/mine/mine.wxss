@@ -1,76 +1,73 @@
 .page { padding-bottom: 8px; }
 
-/* ---------- 额度卡 ---------- */
-.quota { padding: 18px 16px 16px; }
-.quota-head { margin-bottom: 12px; }
-.quota-v { display: flex; align-items: baseline; margin-top: 2px; }
-.quota-n { color: var(--brand); }
-.quota-why {
-  font-size: 13px;
-  color: var(--t2);
-  line-height: 1.7;
-  background: var(--none-weak);
-  padding: 11px 13px;
-  border-radius: var(--r-sm);
-  margin-bottom: 14px;
-}
-.quota-msg {
-  display: block;
-  font-size: 13px;
-  color: var(--ok);
-  margin-top: 10px;
-}
-.quota-tip {
-  display: block;
-  font-size: 12px;
-  color: var(--t3);
-  line-height: 1.6;
-  margin-top: 12px;
-}
-
-/* ---------- 按钮组 ---------- */
-.acts { display: flex; gap: 10px; margin-top: 14px; }
-.acts .btn { flex: 1; }
-.acts .btn-primary { flex: 1.1; }
-
-/* ---------- 微信绑定 ---------- */
-.bind { padding: 14px 16px; }
-.bind-head {
+/* ---------- 用户资料 ---------- */
+.profile {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
 }
-.bind-arrow {
-  font-size: 14px;
-  color: var(--t3);
-  transition: transform .2s;
+/* button[open-type] 天生带 min-height / border / 自带背景，
+   不全部重置它就会在 flex 里被撑成一个方块（踩过的坑） */
+.avatar-wrap {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  overflow: hidden;
+  line-height: 1;
+  flex-shrink: 0;
 }
+.avatar-wrap::after { border: none; }
+.avatar { display: block; width: 56px; height: 56px; }
+.profile-info { flex: 1; min-width: 0; }
+.nickname-row { display: flex; align-items: center; gap: 8px; }
+.nickname { font-size: 17px; font-weight: 500; color: var(--t1); }
+.nickname-edit { color: var(--brand); }
+.nickname-edit-btn { font-size: 15px; color: var(--t3); }
+.uid-row { display: flex; align-items: center; gap: 9px; margin-top: 5px; }
+.uid { font-size: 12px; color: var(--t3); background: var(--bg); padding: 3px 9px; border-radius: 11px; }
+.uid-copy { font-size: 12px; color: var(--brand); }
+
+/* ---------- 昵称弹层 ---------- */
+.nickname-sheet-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.36); z-index: 90;
+}
+.nickname-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 91;
+  background: var(--card); border-radius: 26px 26px 0 0;
+  padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+}
+.nickname-sheet .sheet-title { margin-bottom: 14px; }
+.nickname-input {
+  width: 100%; box-sizing: border-box; height: 46px;
+  background: var(--bg); border-radius: 16px;
+  padding: 0 14px; font-size: 16px; color: var(--t1);
+}
+
+/* ---------- 额度 ---------- */
+.quota { padding: 16px 18px; }
+.quota-v { display: flex; align-items: baseline; margin-bottom: 14px; }
+.quota-n { color: var(--brand); }
+.acts { display: flex; gap: 10px; margin-top: 14px; }
+.acts .btn { flex: 1; }
+.acts:first-of-type { margin-top: 0; }
+.quota .acts { margin-top: 0; }
+.quota-msg { display: block; font-size: 13px; color: var(--ok); margin-top: 10px; }
+
+/* ---------- 推送绑定 ---------- */
+.bind { padding: 14px 18px; }
+.bind-head { display: flex; align-items: center; justify-content: space-between; }
+.bind-arrow { font-size: 14px; color: var(--t3); transition: transform .2s; }
 .bind-arrow-open { transform: rotate(180deg); }
-.bind-why {
-  font-size: 13px;
-  line-height: 1.7;
-  margin: 14px 0 12px;
-}
-.code-box {
-  background: var(--none-weak);
-  border-radius: var(--r-sm);
-  padding: 11px 13px;
-  margin-bottom: 4px;
-}
-.code {
-  font-size: 13px;
-  color: var(--t1);
-  word-break: break-all;
-  display: block;
-  line-height: 1.6;
-}
-.cmd {
-  margin-top: 12px;
-  padding: 11px 13px;
-  background: var(--brand-weak);
-  border-radius: var(--r-sm);
-}
-.cmd-t { display: block; font-size: 12px; color: var(--t2); margin-bottom: 5px; }
+.code-box { background: var(--none-weak); border-radius: var(--r-sm); padding: 11px 13px; margin-top: 12px; }
+.code { font-size: 13px; color: var(--t1); word-break: break-all; display: block; line-height: 1.6; }
+.cmd { margin-top: 12px; padding: 10px 12px; background: var(--brand-weak); border-radius: var(--r-sm); }
 .cmd-c {
   display: block;
   font-family: Menlo, Consolas, monospace;
@@ -78,25 +75,3 @@
   color: var(--brand);
   word-break: break-all;
 }
-
-/* ---------- 承诺 ---------- */
-.pledge { padding: 16px; }
-.pledge-title { font-size: 15px; font-weight: 500; margin-bottom: 12px; }
-.pledge-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  font-size: 13px;
-  color: var(--t2);
-  line-height: 1.6;
-  padding: 5px 0;
-}
-.pmark {
-  color: var(--t3);
-  font-size: 15px;
-  flex-shrink: 0;
-  width: 14px;
-  line-height: 22px;
-}
-
-.about { line-height: 1.7; }

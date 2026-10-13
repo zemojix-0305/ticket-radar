@@ -43,7 +43,7 @@
   </view>
 
   <view class="card empty" wx:if="{{!activity.length}}">
-    <view class="empty-icon"></view>
+    <view class="empty-mark"></view>
     <view class="empty-title">还没有记录</view>
     <view class="empty-sub">
       余票数量发生变化时，这里会留下一条。<br />

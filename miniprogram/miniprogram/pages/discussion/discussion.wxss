@@ -1,0 +1,147 @@
+.page { padding-bottom: 8px; }
+
+/* ---------- 搜索栏（复用 shows 风格）---------- */
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.search-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+.search-ico {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--t3);
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+}
+.search-ico::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 6px;
+  height: 2px;
+  background: var(--t3);
+  transform: rotate(45deg);
+}
+.search-inp {
+  flex: 1;
+  min-width: 0;
+  margin-left: 9px;
+  font-size: 15px;
+  color: var(--t1);
+}
+.search-ph { color: var(--t3); font-size: 14px; }
+.search-clear { font-size: 13px; color: var(--t3); padding-left: 8px; }
+.search-btn {
+  flex-shrink: 0;
+  height: 38px;
+  line-height: 38px;
+  padding: 0 16px;
+  border-radius: 19px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 15px;
+}
+.search-btn.disabled { background: var(--disabled); }
+
+/* ---------- 帖子卡片 ---------- */
+.post-card {
+  background: var(--card);
+  border-radius: var(--r);
+  margin: var(--gut);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+.post-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.post-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--brand-weak);
+  flex-shrink: 0;
+}
+.post-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.post-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t1);
+}
+.post-body {
+  font-size: 14px;
+  color: var(--t1);
+  line-height: 1.65;
+  word-break: break-word;
+}
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.post-tag {
+  font-size: 12px;
+  color: var(--brand);
+  background: var(--brand-weak);
+  padding: 3px 9px;
+  border-radius: 12px;
+}
+
+/* ---------- 加载更多 ---------- */
+.load-more {
+  text-align: center;
+  padding: 12px;
+}
+
+/* ---------- 发帖按钮 ---------- */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  box-shadow: var(--shadow-brand);
+}
+.fab-plus { font-size: 24px; color: #FFFFFF; font-weight: 300; }
+
+/* ---------- 弹层 ---------- */
+.post-area {
+  height: 110px;
+  padding: 10px 14px;
+  line-height: 1.6;
+}
+.acts { display: flex; gap: 10px; margin-top: 18px; }
+.acts .btn { flex: 1; }
+
+/* ---------- 失败 / 空 ---------- */
+.fail { padding: 16px; }
+.fail-t { font-size: 15px; color: var(--bad); margin-bottom: 6px; }
+.fail-b { font-size: 13px; color: var(--t2); line-height: 1.6; }

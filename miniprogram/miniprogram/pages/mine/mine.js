@@ -9,6 +9,14 @@ const TMPL_ID = 'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4';
 // 本地攒的额度条数。真正在微信后台存着多少条我们查不到（要 AppSecret），
 // 所以这里只是给用户一个「我大概领过几次」的记账本，够用了。
 const CREDIT_KEY = 'wx_subscribe_credit';
+const USER_KEY = 'radar_user_profile';
+
+function makeUid() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+  return s;
+}
 
 Page({
   data: {
@@ -21,11 +29,60 @@ Page({
     batchGot: 0,
     batchTotal: 0,
     bindOpen: false,
+    user: { uid: '', nickname: '', avatar: '' },
+    editingName: false,
   },
 
   onLoad() {
     this.refreshCode();
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+    this.loadUser();
+  },
+
+  loadUser() {
+    let u = wx.getStorageSync(USER_KEY);
+    if (!u || typeof u !== 'object') u = {};
+    if (!u.uid) u.uid = '用户' + makeUid();
+    this.setData({ user: u });
+    wx.setStorageSync(USER_KEY, u);
+  },
+
+  onChooseAvatar(e) {
+    const url = e.detail.avatarUrl;
+    const u = Object.assign({}, this.data.user, { avatar: url });
+    this.setData({ user: u });
+    wx.setStorageSync(USER_KEY, u);
+  },
+
+  // 昵称走独立弹层：type="nickname" 的 input 必须在用户主动点击后
+  // 才弹微信键盘，内联在页面里会被键盘顶飞，体验很差。
+  onNicknameDraft(e) {
+    this.setData({ 'user.nickname': e.detail.value });
+  },
+
+  saveNickname() {
+    const name = (this.data.user.nickname || '').trim();
+    if (!name) {
+      this.setData({ editingName: false });
+      return wx.showToast({ title: '昵称不能为空', icon: 'none' });
+    }
+    const u = Object.assign({}, this.data.user, { nickname: name });
+    this.setData({ user: u, editingName: false });
+    wx.setStorageSync(USER_KEY, u);
+    wx.showToast({ title: '已保存', icon: 'success' });
+  },
+
+  toggleEditName() {
+    this.setData({ editingName: !this.data.editingName });
+  },
+
+  copyUid() {
+    const uid = this.data.user.uid || '';
+    if (!uid) return;
+    wx.setClipboardData({
+      data: uid,
+      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
+    });
   },
 
   onShow() {

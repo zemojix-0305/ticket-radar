@@ -1,8 +1,67 @@
-<!-- 监控页：首屏回答三个问题——我在盯几个、现在有没有票、上次什么时候查的 -->
+<!-- 监控页：白色灵动风。绣字标题 + 快捷入口 + 圆角任务卡。 -->
 <view class="page">
 
-  <!-- 额度条：微信一次性订阅会消耗额度，不说出来用户只会觉得"推送到此为止" -->
-  <view class="credit {{credit > 0 ? '' : 'credit-empty'}}" bindtap="goMine">
+  <!-- 顶部：ins 风大标题排版，无插画 -->
+  <view class="hero">
+    <view class="hero-l">
+      <view class="hero-title">余票监控</view>
+      <view class="hero-count">
+        <text class="num hero-ok">{{okCount}}</text>
+        <text class="hero-sep">/</text>
+        <text class="num hero-total">{{states.length}}</text>
+        <text class="hero-sub">有票</text>
+        <text wx:if="{{loading}}" class="hero-sub">· 刷新中</text>
+      </view>
+    </view>
+    <button class="hero-add press" bindtap="openAdd" hover-class="press-hover">
+      <text class="hero-plus">＋</text>
+      <text class="hero-add-t">加监控</text>
+    </button>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-grid">
+    <view class="quick-item press-card" bindtap="openAdd" hover-class="press-card-hover">
+      <view class="quick-icon qi-add">
+        <view class="quick-cross"></view>
+      </view>
+      <text class="quick-t">加监控</text>
+    </view>
+    <view class="quick-item press-card" bindtap="scanQr" hover-class="press-card-hover">
+      <view class="quick-icon qi-scan">
+        <view class="scan-frame"></view>
+      </view>
+      <text class="quick-t">扫一扫</text>
+    </view>
+    <view class="quick-item press-card" bindtap="goShows" hover-class="press-card-hover">
+      <view class="quick-icon qi-search">
+        <view class="search-mag"></view>
+      </view>
+      <text class="quick-t">搜演出</text>
+    </view>
+    <view class="quick-item press-card" bindtap="goHistory" hover-class="press-card-hover">
+      <view class="quick-icon qi-chart">
+        <view class="chart-bars"><view></view><view></view><view></view></view>
+      </view>
+      <text class="quick-t">历史</text>
+    </view>
+  </view>
+
+  <!-- 公告 banner -->
+  <view class="banner" wx:if="{{!bannerClosed}}">
+    <text class="banner-t">{{bannerText}}</text>
+    <text class="banner-x press" bindtap="closeBanner" hover-class="press-hover">×</text>
+  </view>
+
+  <!-- 筛选 -->
+  <view class="segs" wx:if="{{states.length > 1}}">
+    <view class="seg {{filter === 'all' ? 'seg-on' : ''}}" data-f="all" bindtap="onFilter" hover-class="seg-hover">全部 {{states.length}}</view>
+    <view class="seg {{filter === 'ok' ? 'seg-on' : ''}}" data-f="ok" bindtap="onFilter" hover-class="seg-hover">有票 {{okCount}}</view>
+    <view class="seg {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{states.length - okCount}}</view>
+  </view>
+
+  <!-- 额度条 -->
+  <view class="credit {{credit > 0 ? '' : 'credit-empty'}}" bindtap="goMine" hover-class="press-card-hover">
     <view class="credit-l">
       <text class="credit-t">还能收 <text class="credit-n">{{credit > 0 ? credit : 0}}</text> 条推送</text>
       <text class="credit-s">{{credit > 0 ? '用完了点这领新的' : '去领额度，否则有票也收不到'}}</text>
@@ -10,85 +69,95 @@
     <text class="credit-go">{{credit > 0 ? '领额度' : '去领'}}</text>
   </view>
 
-  <!-- 概览 -->
-  <view class="hero">
-    <view class="hero-l">
-      <view class="hero-line">
-        <text class="num hero-n">{{okCount}}</text>
-        <text class="hero-sep">/</text>
-        <text class="num hero-total">{{states.length}}</text>
-      </view>
-      <view class="hero-sub">
-        个监控有票<text wx:if="{{loading}}"> · 正在刷新</text>
-      </view>
-    </view>
-    <button class="hero-add" bindtap="openAdd">
-      <text class="hero-plus">＋</text>
-      <text class="hero-add-t">加监控</text>
-    </button>
-  </view>
-
-  <!-- 拿不到数据要说清是哪一类问题，否则用户只会以为小程序坏了 -->
+  <!-- 失败卡片 -->
   <view class="card fail" wx:if="{{fail}}">
     <view class="fail-t">读不到状态</view>
     <view class="fail-b">{{fail}}</view>
-    <button class="btn btn-ghost fail-btn" bindtap="refresh">重试</button>
+    <button class="btn btn-ghost fail-btn press" bindtap="refresh" hover-class="press-hover">重试</button>
   </view>
 
-  <!-- 骨架屏：给形状而不是转圈 -->
+  <!-- 骨架屏 -->
   <view class="card sk-card" wx:if="{{loading && !states.length}}">
     <view class="sk sk-t" style="width:45%"></view>
     <view class="sk" style="width:70%;height:12px;margin-top:12px"></view>
     <view class="sk" style="width:35%;height:12px;margin-top:10px"></view>
   </view>
 
-  <!-- 空状态：给动作，不只说"暂无数据" -->
+  <!-- 空状态 -->
   <view class="card empty" wx:if="{{!loading && !states.length && !fail}}">
-    <view class="empty-icon"></view>
+    <view class="empty-mark"></view>
     <view class="empty-title">还没在盯任何场次</view>
     <view class="empty-sub">
-      去「场次」页搜演出名字，点一下就能加。<br />
-      火车票也行，填「广州南 长沙南」就成。
+      去「搜演出」找想看的场次，<br />点一下就能开始监控。
     </view>
     <view class="empty-acts">
-      <button class="btn btn-primary" bindtap="goShows">去找演出</button>
+      <button class="btn btn-primary press" bindtap="goShows" hover-class="press-hover">去找演出</button>
     </view>
   </view>
 
-  <!-- 任务卡片 -->
-  <view class="card task" wx:for="{{states}}" wx:key="_id">
-    <view class="task-bar {{item.barClass}}"></view>
-    <view class="task-body">
-      <view class="task-top" bindtap="toggle" data-id="{{item._id}}">
-        <view class="task-l">
-          <view class="t1 task-name">{{item.name}}</view>
-          <view class="t2 task-sub">{{item.platform}}<text wx:if="{{item.sub2}}"> · {{item.sub2}}</text></view>
+  <!-- 任务列表 -->
+  <view class="task-list" wx:if="{{filtered.length}}">
+    <view
+      class="task-card press-card"
+      wx:for="{{filtered}}"
+      wx:key="_id"
+      hover-class="press-card-hover"
+      hover-stay-time="80"
+    >
+      <view class="task-topline {{item.barClass}}"></view>
+      <view class="task-body">
+        <view class="task-top" bindtap="toggle" data-id="{{item._id}}">
+          <view class="task-l">
+            <view class="task-name">{{item.name}}</view>
+            <view class="task-sub">{{item.platform}}<text wx:if="{{item.sub2}}"> · {{item.sub2}}</text></view>
+          </view>
+          <text class="tag {{item.headClass}}">{{item.head}}</text>
         </view>
-        <text class="tag {{item.headClass}}">{{item.head}}</text>
-      </view>
 
-      <view class="err" wx:if="{{!item.ok}}">
-        <text class="err-t">{{item.error}}</text>
-        <text class="t3" wx:if="{{item.error_kind === 'blocked'}}">
-          这通常是云函数 IP 被平台风控了，不是你的设置问题。
-        </text>
-      </view>
+        <view class="err" wx:if="{{!item.ok}}">
+          <text class="err-t">{{item.error}}</text>
+        </view>
 
-      <view class="task-foot" bindtap="toggle" data-id="{{item._id}}">
-        <text class="t3">{{item.relTime}}</text>
-        <view class="task-foot-r">
-          <text class="t3" wx:if="{{item.more}}">展开 {{item.total}} 项</text>
-          <text class="link">余票历史 ›</text>
+        <view class="task-foot">
+          <text class="t3 press" bindtap="toggle" data-id="{{item._id}}" hover-class="press-hover">{{item.relTime}}</text>
+          <view class="task-foot-r">
+            <text class="link press" bindtap="shareTask" data-id="{{item._id}}" hover-class="press-hover">分享</text>
+            <text class="link press" bindtap="toggle" data-id="{{item._id}}" wx:if="{{item.more}}" hover-class="press-hover">展开 {{item.total}} 项 ›</text>
+          </view>
+        </view>
+
+        <view class="items" wx:if="{{expanded[item._id]}}">
+          <view class="item" wx:for="{{item.show}}" wx:for-item="it" wx:key="label">
+            <text class="i-label">{{it.label}}</text>
+            <text class="t3">{{it.when}}</text>
+            <text class="t2 i-st">{{it.status}}</text>
+          </view>
+          <text class="t3" wx:if="{{item.more}}">…… 另有 {{item.more}} 条</text>
         </view>
       </view>
+    </view>
+  </view>
 
-      <view class="items" wx:if="{{expanded[item._id]}}">
-        <view class="item" wx:for="{{item.show}}" wx:for-item="it" wx:key="label">
-          <text class="i-label">{{it.label}}</text>
-          <text class="t3">{{it.when}}</text>
-          <text class="t2 i-st">{{it.status}}</text>
+  <!-- 筛完是空的 -->
+  <view class="card empty" wx:if="{{!loading && states.length && !filtered.length && !fail}}">
+    <view class="empty-mark"></view>
+    <view class="empty-title">这个筛选下没有任务</view>
+    <view class="empty-sub">换回「全部」看看。</view>
+  </view>
+
+  <!-- 常见问题 -->
+  <view class="card faq">
+    <view class="faq-head" bindtap="toggleFaq" hover-class="press-hover">
+      <text class="faq-title">常见问题</text>
+      <text class="faq-arrow {{faqOpen ? 'open' : ''}}">▾</text>
+    </view>
+    <view class="faq-list" wx:if="{{faqOpen}}">
+      <view class="faq-item" wx:for="{{faqList}}" wx:key="q" data-idx="{{index}}" bindtap="onFaqItem" hover-class="press-hover">
+        <view class="faq-q">
+          <text class="faq-dot">·</text>
+          <text>{{item.q}}</text>
         </view>
-        <text class="t3" wx:if="{{item.more}}">…… 另有 {{item.more}} 条</text>
+        <view class="faq-a" wx:if="{{item.open}}">{{item.a}}</view>
       </view>
     </view>
   </view>
@@ -101,7 +170,6 @@
 <view class="sheet" wx:if="{{showAdd}}">
   <view class="sheet-grab"></view>
   <view class="sheet-title">加一个监控</view>
-  <view class="sheet-sub">不用去别的 App 找链接，填个名字或线路就行。</view>
 
   <view class="field">
     <view class="field-lbl">平台</view>
@@ -134,7 +202,10 @@
   </view>
 
   <view class="acts">
-    <button class="btn btn-ghost" bindtap="closeAdd">取消</button>
-    <button class="btn btn-primary" bindtap="submitAdd">开始盯</button>
+    <button class="btn btn-ghost press" bindtap="closeAdd" hover-class="press-hover">取消</button>
+    <button class="btn btn-primary press" bindtap="submitAdd" hover-class="press-hover">开始盯</button>
   </view>
 </view>
+
+<!-- 分享卡片用的离屏画布 -->
+<canvas type="2d" id="shareCanvas" class="share-canvas" />

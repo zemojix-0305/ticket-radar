@@ -1,11 +1,15 @@
-// 「历史」页：把盯过的过程算成结论。
+// 「历史」页：两个 tab——历史曲线 + 推送记录。
 //
-// 这一页存在的理由：竞品的讨论区全是人在互相问「有回流吗」「什么价位好抢」
+// 历史曲线存在的理由：竞品的讨论区全是人在互相问「有回流吗」「什么价位好抢」
 // 「什么时候二开」——那些问题本来该由产品回答。我们手里有每次抓取的记录，
 // 就能算出「这场的脾气」。
 //
-// 但**数据不够就说数据不够**：只抓了两次的时候编一条规律出来，
-// 比不给结论更害人。所以每个结论都会标明它基于多少次采样。
+// 推送记录存在的理由：微信不把订阅消息回传给小程序，所以我们自己记证据——
+// 每次真的去查了平台、查到了什么、额度还剩几条。
+
+const ACT_KEY = 'radar_activity';
+const CREDIT_KEY = 'wx_subscribe_credit';
+const MAX_ACT = 40;
 
 function parseTs(t) {
   const v = Date.parse(String(t || '').replace(' ', 'T'));
@@ -76,18 +80,128 @@ function analyze(rec) {
 
 const LABEL = { maoyan: '猫眼', moretickets: '摩天轮', rail12306: '12306', amadeus: '机票' };
 
+function relTime(iso) {
+  const t = Date.parse(String(iso || '').replace(' ', 'T'));
+  if (!t || isNaN(t)) return '';
+  const m = Math.floor((Date.now() - t) / 60000);
+  if (m < 1) return '刚刚';
+  if (m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
+}
+
+function logActivity(kind, name, detail) {
+  try {
+    const list = wx.getStorageSync(ACT_KEY) || [];
+    list.unshift({ t: new Date().toISOString(), kind, name, detail });
+    wx.setStorageSync(ACT_KEY, list.slice(0, MAX_ACT));
+  } catch (e) {}
+}
+
+const KIND = {
+  check: { label: '正常检查', cls: 'tag-none' },
+  change: { label: '余票变化', cls: 'tag-ok' },
+  fail: { label: '检查失败', cls: 'tag-bad' },
+};
+
 Page({
   data: {
+    tab: 0,
     rows: [],
     loading: true,
     fail: '',
     totalSamples: 0,
     totalTasks: 0,
     enoughCount: 0,
+    credit: 0,
+    activity: [],
+    states: [],
+    healthy: 0,
+    total: 0,
+    lastCheck: '',
+    lastCheckRel: '',
   },
 
-  onLoad() { this.refresh(); },
-  onPullDownRefresh() { this.refresh().then(() => wx.stopPullDownRefresh()); },
+  onLoad() {
+    this.refresh();
+    this.loadActivity();
+  },
+
+  onShow() {
+    this.loadActivity();
+  },
+
+  onPullDownRefresh() {
+    if (this.data.tab === 0) {
+      this.refresh().then(() => wx.stopPullDownRefresh());
+    } else {
+      this.loadActivity().then(() => wx.stopPullDownRefresh());
+    }
+  },
+
+  switchTab(e) {
+    const idx = Number(e.currentTarget.dataset.idx);
+    this.setData({ tab: idx });
+    if (idx === 1) this.loadActivity();
+  },
+
+  loadActivity() {
+    this.setData({
+      credit: wx.getStorageSync(CREDIT_KEY) || 0,
+      activity: this.withRel(wx.getStorageSync(ACT_KEY) || []),
+    });
+    return this.pullStates();
+  },
+
+  withRel(list) {
+    return (list || []).map((a) => {
+      const k = KIND[a.kind] || KIND.check;
+      return Object.assign({}, a, { rel: relTime(a.t), kindLabel: k.label, kindTag: k.cls });
+    });
+  },
+
+  pullStates() {
+    const self = this;
+    return wx.cloud
+      .callFunction({ name: 'radar', data: { action: 'query' } })
+      .then((res) => {
+        const r = res.result || {};
+        if (!r.ok) throw new Error(r.error || '未知错误');
+        const states = r.states || [];
+        const healthy = states.filter((s) => s.ok).length;
+
+        const prev = wx.getStorageSync(ACT_KEY) || [];
+        for (const s of states) {
+          const key = 'st:' + s._id;
+          const prevN = wx.getStorageSync(key);
+          const nowN = typeof s.available === 'number' ? s.available : -1;
+          if (prevN !== undefined && prevN !== nowN) {
+            logActivity('change', s.name || s._id, '余票 ' + prevN + ' → ' + nowN);
+          }
+          wx.setStorageSync(key, nowN);
+        }
+
+        let lastCheck = '';
+        for (const s of states) {
+          if (!lastCheck || (s.checked_at || '') > lastCheck) lastCheck = s.checked_at || '';
+        }
+
+        self.setData({
+          states,
+          healthy,
+          total: states.length,
+          lastCheck,
+          lastCheckRel: relTime(lastCheck),
+          activity: this.withRel(wx.getStorageSync(ACT_KEY) || []),
+        });
+      })
+      .catch(() => {});
+  },
+
+  goMine() {
+    wx.switchTab({ url: '/pages/mine/mine' });
+  },
 
   refresh() {
     const self = this;

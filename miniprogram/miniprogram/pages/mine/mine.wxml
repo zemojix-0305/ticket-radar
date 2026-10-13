@@ -1,84 +1,84 @@
-<!-- 我的：额度是这里的主角，因为它决定你能不能收到提醒 -->
+<!-- 我的 -->
 <view class="page">
+
+  <view class="nickname-sheet-mask" wx:if="{{editingName}}" bindtap="toggleEditName"></view>
+  <view class="nickname-sheet" wx:if="{{editingName}}">
+    <view class="sheet-title">你的昵称</view>
+    <input
+      class="nickname-input"
+      type="nickname"
+      placeholder="微信昵称，或自己起一个"
+      value="{{user.nickname}}"
+      focus
+      bindinput="onNicknameDraft"
+      bindconfirm="saveNickname"
+    />
+    <view class="acts">
+      <view class="btn btn-ghost" bindtap="toggleEditName" hover-class="press-hover">取消</view>
+      <view class="btn btn-primary" bindtap="saveNickname" hover-class="press-hover">保存</view>
+    </view>
+  </view>
+
+  <!-- 用户资料 -->
+  <view class="card profile">
+    <!-- 头像：button[open-type=chooseAvatar] 是官方唯一能拿到微信头像的入口。
+         它天生带 min-height / border / 圆角，必须全部重置掉，
+         否则在 flex 布局里会被撑成一个方块（这是踩过的坑）。 -->
+    <button class="avatar-wrap" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+      <image class="avatar" src="{{user.avatar || '/images/avatar_fox.png'}}" mode="aspectFit" />
+    </button>
+    <view class="profile-info">
+      <view wx:if="{{user.nickname}}" class="nickname-row">
+        <text class="nickname">{{user.nickname}}</text>
+        <text class="t3 nickname-edit press" bindtap="toggleEditName" hover-class="press-hover">改</text>
+      </view>
+      <view wx:else class="nickname-edit-btn press" bindtap="toggleEditName" hover-class="press-hover">点这里设昵称</view>
+
+      <view class="uid-row" bindtap="copyUid" hover-class="press-hover">
+        <text class="uid">{{user.uid}}</text>
+        <text class="uid-copy">复制</text>
+      </view>
+    </view>
+  </view>
 
   <!-- 额度 -->
   <view class="card quota">
-    <view class="quota-head">
-      <text class="t2">还能收</text>
-      <view class="quota-v">
-        <text class="num quota-n">{{credit}}</text>
-        <text class="t2"> 条推送</text>
-      </view>
-    </view>
-
-    <view class="quota-why">
-      微信对个人主体只开放「一次性订阅」：点一次「允许」换一条推送额度，
-      没有无限推送这个选项。所以额度是这个小程序唯一的燃料——
-      我们把它明明白白写在这儿，而不是让你猜为什么推送不响了。
+    <view class="quota-v">
+      <text class="num quota-n">{{credit}}</text>
+      <text class="t2"> 条可收</text>
     </view>
 
     <view class="acts">
-      <view class="btn btn-primary" bindtap="requestSubscribe">领一条</view>
-      <view class="btn btn-ghost" bindtap="requestSubscribeBatch">
-        {{batching ? '领取中 ' + batchGot + '/' + batchTotal : '一次领 5 条'}}
+      <view class="btn btn-primary" bindtap="requestSubscribe" hover-class="press-hover">领一条</view>
+      <view class="btn btn-ghost" bindtap="requestSubscribeBatch" hover-class="press-hover">
+        {{batching ? batchGot + '/' + batchTotal : '一次领 5 条'}}
       </view>
     </view>
 
     <text class="quota-msg" wx:if="{{authMsg}}">{{authMsg}}</text>
-
-    <view class="quota-tip">
-      授权弹窗里勾上「总是保持以上选择」，之后连领就不会反复弹窗，额度照加。
-    </view>
   </view>
 
-  <!-- 微信绑定：只有第一次要用，折叠起来免得占地方 -->
+  <!-- 微信绑定 -->
   <view class="card bind">
-    <view class="bind-head" bindtap="toggleBind">
-      <view>
-        <view class="t1">微信绑定</view>
-        <view class="t3">已经绑好了就不用管了</view>
-      </view>
+    <view class="bind-head" bindtap="toggleBind" hover-class="press-hover">
+      <view class="t1">推送绑定</view>
       <text class="bind-arrow {{bindOpen ? 'bind-arrow-open' : ''}}">▾</text>
     </view>
 
     <view wx:if="{{bindOpen}}">
-      <view class="t2 bind-why">
-        推送要知道发给谁，微信用 openid 标识用户。它只能由小程序登录时拿到，
-        所以需要你在这页复制一次登录 code，在电脑上跑一条命令换成 openid。
-      </view>
-
       <view class="code-box" wx:if="{{code}}">
         <text class="code" user-select="true">{{code}}</text>
       </view>
       <text class="t3" wx:else>正在获取…</text>
 
       <view class="acts" wx:if="{{code}}">
-        <view class="btn btn-ghost" bindtap="copyCode">复制 code</view>
-        <view class="btn btn-ghost" bindtap="refreshCode">换一个</view>
+        <view class="btn btn-ghost" bindtap="copyCode" hover-class="press-hover">复制 code</view>
+        <view class="btn btn-ghost" bindtap="refreshCode" hover-class="press-hover">换一个</view>
       </view>
 
       <view class="cmd" wx:if="{{code}}">
-        <text class="cmd-t">在项目目录跑这条命令：</text>
         <text class="cmd-c" user-select="true">radar wxbind {{code}}</text>
       </view>
-      <text class="quota-tip">code 只能用一次，5 分钟过期。</text>
-    </view>
-  </view>
-
-  <!-- 承诺 -->
-  <view class="card pledge">
-    <view class="pledge-title">我们不做什么</view>
-    <view class="pledge-item"><text class="pmark">×</text><text>没有广告</text></view>
-    <view class="pledge-item"><text class="pmark">×</text><text>没有会员、没有付费墙，功能全免费</text></view>
-    <view class="pledge-item"><text class="pmark">×</text><text>不替你下单，不自动付款</text></view>
-    <view class="pledge-item"><text class="pmark">×</text><text>不卖你的数据，不接第三方统计</text></view>
-    <view class="pledge-item"><text class="pmark">×</text><text>不抓验证码、不破平台签名</text></view>
-  </view>
-
-  <view class="card">
-    <view class="t2 about">
-      余票监控只做一件事：帮你盯着票，有变化时喊你一声。<br />
-      票最终还是要自己去官方渠道买。
     </view>
   </view>
 

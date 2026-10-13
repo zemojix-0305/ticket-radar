@@ -26,6 +26,7 @@ const UA =
 
 const DB_TASKS = 'radar_tasks';
 const DB_STATE = 'radar_state';
+const DB_POSTS = 'radar_posts';
 const CFG_KEY = 'radar_config';
 
 // ===========================================================================
@@ -131,12 +132,13 @@ function field(fields, i) {
 const MAOYAN_BASE = 'https://m.dianping.com/myshow';
 
 //: ``ticketStatus`` → 官方文案。与 radar/adapters/maoyan.py 的表同源，改一处记得改两处。
-const TICKET_STATUS_LABELS = {
+const MAOYAN_TICKET_STATUS_LABELS = {
   1: '即将开售', 2: '预售', 3: '在售中', 4: '已售罄',
   5: '已结束', 11: '即将预售', 12: '演出延期',
 };
 //: 只有这两种算「能买到」。注意「即将开售」不算——那时候还买不了。
-const TICKET_AVAILABLE = ['预售', '在售中'];
+const MAOYAN_AVAILABLE = ['预售', '在售中'];
+
 
 function maoyanHeaders() {
   return {
@@ -144,6 +146,38 @@ function maoyanHeaders() {
     Referer: 'https://show.maoyan.com/',
     Accept: 'application/json, text/plain, */*',
   };
+}
+
+/**
+ * 按关键词搜索猫眼演出。
+ *
+ * 路径参数格式：/ajax/performances/<分类>;st=0;k=<词>;p=<页>;s=<条>;tft=0?cityId=<城>&sellChannel=7
+ * 关键词是嵌在路径段里的，不是查询串。
+ */
+async function findMaoyan(keyword, limit) {
+  const enc = encodeURIComponent(keyword);
+  const path = `/ajax/performances/0;st=0;k=${enc};p=1;s=${Math.min(Number(limit) || 20, 50)};tft=0?cityId=10&sellChannel=7`;
+  const data = await getJson(`${MAOYAN_BASE}${path}`, { headers: maoyanHeaders() });
+  if (data.code !== 200) throw new Error('猫眼搜索失败：code=' + data.code + ' msg=' + data.msg);
+
+  const rows = Array.isArray(data.data) ? data.data : [];
+  const out = [];
+  for (const row of rows) {
+    if (!row || !row.performanceId) continue;
+    const statusLabel = MAOYAN_TICKET_STATUS_LABELS[Number(row.ticketStatus)] || '';
+    out.push({
+      performanceId: String(row.performanceId),
+      name: row.name || row.performanceName || String(row.performanceId),
+      city: row.cityName || '',
+      venue: row.shopName || row.venueName || '',
+      dateRange: row.showTimeRange || '',
+      price: row.priceRange || '',
+      status: statusLabel,
+      poster: row.posterUrl || row.verticalPic || row.poster || '',
+    });
+    if (out.length >= (limit || 20)) break;
+  }
+  return out;
 }
 
 /**
@@ -162,7 +196,7 @@ async function pollMaoyan(params) {
   if (data.code !== 200) throw new Error('猫眼返回 code=' + data.code + ' msg=' + data.msg);
 
   const p = data.data || {};
-  const label = TICKET_STATUS_LABELS[Number(p.ticketStatus)];
+  const label = MAOYAN_TICKET_STATUS_LABELS[Number(p.ticketStatus)];
   if (!label) {
     // 不猜：状态表对不上就说明平台改了映射，安静地当成「没票」会误报
     throw new Error(
@@ -172,8 +206,8 @@ async function pollMaoyan(params) {
   // stockOut 是**场次级**的缺货标记，ticketStatus 是**项目级**的。
   // 巡演横跨十几个城市，某个城市卖完了项目级依然是「在售中」——
   // 所以冲突时以 stockOut 为准。跟 Python 侧同一套判断，别只改一边。
-  const conflict = p.stockOut === true && TICKET_AVAILABLE.indexOf(label) >= 0;
-  const available = TICKET_AVAILABLE.indexOf(label) >= 0 && !conflict;
+  const conflict = p.stockOut === true && MAOYAN_AVAILABLE.indexOf(label) >= 0;
+  const available = MAOYAN_AVAILABLE.indexOf(label) >= 0 && !conflict;
   return [
     {
       label: p.name || String(id),
@@ -263,6 +297,38 @@ async function findMoretickets(keyword, limit) {
       poster: row.imgUrl || '',
     });
     if (out.length >= body.length) break;
+  }
+  return out;
+}
+
+/**
+ * 12306 线路搜索。
+ *
+ * 用户填的是中文站名（广州南 长沙南），但接口只认电报码。
+ * 复用 pollRail 的查询逻辑，只是把返回值转成「演出列表」那套字段，
+ * 这样小程序的结果卡片不用为 12306 单独写一套渲染。
+ */
+async function findRail(keyword, date, limit) {
+  const seg = String(keyword || '').trim().split(/\s+/).filter(Boolean);
+  if (seg.length < 2) throw new Error('要填两个站名，中间空格隔开');
+  const day = String(date || '').trim();
+  if (!day) throw new Error('缺少乘车日期');
+
+  // pollRail 内部自己会取站名表做转换，这里不用重复取。
+  const items = await pollRail({ from: seg[0], to: seg[1], date: day });
+  const out = [];
+  for (const it of items.slice(0, Math.min(Number(limit) || 20, 50))) {
+    out.push({
+      performanceId: it.label,   // 车次号，复用 id 字段
+      name: it.label,
+      city: seg[0],
+      venue: it.place || '',
+      dateRange: it.when || '',
+      price: '',
+      status: it.status || (it.available ? '有票' : '无票'),
+      poster: '',
+      route: it.place || '',
+    });
   }
   return out;
 }
@@ -431,15 +497,41 @@ async function fetchStationMap() {
   return map;
 }
 
+/**
+ * 站名 → 电报码。
+ *
+ * **12306 的余票接口只认电报码**（如 GZQ、IZQ），直接把「广州南」丢给它
+ * 会返回空或 status=false。而用户在界面上填的偏偏是中文名。
+ * Python 端 parse_station_js 也做同样的转换——两边必须一致，
+ * 否则「本地能查、小程序查不了」这种 bug 极难定位。
+ *
+ * 查不到就回传原值：让 12306 自己报错，比我们猜一个码强。
+ */
+function resolveStationCode(name, map) {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  // map 的 value 是中文名，反查它的 key（电报码）
+  for (const code of Object.keys(map)) {
+    if (map[code] === raw) return code;
+  }
+  return raw;
+}
+
 async function pollRail(params) {
   const { from, to, date, seat_types: seatTypes } = params;
   if (!from || !to || !date) throw new Error('缺少 from / to / date');
 
+  const stationMap = await fetchStationMap();
+  // 12306 只认电报码，用户填的是中文名——这里做一次转换。
+  // 转换不了就把原值传过去让它自己报错，比我们瞎猜一个码强。
+  const fromCode = resolveStationCode(from, stationMap);
+  const toCode = resolveStationCode(to, stationMap);
+
   const cookie = await warmUpRail();
   const q =
     'leftTicketDTO.train_date=' + encodeURIComponent(date) +
-    '&leftTicketDTO.from_station=' + encodeURIComponent(from) +
-    '&leftTicketDTO.to_station=' + encodeURIComponent(to) +
+    '&leftTicketDTO.from_station=' + encodeURIComponent(fromCode) +
+    '&leftTicketDTO.to_station=' + encodeURIComponent(toCode) +
     '&purpose_codes=ADULT';
 
   let data = null;
@@ -461,7 +553,6 @@ async function pollRail(params) {
   const result = data.data || {};
   const rows = result.result || [];
 
-  const stationMap = await fetchStationMap();
   const wanted = seatTypes && seatTypes.length ? seatTypes : ['二等座'];
   const items = [];
   for (const row of rows) {
@@ -492,6 +583,246 @@ async function pollRail(params) {
 }
 
 // ===========================================================================
+// 平台：大麦（PC 详情页是 SSR，内嵌 JSON 匿名可读——2026-10 实测）
+// ===========================================================================
+//
+// 能做什么：用户提供 itemId（从大麦 App/网页分享链接里提取），
+//   轮询「项目级状态」：开售时间 / 价格范围 / 场次列表（performBases）。
+// 不能做什么：关键词搜索（search.damai.cn 对云 IP 直接回风控验证页，
+//   2026-10 实测 x5secdata punish）；票档余量（在选座页，需要登录态）。
+
+const DAMAI_DETAIL = 'https://detail.damai.cn/item.htm';
+
+function damaiHeaders() {
+  return {
+    'User-Agent': UA,
+    Referer: 'https://www.damai.cn/',
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+  };
+}
+
+/** 从任意大麦链接/文本里抠 itemId。 */
+function extractDamaiId(text) {
+  const m = String(text || '').match(/(?:id=(\d{6,})|itemId[=:"]+(\d{6,}))/i);
+  return (m && (m[1] || m[2])) || '';
+}
+
+/**
+ * 抓大麦详情页，解析 SSR 内嵌 JSON。
+ *
+ * 数据藏在两个地方（2026-10 实测结构）：
+ *   1. <div id="staticDataDefault" style="display: none">{...}</div>
+ *   2. 更完整的 __INITIAL_STATE__ / mtop 请求壳
+ * 只信 parse 出来的字段，缺就空着——不猜状态映射。
+ */
+async function pollDamai(params) {
+  const itemId = params.item_id || params.id || extractDamaiId(params.url || '');
+  if (!itemId) throw new Error('缺少大麦 itemId——把大麦 App 分享出来的链接粘贴进来即可');
+
+  const r = await request(`${DAMAI_DETAIL}?id=${encodeURIComponent(itemId)}`, {
+    headers: damaiHeaders(),
+    timeout: 20000,
+  });
+  if (r.status !== 200) throw new Error('大麦详情页 HTTP ' + r.status);
+  const html = r.body;
+  if (/_____tmd_____\/punish/.test(html)) {
+    throw new Error('大麦返回了风控验证页——云 IP 被识别了');
+  }
+
+  // 抽出页面上所有 display:none 的 JSON 块，逐个尝试 parse 后合并取字段。
+  // 实测（2026-10）有两个块：id="dataDefault"（performBases/buyBtn*/sellStart*）
+  // 和 id="staticDataDefault"（itemBase/venue/returnPolicy）——正则要同时罩住
+  // data 与 staticData 两种 id 前缀，漏一个就丢一半字段。
+  const blobs = [];
+  const divRe = /<div id="[^"]*[Dd]ata[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+  let m;
+  while ((m = divRe.exec(html)) !== null) {
+    blobs.push(m[1]);
+  }
+  if (!blobs.length) throw new Error('大麦详情页里没找到内嵌数据——页面结构可能变了');
+
+  const merged = {};
+  for (const raw of blobs) {
+    try {
+      Object.assign(merged, JSON.parse(raw.trim()));
+    } catch (e) {
+      // 解析失败的单块跳过，别中断
+    }
+  }
+
+  const base = merged.itemBase || {};
+  const name = base.itemName || merged.itemName || ('大麦 #' + itemId);
+  const city = base.cityName || merged.cityName || '';
+  const venue = (merged.venue && merged.venue.venueName) || merged.venueName || '';
+  const price = merged.priceRange || '';
+  const sellStr = merged.sellStartTimeStr || '';
+  const sellMs = merged.sellStartTime || 0;
+  // 状态文案用**官方按钮原文**（buyBtnText：立即购买 / 已下架 / 购票通道已关闭…），
+  // 不自己编状态表——官方改词我们自动跟着对。projectStatus 的数字映射没有
+  // 公开文档，只在 buyBtnText 缺失时兜底透出数字。
+  const buyText = String(merged.buyBtnText || '').trim();
+  const notYet = sellMs > Date.now();
+  const buyable = buyText ? (/购买|预订|抢/.test(buyText) && !/不支持|关闭|已结束|已下架|售罄|缺货/.test(buyText)) : false;
+  const statusLabel = buyText || (notYet ? '未开售' : '');
+
+  const perfs = Array.isArray(merged.performBases) ? merged.performBases : [];
+  const items = [];
+  if (perfs.length) {
+    for (const p of perfs.slice(0, 20)) {
+      const perStatus = p.performStatus != null ? Number(p.performStatus) : null;
+      items.push({
+        label: p.performName || p.name || '场次',
+        place: venue,
+        when: p.performTimeStr || p.showTime || '',
+        status: perStatus === 1 ? '可售' : perStatus != null ? '状态' + perStatus : '',
+        // 场次级可售判定同样保守：只有明确 1 才算有票
+        available: perStatus === 1,
+        count: perStatus === 1 ? null : 0,
+      });
+    }
+  } else {
+    // 没挂出场次：把项目级信息当一条状态。开售时间是最有用的信号。
+    items.push({
+      label: name,
+      place: venue || city,
+      when: sellStr ? ('开售 ' + sellStr) : '',
+      status: statusLabel || '详情见大麦',
+      available: buyable,
+      count: buyable ? null : 0,
+    });
+  }
+  return items.map((it) => Object.assign(it, { price }));
+}
+
+/**
+ * 大麦「搜索」：只能搜用户粘贴的链接——关键词搜索被风控，不做假。
+ * 返回结构和 findMaoyan 一致，前端渲染不用分叉。
+ */
+async function findDamai(linkOrId) {
+  const id = extractDamaiId(linkOrId);
+  if (!id) {
+    throw new Error(
+      '识别不了这个大麦链接。请到大麦 App 打开该演出 → 分享 → 复制链接，' +
+        '粘贴进来（链接里要有 id=数字）',
+    );
+  }
+  // 复用 pollDamai 拿状态，包一层成搜索行
+  const items = await pollDamai({ item_id: id });
+  const first = items[0] || {};
+  return [
+    {
+      performanceId: id,
+      itemId: id,
+      name: first.label || '大麦 #' + id,
+      city: '',
+      venue: first.place || '',
+      dateRange: first.when || '',
+      price: first.price || '',
+      status: first.status || '',
+      poster: '',
+    },
+  ];
+}
+
+// ===========================================================================
+// 平台：票星球（接口未完全打通——适配器先走通链路，部署后 probe 实测）
+// ===========================================================================
+//
+// 2026-10 查证：本机直连/代理都连不上 www.piaoxingqiu.com（疑似对非国内
+// 常规 IP 段有限制），公开文档也没有。票星球 Web 端是 SPA，数据走
+// api.piaoxingqiu.com。这里先按最可能的详情接口写，跑不通时把原始错误
+// 原样报给用户——宁可「暂未打通」也不能做假状态。
+
+const PXQ_BASE = 'https://www.piaoxingqiu.com';
+const PXQ_API = 'https://api.piaoxingqiu.com';
+
+function pxqHeaders() {
+  return {
+    'User-Agent': UA,
+    Referer: PXQ_BASE + '/',
+    Accept: 'application/json, text/plain, */*',
+    'Content-Type': 'application/json',
+  };
+}
+
+/** 票星球链接形如 /show/{id}，也有分享短链。 */
+function extractPxqId(text) {
+  const m = String(text || '').match(/piaoxingqiu\.com\/show\/([a-zA-Z0-9-]+)/i);
+  return (m && m[1]) || '';
+}
+
+async function pollPiaoxingqiu(params) {
+  const showId = params.show_id || params.id || extractPxqId(params.url || '');
+  if (!showId) throw new Error('缺少票星球 show_id——把票星球小程序/网页分享的演出链接粘贴进来');
+
+  // 逐个试已知可能的接口路径；全部失败时给出统一的「未打通」报错
+  const attempts = [
+    `${PXQ_API}/api/v1/web/content/item/${encodeURIComponent(showId)}`,
+    `${PXQ_BASE}/show/${encodeURIComponent(showId)}`,
+  ];
+  const errors = [];
+  for (const url of attempts) {
+    try {
+      const r = await request(url, { headers: pxqHeaders(), timeout: 15000 });
+      if (r.status !== 200) {
+        errors.push(url + ' → HTTP ' + r.status);
+        continue;
+      }
+      let data;
+      try {
+        data = JSON.parse(r.body);
+      } catch (e) {
+        errors.push(url + ' → 返回了 HTML/非 JSON（可能是风控页）');
+        continue;
+      }
+      // 命中了就尽力解析；字段名没有官方文档，只取确定的常用字段
+      const d = data.data || data;
+      const name = d.name || d.showName || ('票星球 #' + showId);
+      const saleStatus = d.saleStatus != null ? String(d.saleStatus) : '';
+      return [
+        {
+          label: name,
+          place: d.venueName || d.cityName || '',
+          when: d.showTimeStr || d.showTime || '',
+          status: saleStatus || '状态未知',
+          available: saleStatus === '1' || saleStatus === 'ON_SALE',
+          count: saleStatus === '1' ? null : 0,
+          price: d.priceRange || d.minPrice || '',
+        },
+      ];
+    } catch (e) {
+      errors.push(url + ' → ' + String((e && e.message) || e));
+    }
+  }
+  throw new Error(
+    '票星球接口暂未打通（接口无公开文档，且本平台网络限制较多）。\n尝试记录：' +
+      errors.join('；'),
+  );
+}
+
+/** 票星球「搜索」同大麦：只支持粘贴链接。 */
+async function findPiaoxingqiu(linkOrId) {
+  const id = extractPxqId(linkOrId) || String(linkOrId || '').trim();
+  if (!id) throw new Error('请粘贴票星球演出链接（形如 .../show/xxxx）');
+  const items = await pollPiaoxingqiu({ show_id: id });
+  const first = items[0] || {};
+  return [
+    {
+      performanceId: id,
+      showId: id,
+      name: first.label || '票星球 #' + id,
+      city: '',
+      venue: first.place || '',
+      dateRange: first.when || '',
+      price: first.price || '',
+      status: first.status || '',
+      poster: '',
+    },
+  ];
+}
+
+// ===========================================================================
 // 分发
 // ===========================================================================
 
@@ -499,12 +830,16 @@ const PLATFORMS = {
   maoyan: pollMaoyan,
   moretickets: pollMoretickets,
   rail12306: pollRail,
+  damai: pollDamai,
+  piaoxingqiu: pollPiaoxingqiu,
 };
 
 const PLATFORM_PROBE = {
   maoyan: () => `${MAOYAN_BASE}/ajax/performance/501675?sellChannel=7`,
   moretickets: null, // POST 接口，probe 走真实轮询
   rail12306: () => `${RAIL_BASE}/otn/leftTicket/init`,
+  damai: () => `${DAMAI_DETAIL}?id=889142177842`,
+  piaoxingqiu: () => `${PXQ_API}/api/v1/web/content/index`,
 };
 
 function errorKind(e) {
@@ -593,9 +928,90 @@ exports.main = async (event) => {
     if (action === 'find') {
       const keyword = String((event && event.keyword) || '').trim();
       const limit = (event && event.limit) || 20;
+      const platform = String((event && event.platform) || 'moretickets').trim();
       if (!keyword) return { ok: false, error: '关键词是空的' };
-      const rows = await findMoretickets(keyword, limit);
-      return { ok: true, keyword, rows };
+
+      if (platform === 'maoyan') {
+        const rows = await findMaoyan(keyword, limit);
+        return { ok: true, keyword, platform, rows };
+      }
+      if (platform === 'moretickets') {
+        const rows = await findMoretickets(keyword, limit);
+        return { ok: true, keyword, platform, rows };
+      }
+      if (platform === 'rail12306') {
+        const rows = await findRail(keyword, (event && event.date) || '', limit);
+        return { ok: true, keyword, platform, rows };
+      }
+      // 大麦/票星球没有可用的关键词搜索（大麦被风控、票星球无公开接口），
+      // keyword 参数此时承载的是「用户粘贴的链接」，能抠出 id 就返回单行
+      if (platform === 'damai') {
+        const rows = await findDamai(keyword);
+        return { ok: true, keyword, platform, rows };
+      }
+      if (platform === 'piaoxingqiu') {
+        const rows = await findPiaoxingqiu(keyword);
+        return { ok: true, keyword, platform, rows };
+      }
+      return { ok: false, error: '暂不支持平台 ' + platform };
+    }
+
+    // --- 讨论区帖子列表 ---------------------------------------------
+    if (action === 'listPosts') {
+      const keyword = String((event && event.keyword) || '').trim();
+      const offset = Math.max(0, Number((event && event.offset) || 0));
+      const limit = Math.min(50, Math.max(1, Number((event && event.limit) || 20)));
+
+      let query = db.collection(DB_POSTS);
+      if (keyword) {
+        // 简单搜索：内容或标签包含关键词。云数据库不支持全文检索，
+        // 这里用正则做模糊匹配；帖子量不大时够用了。
+        const reg = db.RegExp({ regexp: keyword, options: 'i' });
+        query = query.where(
+          db.command.or([
+            { content: reg },
+            { tags: keyword },
+            { nickname: reg },
+          ])
+        );
+      }
+      const { data: posts } = await query
+        .orderBy('createdAt', 'desc')
+        .skip(offset)
+        .limit(limit)
+        .get();
+      return { ok: true, posts: posts || [] };
+    }
+
+    // --- 讨论区发帖 -------------------------------------------------
+    if (action === 'createPost') {
+      const content = String((event && event.content) || '').trim();
+      if (!content) return { ok: false, error: '内容不能为空' };
+      if (content.length > 500) return { ok: false, error: '内容超过 500 字' };
+
+      const tags = Array.isArray(event && event.tags) ? event.tags : [];
+      const nickname = String((event && event.nickname) || '匿名狐友').trim();
+      const avatar = String((event && event.avatar) || '').trim();
+
+      // 简单内容审核：禁止常见广告/引流关键词
+      const forbidden = /(加微信|加v|转账|二维码|代拍|黄牛|票贩子|出票.*先款)/i;
+      if (forbidden.test(content)) {
+        return { ok: false, error: '检测到广告/引流内容，已拦截。请发与场次相关的交流信息。' };
+      }
+
+      const { OPENID } = cloud.getWXContext();
+      const doc = {
+        openid: OPENID || '',
+        nickname,
+        avatar,
+        content,
+        tags,
+        createdAt: new Date().toISOString(),
+        likes: 0,
+        replies: 0,
+      };
+      const { _id } = await db.collection(DB_POSTS).add({ data: doc });
+      return { ok: true, _id };
     }
 
     // --- 查询（小程序读这个）-------------------------------------------
@@ -614,6 +1030,10 @@ exports._internals = {
   pollMaoyan: pollMaoyan,
   pollMoretickets: pollMoretickets,
   pollRail: pollRail,
+  findMaoyan: findMaoyan,
+  findMoretickets: findMoretickets,
+  findRail: findRail,
   fetchStationMap: fetchStationMap,
+  resolveStationCode: resolveStationCode,
   errorKind: errorKind,
 };

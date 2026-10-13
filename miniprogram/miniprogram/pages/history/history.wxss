@@ -1,5 +1,32 @@
 .page { padding-bottom: 8px; }
 
+/* ---------- tab 切换 ---------- */
+.tabs {
+  display: flex;
+  margin: 10px 12px 0;
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 4px;
+  box-shadow: var(--shadow);
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 9px 0;
+  border-radius: 18px;
+  font-size: 14px;
+  color: var(--t2);
+  letter-spacing: 0.3px;
+}
+.tab-on {
+  background: var(--brand);
+  color: var(--on-brand);
+  font-weight: 500;
+}
+/* tab 按下：选中态变深、未选中态用淡灰——不用透明度，会露底色 */
+.tab-hover { background: var(--brand-weak); }
+.tab-on.tab-hover { background: var(--brand-deep); }
+
 /* ---------- 汇总条 ---------- */
 .sum {
   display: flex;
@@ -32,7 +59,7 @@
   flex: 1;
   min-width: 2px;
   border-radius: 2px 2px 0 0;
-  background: var(--brand-line);
+  background: var(--brand);
 }
 /* 零余票的采样用浅灰，一眼能看出「断档」在哪 */
 .spark-b.zero { background: var(--bar-idle); }
@@ -77,3 +104,63 @@
 .fail-b { font-size: 13px; color: var(--t2); line-height: 1.6; }
 .sk-card { padding: 16px; }
 .sk-t { height: 16px; }
+
+/* ---------- 推送记录 tab（从 inbox 合并过来）---------- */
+.health { padding: 16px; }
+.health-row { display: flex; }
+.health-l { flex: 1; text-align: center; }
+.health-l:first-child { text-align: left; }
+.health-v { display: flex; align-items: baseline; margin-top: 4px; justify-content: center; }
+.health-l:first-child .health-v { justify-content: flex-start; }
+.health-n { color: var(--ok); }
+.health-bad { color: var(--warn); }
+.notice {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.notice-warn { background: var(--warn-weak); color: var(--warn); }
+.notice-ok { background: var(--ok-weak); color: var(--ok); }
+.health-btn { margin-top: 14px; }
+
+.act {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 12px;
+  padding: 12px 14px;
+  background: var(--card);
+  border-radius: var(--r);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+.act-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+  background: var(--t3);
+}
+.act-dot.check { background: var(--t3); }
+.act-dot.change { background: var(--ok); }
+.act-dot.fail { background: var(--bad); }
+.act-l { flex: 1; min-width: 0; }
+.act-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.act-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.act-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+.act-txt { flex: 1; min-width: 0; }

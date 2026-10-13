@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ticket-radar · 手账可爱风</title>
+<style>
+  :root {
+    --bg: #F7F1E5;
+    --card: #FFFFFF;
+    --ink: #353331;
+    --brand: #AE4272;
+    --brand-deep: #8F3360;
+    --brand-weak: #FBE9F1;
+    --brand-line: #F0CBD9;
+    --ok: #347848;
+    --ok-weak: #DFF3E2;
+    --none: #6F665C;
+    --none-weak: #F1EDE6;
+    --bad: #B54334;
+    --bad-weak: #FBE7E0;
+    --warn: #8A6208;
+    --warn-weak: #FFF3D6;
+    --sky: #3A6596;
+    --sky-weak: #E6F1FF;
+    --cream: #8A6A1A;
+    --cream-weak: #FFF8E1;
+    --t1: #353331;
+    --t2: #5F574F;
+    --t3: #756B61;
+    --line: rgba(53,51,49,0.08);
+    --r: 22px;
+    --shadow: 0 1px 2px rgba(43,39,36,0.05), 0 8px 20px rgba(43,39,36,0.06);
+    --shadow-brand: 0 4px 12px rgba(174,66,114,0.25);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #EDE7DA;
+    font-family: "Yuanti SC", "YouYuan", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--t1);
+    padding: 44px 20px 64px;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.3px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 21px; font-weight: 600; letter-spacing: 0.5px; }
+  .lead { font-size: 13px; color: var(--t2); margin: 8px 0 12px; line-height: 1.9; max-width: 780px; }
+  .lead b { color: var(--t1); font-weight: 600; }
+  .fixes { font-size: 12px; color: var(--t2); line-height: 2.1; margin-bottom: 36px; max-width: 780px; }
+  .fixes li { list-style: none; padding-left: 18px; position: relative; }
+  .fixes li::before { content: '—'; position: absolute; left: 0; color: var(--brand); }
+  .screens { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; }
+
+  .phone {
+    width: 320px;
+    background: var(--bg);
+    border-radius: 40px;
+    box-shadow: 0 2px 20px rgba(43,39,36,0.10), inset 0 0 0 1px rgba(43,39,36,0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .nav {
+    text-align: center; font-size: 15px; font-weight: 600;
+    padding: 16px 0 12px; position: relative; letter-spacing: 0.5px;
+  }
+  .nav .caps { position: absolute; right: 18px; top: 14px; display: flex; gap: 5px; align-items: center; }
+  .nav .cap { width: 16px; height: 8px; border: 1px solid var(--t1); border-radius: 2px; }
+  .nav .cap.r { border-radius: 50%; width: 9px; height: 9px; }
+  .body { flex: 1; padding: 2px 12px 10px; }
+  .tabbar {
+    display: flex; background: #FFFCF5;
+    padding: 8px 0 calc(10px + env(safe-area-inset-bottom));
+    border-top: 0.5px solid rgba(53,51,49,0.06);
+  }
+  .tb { flex: 1; text-align: center; font-size: 10px; color: #6F665C; letter-spacing: 0.3px; }
+  .tb.on { color: var(--brand); font-weight: 600; }
+  .tb .ic { width: 22px; height: 22px; margin: 0 auto 3px; }
+
+  /* ===== 首页：顶部插画区 ===== */
+  .hero-card {
+    position: relative;
+    background: var(--card);
+    border-radius: 28px;
+    padding: 22px 18px 18px;
+    margin-top: 10px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hero-txt { flex: 1; }
+  .hero-greet { font-size: 12px; color: var(--t3); margin-bottom: 4px; }
+  .hero-title { font-size: 24px; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px; }
+  .hero-count { display: flex; align-items: baseline; gap: 6px; }
+  .hero-ok { font-size: 36px; font-weight: 700; color: var(--brand); }
+  .hero-count-s { font-size: 14px; color: var(--t2); }
+  .hero-fox {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--brand-weak);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 3px rgba(174,66,114,0.12);
+    font-size: 40px;
+  }
+  .deco-dot { position: absolute; border-radius: 50%; background: var(--brand-weak); }
+  .deco-dot.d1 { width: 14px; height: 14px; right: 28px; top: 18px; }
+  .deco-dot.d2 { width: 8px; height: 8px; right: 14px; top: 42px; background: var(--ok-weak); }
+
+  /* ===== 快捷入口 ===== */
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .quick-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); border-radius: 22px; padding: 14px 12px;
+    box-shadow: var(--shadow); cursor: pointer;
+  }
+  .quick-item:active { opacity: .92; transform: scale(.985); }
+  .quick-icon {
+    width: 40px; height: 40px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .qi-add { background: var(--brand-weak); }
+  .qi-scan { background: var(--ok-weak); }
+  .qi-search { background: var(--sky-weak); }
+  .qi-chart { background: var(--cream-weak); }
+  .quick-t { font-size: 14px; font-weight: 500; }
+
+  /* ===== 筛选 ===== */
+  .segs { display: flex; gap: 2px; margin: 6px 0 10px; padding: 3px; background: var(--brand-weak); border-radius: 999px; }
+  .seg { flex: 1; text-align: center; padding: 7px 0; border-radius: 999px; font-size: 12px; color: var(--t2); letter-spacing: 0.3px; cursor: pointer; }
+  .seg.on { background: var(--brand); color: #fff; font-weight: 500; }
+
+  /* ===== 任务贴纸卡 ===== */
+  .task-card {
+    background: var(--card); border-radius: var(--r); margin-bottom: 12px;
+    overflow: hidden; box-shadow: var(--shadow); cursor: pointer;
+  }
+  .task-card:active { opacity: .92; transform: scale(.985); }
+  .task-topline { height: 5px; width: 100%; }
+  .task-topline.ok { background: var(--ok); }
+  .task-topline.none { background: #E5DECF; }
+  .task-body { padding: 14px 16px 16px; }
+  .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .task-name { font-size: 15px; font-weight: 500; }
+  .task-sub { font-size: 12px; color: var(--t3); margin-top: 4px; }
+  .tag { display: inline-block; padding: 3px 11px; border-radius: 999px; font-size: 11px; white-space: nowrap; }
+  .tag-ok { color: var(--ok); background: var(--ok-weak); }
+  .tag-none { color: var(--none); background: var(--none-weak); }
+  .task-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .link { font-size: 12px; color: var(--brand); }
+
+  /* ===== 演出页 ===== */
+  .shows-header {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border-radius: 24px; padding: 14px 16px;
+    margin-top: 10px; box-shadow: var(--shadow);
+  }
+  .shows-fox {
+    width: 46px; height: 46px; border-radius: 50%; background: var(--brand-weak);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+  }
+  .shows-title { font-size: 16px; font-weight: 600; }
+  .shows-sub { font-size: 12px; color: var(--t3); margin-top: 2px; }
+  .platform-bar { display: flex; gap: 10px; padding: 10px 0 6px; }
+  .platform-chip { padding: 6px 14px; border-radius: 999px; font-size: 12px; color: var(--t2); background: var(--brand-weak); }
+  .platform-chip.on { background: var(--brand); color: #fff; }
+  .searchbar { display: flex; gap: 8px; padding: 6px 0; }
+  .search-box { flex: 1; display: flex; align-items: center; height: 42px; padding: 0 14px; background: var(--card); border-radius: 21px; box-shadow: var(--shadow); font-size: 13px; color: var(--t3); }
+  .search-btn { height: 42px; padding: 0 18px; background: var(--brand); color: #fff; border-radius: 21px; font-size: 14px; display: flex; align-items: center; box-shadow: var(--shadow-brand); }
+  .row-card { display: flex; gap: 12px; padding: 14px; align-items: center; background: var(--card); border-radius: var(--r); margin-top: 10px; box-shadow: var(--shadow); }
+  .poster { width: 58px; height: 58px; border-radius: 16px; background: var(--brand-weak); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .row-main { flex: 1; min-width: 0; }
+  .row-name { font-size: 14px; font-weight: 500; }
+  .row-meta { display: flex; gap: 5px; margin-top: 6px; }
+  .row-sub { font-size: 11px; color: var(--t3); margin-top: 5px; }
+  .row-add { width: 48px; height: 32px; border-radius: 16px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-brand); }
+
+  /* ===== 色卡 ===== */
+  .palette { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 44px; justify-content: center; }
+  .sw { width: 90px; text-align: center; }
+  .sw .c { height: 48px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(43,39,36,0.06); }
+  .sw .n { font-size: 11px; color: var(--t2); margin-top: 7px; }
+  .sw .v { font-size: 10px; color: var(--t3); font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ticket-radar · 手账可爱风</h1>
+  <p class="lead">
+    参考你给的 7 张小程序 UI 图：奶白纸底、手绘插画感、pastel 小色块、顶部吉祥物区、2×2 快捷入口、大圆角贴纸卡。
+    不是只换颜色，是换布局语法。
+  </p>
+  <ul class="fixes">
+    <li><b>首页顶部插画区</b>——奶油色大圆角卡片，左侧放标题与有票大数字，右侧放狐狸 mascot，四周点缀手绘感小圆点/星星</li>
+    <li><b>2×2 快捷入口</b>——加监控、扫一扫、搜演出、看历史，每个入口带 pastel 色块图标（粉/绿/蓝/黄）</li>
+    <li><b>任务贴纸卡</b>——从 inset grouped list 改成独立圆角卡片，顶部一条彩色状态条，底部虚线分隔，更像手账贴纸</li>
+    <li><b>演出页欢迎条</b>——顶部加狐狸问候条，搜索栏改成白底胶囊，结果卡圆角更大</li>
+    <li><b>仍然零渐变</b>——骨架屏用呼吸脉冲；22 项 WCAG AA 全过（tools/check_palette.py）</li>
+    <li><b>平台边界诚实</b>——大麦/纷玩岛接不了，FAQ 里写明，不在筛选里造假按钮</li>
+  </ul>
+
+  <div class="screens">
+    <!-- ============ 首页 ============ -->
+    <div>
+      <div class="phone">
+        <div class="nav">余票监控
+          <div class="caps"><div class="cap"></div><div class="cap r"></div></div>
+        </div>
+        <div class="body">
+          <div class="hero-card">
+            <div class="deco-dot d1"></div>
+            <div class="deco-dot d2"></div>
+            <div class="hero-txt">
+              <div class="hero-greet">今日也在帮你盯票</div>
+              <div class="hero-title">余票监控</div>
+              <div class="hero-count"><span class="hero-ok">3</span><span class="hero-count-s">/ 5 个有票</span></div>
+            </div>
+            <div class="hero-fox">🦊</div>
+          </div>
+
+          <div class="quick-grid">
+            <div class="quick-item"><div class="quick-icon qi-add">＋</div><span class="quick-t">加监控</span></div>
+            <div class="quick-item"><div class="quick-icon qi-scan">▣</div><span class="quick-t">扫一扫</span></div>
+            <div class="quick-item"><div class="quick-icon qi-search">⌕</div><span class="quick-t">搜演出</span></div>
+            <div class="quick-item"><div class="quick-icon qi-chart">▂</div><span class="quick-t">历史</span></div>
+          </div>
+
+          <div class="segs">
+            <div class="seg on">全部 5</div>
+            <div class="seg">有票 3</div>
+            <div class="seg">无票 2</div>
+          </div>
+
+          <div class="task-card"><div class="task-topline ok"></div>
+            <div class="task-body">
+              <div class="task-top">
+                <div><div class="task-name">孙燕姿 · 广州站</div><div class="task-sub">摩天轮 · 10月18日 19:30</div></div>
+                <span class="tag tag-ok">有票 4</span>
+              </div>
+              <div class="task-foot"><span style="font-size:12px;color:var(--t3)">12 分钟前查过</span><div><span class="link">分享</span> <span class="link">展开 9 项 ›</span></div></div>
+            </div>
+          </div>
+
+          <div class="task-card"><div class="task-topline none"></div>
+            <div class="task-body">
+              <div class="task-top">
+                <div><div class="task-name">广州南 → 长沙南</div><div class="task-sub">12306 · 10月20日</div></div>
+                <span class="tag tag-none">无票</span>
+              </div>
+              <div class="task-foot"><span style="font-size:12px;color:var(--t3)">5 分钟前查过</span><span class="link">分享</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb on"><div class="ic">🏠</div>首页</div>
+          <div class="tb"><div class="ic">🎤</div>演出</div>
+          <div class="tb"><div class="ic">📈</div>历史</div>
+          <div class="tb"><div class="ic">💬</div>讨论</div>
+          <div class="tb"><div class="ic">👤</div>我的</div>
+        </div>
+      </div>
+      <div class="phone-cap">首页</div>
+    </div>
+
+    <!-- ============ 演出页 ============ -->
+    <div>
+      <div class="phone">
+        <div class="nav">搜演出
+          <div class="caps"><div class="cap"></div><div class="cap r"></div></div>
+        </div>
+        <div class="body">
+          <div class="shows-header">
+            <div class="shows-fox">🦊</div>
+            <div><div class="shows-title">想盯哪一场？</div><div class="shows-sub">搜演出名、巡演名或火车站</div></div>
+          </div>
+          <div class="platform-bar">
+            <div class="platform-chip on">摩天轮</div>
+            <div class="platform-chip">猫眼</div>
+            <div class="platform-chip">12306</div>
+          </div>
+          <div class="searchbar">
+            <div class="search-box">演出名 / 巡演名</div>
+            <div class="search-btn">搜</div>
+          </div>
+          <div class="row-card">
+            <div class="poster">🎫</div>
+            <div class="row-main">
+              <div class="row-name">孙燕姿「就在日落以后」巡回演唱会 广州站</div>
+              <div class="row-meta"><span class="tag tag-ok">在售中</span><span class="tag" style="color:var(--brand);background:var(--brand-weak)">摩天轮</span></div>
+              <div class="row-sub">10.18 · 广州体育馆 · ¥480 起</div>
+            </div>
+            <div class="row-add">盯</div>
+          </div>
+          <div class="row-card">
+            <div class="poster">🚄</div>
+            <div class="row-main">
+              <div class="row-name">广州南 → 长沙南</div>
+              <div class="row-meta"><span class="tag tag-none">无票</span><span class="tag" style="color:var(--brand);background:var(--brand-weak)">12306</span></div>
+              <div class="row-sub">10.20 · 共 12 趟</div>
+            </div>
+            <div class="row-add">盯</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb"><div class="ic">🏠</div>首页</div>
+          <div class="tb on"><div class="ic">🎤</div>演出</div>
+          <div class="tb"><div class="ic">📈</div>历史</div>
+          <div class="tb"><div class="ic">💬</div>讨论</div>
+          <div class="tb"><div class="ic">👤</div>我的</div>
+        </div>
+      </div>
+      <div class="phone-cap">演出页</div>
+    </div>
+  </div>
+
+  <div class="palette">
+    <div class="sw"><div class="c" style="background:#F7F1E5"></div><div class="n">奶油纸底</div><div class="v">#F7F1E5</div></div>
+    <div class="sw"><div class="c" style="background:#FFFFFF"></div><div class="n">白卡</div><div class="v">#FFFFFF</div></div>
+    <div class="sw"><div class="c" style="background:#AE4272"></div><div class="n">深莓粉</div><div class="v">#AE4272</div></div>
+    <div class="sw"><div class="c" style="background:#347848"></div><div class="n">薄荷绿</div><div class="v">#347848</div></div>
+    <div class="sw"><div class="c" style="background:#3A6596"></div><div class="n">天蓝</div><div class="v">#3A6596</div></div>
+    <div class="sw"><div class="c" style="background:#8A6A1A"></div><div class="n">奶黄</div><div class="v">#8A6A1A</div></div>
+    <div class="sw"><div class="c" style="background:#6F665C"></div><div class="n">暖灰</div><div class="v">#6F665C</div></div>
+    <div class="sw"><div class="c" style="background:#353331"></div><div class="n">暖棕黑</div><div class="v">#353331</div></div>
+  </div>
+</div>
+</body>
+</html>

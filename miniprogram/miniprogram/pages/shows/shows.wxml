@@ -1,44 +1,78 @@
-<!-- 场次页：打名字 → 搜 → 点一下开始盯。整页只有一个输入框，不做多余的事。 -->
+<!-- 场次页：打名字 → 搜 → 点一下开始盯。 -->
 <view class="page">
 
-  <!-- 搜索栏 -->
-  <view class="searchbar">
+  <!-- 平台筛选 -->
+  <view class="platform-bar">
+    <view
+      class="platform-chip {{platformIndex === index ? 'platform-on' : ''}}"
+      wx:for="{{platforms}}"
+      wx:key="key"
+      data-idx="{{index}}"
+      bindtap="onPlatform"
+      hover-class="press-hover"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 搜索栏 / 链接粘贴 / 12306 线路表单 -->
+  <view class="searchbar" wx:if="{{platforms[platformIndex].key !== 'rail12306'}}">
     <view class="search-box">
       <text class="search-ico"></text>
       <input
         class="search-inp"
-        placeholder="演出名 / 巡演名，中英文都行"
+        placeholder="{{platforms[platformIndex].linkOnly ? '粘贴该平台的演出分享链接' : '演出名 / 巡演名，中英文都行'}}"
         placeholder-class="search-ph"
         value="{{kw}}"
         confirm-type="search"
         bindinput="onInput"
         bindconfirm="onSearch"
       />
-      <text class="search-clear" wx:if="{{kw}}" bindtap="clearAll">清除</text>
+      <text class="search-clear press" wx:if="{{kw}}" bindtap="clearAll" hover-class="press-hover">清除</text>
     </view>
-    <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch">
-      {{searching ? '搜着' : '搜'}}
+    <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
+      {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜')}}
     </view>
   </view>
 
-  <!-- 还没搜过：给例子，别留白 -->
+  <!-- 大麦/票星球：粘贴链接模式下的说明，一句话讲清楚为什么要这样 -->
+  <view class="link-hint" wx:if="{{platforms[platformIndex].linkOnly}}">
+    这两个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里即可盯它的开售状态。
+  </view>
+
+  <!-- 12306：出发地 → 目的地 + 日期 -->
+  <view class="rail-form" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
+    <view class="rail-row">
+      <input class="rail-inp" placeholder="出发地，如 广州南" value="{{from}}" bindinput="onFrom" />
+      <text class="rail-arrow">→</text>
+      <input class="rail-inp" placeholder="目的地，如 长沙南" value="{{to}}" bindinput="onTo" />
+    </view>
+    <view class="rail-row">
+      <picker mode="date" value="{{date}}" bindchange="onDate" class="rail-date">
+        <view class="rail-date-in">{{date || '选乘车日期'}}</view>
+      </picker>
+      <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
+        {{searching ? '查着' : '查余票'}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 还没搜过：只留一句，别上课 -->
   <view class="card empty" wx:if="{{!searched && !searching}}">
-    <view class="empty-icon"></view>
-    <view class="empty-title">想盯什么就打什么</view>
-    <view class="empty-sub">
-      不用去别的 App 翻链接、抠 id。<br />
-      打「孙燕姿」「周杰伦」，或者英文巡演名都行。
+    <view class="empty-mark"></view>
+    <view class="empty-title" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">查哪条线</view>
+    <view class="empty-title" wx:else>想盯什么就打什么</view>
+    <view class="empty-sub" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
+      填出发地、目的地，选个日期。
     </view>
+    <view class="empty-sub" wx:else>演出名、巡演名、车站名都行。</view>
   </view>
 
-  <!-- 搜过没结果：说清是「没搜到」还是「平台挂了」 -->
+  <!-- 搜过没结果 -->
   <view class="card empty" wx:if="{{!searching && searched && !rows.length && !fail}}">
-    <view class="empty-icon"></view>
-    <view class="empty-title">没搜到这个</view>
-    <view class="empty-sub">
-      换个说法再试试：短一点的关键词、或者英文原名。<br />
-      摩天轮是二手票平台，冷门场次确实可能没挂单。
-    </view>
+    <view class="empty-mark"></view>
+    <view class="empty-title">没搜到</view>
+    <view class="empty-sub">换个词试试。</view>
   </view>
 
   <view class="card fail" wx:if="{{fail}}">
@@ -53,7 +87,7 @@
   </view>
 
   <!-- 结果 -->
-  <view class="row-card" wx:for="{{rows}}" wx:key="tourId">
+  <view class="row-card press-card" wx:for="{{rows}}" wx:key="id" hover-class="press-card-hover">
     <view class="poster" wx:if="{{item.poster}}">
       <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
     </view>
@@ -62,20 +96,24 @@
     <view class="row-main">
       <view class="row-name">{{item.name}}</view>
       <view class="row-meta">
-        <text class="tag tag-brand">{{item.city || '未知城市'}}</text>
+        <text class="tag tag-brand">{{item.platformLabel}}</text>
+        <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
+        <text class="tag tag-none" wx:if="{{!item.status && item.city}}">{{item.city}}</text>
       </view>
       <view class="row-sub">
         <text wx:if="{{item.dateRange}}">{{item.dateRange}}</text>
+        <text wx:if="{{item.route}}">{{item.route}}</text>
         <text wx:if="{{item.price}}" class="row-price">{{item.price}} 起</text>
       </view>
     </view>
 
     <view
-      class="row-add {{adding === item.tourId ? 'row-add-busy' : ''}}"
+      class="row-add {{adding === item.id ? 'row-add-busy' : ''}}"
       data-row="{{item}}"
       bindtap="add"
+      hover-class="press-hover"
     >
-      {{adding === item.tourId ? '…' : '盯'}}
+      {{adding === item.id ? '…' : '盯'}}
     </view>
   </view>
 
@@ -83,10 +121,10 @@
   <view class="card hist" wx:if="{{history.length && !rows.length && !searching}}">
     <view class="hist-head">
       <text class="hist-title">最近搜过</text>
-      <text class="hist-clear" bindtap="clearHistory">清空</text>
+      <text class="hist-clear press" bindtap="clearHistory" hover-class="press-hover">清空</text>
     </view>
     <view class="hist-body">
-      <view class="chip" wx:for="{{history}}" wx:key="*this" data-kw="{{item}}" bindtap="useHistory">
+      <view class="chip" wx:for="{{history}}" wx:key="*this" data-kw="{{item}}" bindtap="useHistory" hover-class="press-hover">
         {{item}}
       </view>
     </view>

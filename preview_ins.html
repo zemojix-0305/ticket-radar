@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="N55kjqR8JbabzD6aX4JrGQ">
+<head data-page-node-id="QdlJNfUcQDwM7yH0CdLJ4l">
+<meta charset="UTF-8" data-page-node-id="uFeANk7SvCv44dBKz9qIEV">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="haZbtm73dlBHIdjD2XSqBC">
+<title>余票监控 · Ins 高级风预览</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #E8E8EC; font-family: -apple-system, "PingFang SC", sans-serif; padding: 24px; }
+h1 { font-size: 18px; color: #1C1C1E; margin-bottom: 20px; text-align: center; }
+.phone { width: 375px; margin: 0 auto 40px; background: #F7F7FA; min-height: 667px; border-radius: 32px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+.status-bar { height: 44px; background: #F7F7FA; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 12px; color: #1C1C1E; }
+.nav-bar { height: 44px; background: #F7F7FA; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: #1C1C1E; border-bottom: 0.5px solid #E5E5EA; }
+.page-content { padding: 16px; }
+.hero { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+.hero-title { font-size: 24px; font-weight: 700; color: #1C1C1E; }
+.hero-count { display: flex; align-items: baseline; gap: 4px; }
+.hero-ok { font-size: 32px; font-weight: 600; color: #1C1C1E; }
+.hero-total { font-size: 18px; color: #6C6C75; }
+.hero-add { width: 58px; height: 58px; background: #1C1C1E; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.hero-plus { font-size: 20px; color: #FFF; }
+.hero-add-t { font-size: 10px; color: #FFF; margin-top: 2px; }
+.quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 16px 0; background: #FFF; border-radius: 16px; padding: 16px 0; }
+.quick-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.quick-icon { width: 38px; height: 38px; border-radius: 50%; background: #F1F1F4; display: flex; align-items: center; justify-content: center; }
+.quick-t { font-size: 11px; color: #6C6C75; }
+.task-card { background: #FFF; border-radius: 20px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.task-topline { height: 4px; width: 100%; background: #237A45; }
+.task-body { padding: 14px 16px; }
+.task-name { font-size: 15px; font-weight: 500; color: #1C1C1E; }
+.task-sub { font-size: 12px; color: #727279; margin-top: 3px; }
+.tag { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin-right: 6px; }
+.tag-ok { background: #E3F5EA; color: #237A45; }
+.task-foot { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #E5E5EA; font-size: 12px; color: #727279; }
+.show-card { background: #FFF; border-radius: 16px; margin: 10px 0; padding: 14px; display: flex; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.poster { width: 60px; height: 60px; border-radius: 12px; background: #F1F1F4; }
+.row-name { font-size: 14px; font-weight: 500; color: #1C1C1E; }
+.row-meta { margin-top: 6px; display: flex; gap: 6px; }
+.row-price { color: #1C1C1E; font-weight: 500; }
+.btn-add { width: 52px; height: 34px; background: #1C1C1E; border-radius: 17px; color: #FFF; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tab-bar { height: 83px; background: #FFF; border-top: 0.5px solid #E5E5EA; display: flex; position: sticky; bottom: 0; }
+.tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.tab-icon { width: 24px; height: 24px; background: #6C6C75; border-radius: 4px; }
+.tab-icon.active { background: #1C1C1E; }
+.tab-label { font-size: 10px; color: #6C6C75; }
+.tab-label.active { color: #1C1C1E; }
+.color-palette { max-width: 600px; margin: 40px auto; background: #FFF; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+.color-palette h2 { font-size: 16px; margin-bottom: 16px; color: #1C1C1E; }
+.color-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.swatch { width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: flex-end; justify-content: center; padding: 6px; font-size: 10px; color: #FFF; font-weight: 500; }
+.swatch.light { color: #1C1C1E; }
+.info { font-size: 13px; color: #6C6C75; line-height: 1.8; max-width: 600px; margin: 0 auto; }
+</style>
+</head>
+<body data-page-node-id="KFjY7seZWvqYeArNIYG1cT">
+<h1 data-page-node-id="USOEzEfi3tgvAeFdydxUiR">余票监控 · Ins 高级风预览</h1>
+
+<div class="phone" data-page-node-id="D3tIKondUAi7eqIMH3iSmR">
+  <div class="status-bar" data-page-node-id="0hGp8WtPZomzDJKalYQ7GD"><span data-page-node-id="ygPgPfsSs2AQHHDFTdxRIZ">9:41</span><span data-page-node-id="zzpqCFBMboQkoW7GB65b9J">📶 🔋</span></div>
+  <div class="nav-bar" data-page-node-id="gMWrMMVjs5JwbZLpPCHt1n">余票监控</div>
+  <div class="page-content" data-page-node-id="7aoRCI4TVA3Ttms2cwQ5Y9">
+    <div class="hero" data-page-node-id="15jZGCCikfM6abcQmAFNCc">
+      <div data-page-node-id="SavFxtzZV2Al8GQou5HpnD">
+        <div class="hero-title" data-page-node-id="aDfUmDBipJGaCRoh4JEmND">余票监控</div>
+        <div class="hero-count" data-page-node-id="EvAaDjtZ320DNa21JNqfPJ">
+          <span class="hero-ok" data-page-node-id="vAf8ClMvDrzfnsxXIG3br7">3</span>
+          <span class="hero-total" data-page-node-id="9wN2D1gB6VxBaWlusV4ZgH">/ 12</span>
+          <span style="font-size:13px;color:#6C6C75;margin-left:4px" data-page-node-id="cikr0bs68qdGkVjBuq4iie">有票</span>
+        </div>
+      </div>
+      <div class="hero-add" data-page-node-id="nTR7cp7QYNhFKbbcyeIDAv"><span class="hero-plus" data-page-node-id="imwp4d5XE1vVFfXtWFFDqB">＋</span><span class="hero-add-t" data-page-node-id="jDAT1xyTDrCbX30ZNhnzAl">加监控</span></div>
+    </div>
+    <div class="quick-grid" data-page-node-id="XyCO9jAZ1quMZ4TSsuHz4O">
+      <div class="quick-item" data-page-node-id="8FDoz70jcPArsjpCv82dqd"><div class="quick-icon" data-page-node-id="GyHNtZeT1NJcTa9v5526ak">+</div><span class="quick-t" data-page-node-id="l4BIzMQCbCHrCIy58WoSvk">加监控</span></div>
+      <div class="quick-item" data-page-node-id="oZuZguzhNzOnvOChuoMv1U"><div class="quick-icon" data-page-node-id="ZtOKjBDXw2Enl5yaWG9JWa">▦</div><span class="quick-t" data-page-node-id="ZJhexJ6Pd2hAWr12yputvK">扫一扫</span></div>
+      <div class="quick-item" data-page-node-id="gh1JegSguDGygzwGsGb86N"><div class="quick-icon" data-page-node-id="NrG4cilqZ6vRbwDzEYPAMm">⌕</div><span class="quick-t" data-page-node-id="DZtectQBZKrIjCLnDfhuH2">搜演出</span></div>
+      <div class="quick-item" data-page-node-id="AP0Zz2ZO8b0idogV4FByxZ"><div class="quick-icon" data-page-node-id="bzi0Xyqd53MgOptuvad7V2">📊</div><span class="quick-t" data-page-node-id="5mASzqSiZ8fZRUzwLH4FrF">历史</span></div>
+    </div>
+    <div class="task-card" data-page-node-id="GJUrVyHFLJay4bQOK0DOGr">
+      <div class="task-topline" data-page-node-id="MAcPw6ZYxb5q8Hzn3SkVEi"></div>
+      <div class="task-body" data-page-node-id="rfwjd4J3relRD330g0UOlr">
+        <div class="task-name" data-page-node-id="5q2ovz0DazIpXFFIBl8cmc">周杰伦嘉年华演唱会-广州站</div>
+        <div class="task-sub" data-page-node-id="HBCwagUdOmOAlQjhonjHOj">大麦 · 广州 · 2026-11-15</div>
+        <div style="margin-top:8px" data-page-node-id="O1sT8GbVZHy1Ug4OqujJa4"><span class="tag tag-ok" data-page-node-id="2KvGeEmc2IslJhmGfC3Oi3">在售</span></div>
+        <div class="task-foot" data-page-node-id="XozKt64Nq23lOfvvUKhG45"><span data-page-node-id="pcwurgfJwsj0cOTy60Ms0B">刚刚</span><span style="color:#1C1C1E" data-page-node-id="qlpNXgC44KWgtIxQ5ENx0O">分享</span></div>
+      </div>
+    </div>
+    <div class="task-card" data-page-node-id="BCdkvVl8kxLlsk8U5D8AZD">
+      <div class="task-topline" style="background:#6C6C75" data-page-node-id="9ONUy6dWimMOe6GIU5g2Ey"></div>
+      <div class="task-body" data-page-node-id="9T4Afea1u8BjllJojbIga7">
+        <div class="task-name" data-page-node-id="ELwzOUfYmi3s22hHoZRSw9">五月天回到那一天巡演-上海</div>
+        <div class="task-sub" data-page-node-id="OaaiKBN1vwndo8Po9OQdPi">摩天轮 · 上海 · 2026-10-20</div>
+        <div style="margin-top:8px" data-page-node-id="lSFRlq5xQBsSFvAhBZKtca"><span style="display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;background:#F1F1F4;color:#6C6C75" data-page-node-id="5HEnxPeKl9gXLM3LLOiuX1">售罄</span></div>
+        <div class="task-foot" data-page-node-id="gIDXWOgmEWntP4ZVZBiKyi"><span data-page-node-id="hQVrCfaMXS8jJol4AykWsZ">5分钟前</span><span style="color:#1C1C1E" data-page-node-id="jD1C33FBPtpb9O0qQu2WvJ">分享</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="tab-bar" data-page-node-id="aE1QnX4ccB1o78VguAPSZw">
+    <div class="tab-item" data-page-node-id="VHjeuiUCWaQduTFhOvIb5E"><div class="tab-icon active" data-page-node-id="VAQWD17XyGCmgjtw3WwgPZ"></div><span class="tab-label active" data-page-node-id="ptxIYOpcnBi6lI2vmrUwT2">监控</span></div>
+    <div class="tab-item" data-page-node-id="6CAmSICKgXngFdORXNOa6X"><div class="tab-icon" data-page-node-id="TzgjBSzRJeHuAcFqnvJhqV"></div><span class="tab-label" data-page-node-id="LWnvHY0Nkg1ZNP5Maty9Tv">演出</span></div>
+    <div class="tab-item" data-page-node-id="lc1Cv1UjhBCpV9Trj7Hui6"><div class="tab-icon" data-page-node-id="Pmm5JXTTZ5yjZIffC9UgEm"></div><span class="tab-label" data-page-node-id="9s6EZfUH0bZ7jxIcwk4OfG">历史</span></div>
+    <div class="tab-item" data-page-node-id="TAMbCJhzyy95QekGnTHRbH"><div class="tab-icon" data-page-node-id="bHj0xHD7V19cfCogF7EZxt"></div><span class="tab-label" data-page-node-id="E0AXPm0VHnfE30ko6doB0k">讨论</span></div>
+    <div class="tab-item" data-page-node-id="0RGki4aRIx54IU8eqXXIYG"><div class="tab-icon" data-page-node-id="dkQpVv2pKDbDHArf9wMszf"></div><span class="tab-label" data-page-node-id="Y598mCMEFTpddpLP1xaRJz">我的</span></div>
+  </div>
+</div>
+
+<div class="color-palette" data-page-node-id="p5kgQ4aHDu4BCmFNr0arSw">
+  <h2 data-page-node-id="KgNlO2rQnNR3jVgap0qCqP">配色方案</h2>
+  <div class="color-row" data-page-node-id="5yFhaosLeUZBhPYCM8dDJ8">
+    <div class="swatch" style="background:#F7F7FA;color:#1C1C1E" data-page-node-id="2oHPJnJuvL6mxHI7FPU2Da">底</div>
+    <div class="swatch" style="background:#FFFFFF;color:#1C1C1E" data-page-node-id="FsGFPcZtPYBBRCWHIMF0OR">卡片</div>
+    <div class="swatch" style="background:#1C1C1E" data-page-node-id="ITZxRc59eX4v5NEjBXYy1u">主色</div>
+    <div class="swatch" style="background:#237A45" data-page-node-id="D5CK1AAb2suLlNUOcI7quQ">有票</div>
+    <div class="swatch" style="background:#6C6C75" data-page-node-id="nviuumbbngOE9oM1y6KQO4">文字</div>
+    <div class="swatch" style="background:#A23E78" data-page-node-id="EcE9wXmq9pJdIXywvpyRwq">强调</div>
+    <div class="swatch light" style="background:#FBE8F2;color:#A23E78" data-page-node-id="A2iBXhHbTi3NCYnzyHumPm">粉弱</div>
+    <div class="swatch light" style="background:#E3F5EA;color:#237A45" data-page-node-id="hKDdvlM9KciIjFXybLhQd1">绿弱</div>
+  </div>
+  <div class="info" data-page-node-id="u0N5vBVoHYXHd5V4kHEpiG">
+    <p data-page-node-id="NlGHFfUKWr4NMBiSDE8v1i">• 白色系 + 近黑主色（ins 高级感核心）</p>
+    <p data-page-node-id="2aq6o4LB7twEqHLTnBuHwq">• 所有对比度均通过 WCAG AA（≥4.5:1）</p>
+    <p data-page-node-id="ri7HmNsIOssB38oRekHEqf">• 零渐变、零AI指纹、零可爱元素</p>
+    <p data-page-node-id="zJ2MCsZymkeFhP7igdYKOu">• 已接入：大麦（粘贴链接）/ 摩天轮 / 猫眼 / 票星球 / 12306</p>
+  </div>
+</div>
+</body>
+</html>

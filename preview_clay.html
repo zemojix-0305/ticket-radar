@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ticket-radar · 奶油黏土风（风格语法逆向自 hijessie.space）</title>
+<style>
+  :root {
+    --bg: #F7F1E5;
+    --card: #FFFFFF;
+    --ink: #353331;
+    --brand: #AE4272;
+    --brand-deep: #8F3360;
+    --brand-weak: #FBE9F1;
+    --ok: #347848;
+    --ok-weak: #DFF3E2;
+    --none: #6F665C;
+    --none-weak: #F1EDE6;
+    --bad: #B54334;
+    --bad-weak: #FBE7E0;
+    --warn: #8A6208;
+    --warn-weak: #FFF3D6;
+    --t1: #353331;
+    --t2: #5F574F;
+    --t3: #756B61;
+    --line: rgba(53,51,49,0.08);
+    --r: 20px;
+    --shadow: 0 1px 2px rgba(43,39,36,0.05), 0 8px 20px rgba(43,39,36,0.06);
+    --shadow-brand: 0 4px 12px rgba(174,66,114,0.25);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #EDE7DA;
+    font-family: "Yuanti SC", "YouYuan", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--t1);
+    padding: 44px 20px 64px;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.3px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 21px; font-weight: 600; letter-spacing: 0.5px; }
+  .lead { font-size: 13px; color: var(--t2); margin: 8px 0 12px; line-height: 1.9; max-width: 780px; }
+  .lead b { color: var(--t1); font-weight: 600; }
+  .fixes { font-size: 12px; color: var(--t2); line-height: 2.1; margin-bottom: 36px; max-width: 780px; }
+  .fixes li { list-style: none; padding-left: 18px; position: relative; }
+  .fixes li::before { content: '—'; position: absolute; left: 0; color: var(--brand); }
+  .screens { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; }
+
+  .phone {
+    width: 320px;
+    background: var(--bg);
+    border-radius: 40px;
+    box-shadow: 0 2px 20px rgba(43,39,36,0.10), inset 0 0 0 1px rgba(43,39,36,0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone-cap { text-align: center; font-size: 12px; color: var(--t3); margin-top: 14px; letter-spacing: 0.4px; }
+  .nav {
+    text-align: center; font-size: 15px; font-weight: 600;
+    padding: 16px 0 12px; position: relative; letter-spacing: 0.5px;
+  }
+  .nav .caps { position: absolute; right: 18px; top: 14px; display: flex; gap: 5px; align-items: center; }
+  .nav .cap { width: 16px; height: 8px; border: 1px solid var(--t1); border-radius: 2px; }
+  .nav .cap.r { border-radius: 50%; width: 9px; height: 9px; }
+  .body { flex: 1; padding: 2px 12px 10px; }
+  .tabbar {
+    display: flex; background: #FFFCF5;
+    padding: 8px 0 calc(10px + env(safe-area-inset-bottom));
+    border-top: 0.5px solid rgba(53,51,49,0.06);
+  }
+  .tb { flex: 1; text-align: center; font-size: 10px; color: #6F665C; letter-spacing: 0.3px; }
+  .tb.on { color: var(--brand); font-weight: 600; }
+  .tb .ic { width: 22px; height: 22px; margin: 0 auto 3px; }
+
+  /* ===== 概览 ===== */
+  .hero { display: flex; align-items: center; justify-content: space-between; padding: 18px 8px 10px; }
+  .hero-num { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; color: var(--ok); line-height: 1; }
+  .hero-sep { font-size: 20px; color: var(--t3); margin: 0 3px; font-weight: 300; }
+  .hero-total { font-size: 22px; font-weight: 500; color: var(--t3); letter-spacing: -0.5px; }
+  .hero-sub { font-size: 12px; color: var(--t2); margin-top: 6px; letter-spacing: 0.4px; }
+  .hero-add {
+    width: 60px; height: 60px; border-radius: 22px;
+    background: var(--brand); color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 10px; gap: 2px; letter-spacing: 0.5px;
+    cursor: pointer; transition: opacity .15s ease, transform .15s ease;
+    box-shadow: var(--shadow-brand);
+  }
+  .hero-add:active { opacity: .6; transform: scale(.97); }
+  .hero-add .p { font-size: 20px; font-weight: 300; line-height: 1; }
+
+  /* ===== 筛选 ===== */
+  .segs { display: flex; gap: 2px; margin: 6px 0 12px; padding: 3px; background: var(--none-weak); border-radius: 999px; }
+  .seg { flex: 1; text-align: center; padding: 7px 0; border-radius: 999px; font-size: 12px; color: var(--t2); letter-spacing: 0.3px; cursor: pointer; }
+  .seg.on { background: var(--brand); color: #fff; font-weight: 500; }
+  .seg:not(.on):active { background: #E9E2D3; }
+
+  /* ===== inset grouped list ===== */
+  .group { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+  .g-row { display: flex; align-items: stretch; padding: 14px 14px 14px 12px; gap: 12px; position: relative; cursor: pointer; transition: opacity .15s ease, transform .15s ease; }
+  .g-row:active { opacity: .92; transform: scale(.985); }
+  .g-row + .g-row::after {
+    content: ''; position: absolute; left: 12px; right: 0; top: 0;
+    height: 1px; background: var(--line);
+  }
+  .task-bar { width: 4px; flex-shrink: 0; border-radius: 2px; margin: 2px 0; }
+  .task-bar-ok { background: var(--ok); }
+  .task-bar-none { background: #E5DECF; }
+  .task-body { flex: 1; min-width: 0; }
+  .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .task-name { font-size: 15px; font-weight: 500; letter-spacing: 0.3px; }
+  .task-sub { font-size: 12px; color: var(--t2); margin-top: 3px; letter-spacing: 0.3px; }
+  .tag { display: inline-block; padding: 3px 11px; border-radius: 999px; font-size: 11px; white-space: nowrap; letter-spacing: 0.3px; }
+  .tag-ok { color: var(--ok); background: var(--ok-weak); }
+  .tag-none { color: var(--none); background: var(--none-weak); }
+  .tag-brand { color: var(--brand); background: var(--brand-weak); }
+  .task-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+  }
+  .task-foot-r { display: flex; align-items: center; gap: 14px; }
+  .link { font-size: 12px; color: var(--brand); letter-spacing: 0.3px; cursor: pointer; }
+  .link:active { opacity: .5; }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 26px; margin-top: 12px; }
+  .spark i { flex: 1; border-radius: 2px 2px 0 0; background: var(--brand); }
+  .spark i.zero { background: #E5DECF; }
+
+  /* ===== 公告条（奶黄 pastel）===== */
+  .banner {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    margin: 10px 0 0; padding: 10px 12px;
+    background: var(--warn-weak); border-radius: 14px;
+    font-size: 11px; color: var(--warn); line-height: 1.6;
+  }
+
+  /* ===== 演出页 ===== */
+  .searchbar { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; }
+  .search-box {
+    flex: 1; min-width: 0; display: flex; align-items: center;
+    height: 40px; padding: 0 14px; background: var(--none-weak); border-radius: 20px;
+    font-size: 13px; color: var(--t3); letter-spacing: 0.3px;
+  }
+  .search-btn { background: var(--brand); color: #fff; border-radius: 20px; height: 40px; padding: 0 16px; font-size: 13px; display: flex; align-items: center; letter-spacing: 0.5px; cursor: pointer; box-shadow: var(--shadow-brand); }
+  .search-btn:active { opacity: .7; }
+  .chips { display: flex; gap: 6px; padding: 4px 0 10px; }
+  .chip { padding: 6px 14px; border-radius: 999px; font-size: 12px; color: var(--t1); background: var(--warn-weak); letter-spacing: 0.3px; cursor: pointer; }
+  .chip.on { background: var(--brand); color: #fff; }
+  .chip:not(.on):active { opacity: .6; }
+  .row-card { display: flex; gap: 12px; padding: 12px; align-items: center; }
+  .poster {
+    width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+    background: var(--brand-weak); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--brand); font-weight: 500;
+  }
+  .row-main { flex: 1; min-width: 0; }
+  .row-name { font-size: 14px; font-weight: 500; letter-spacing: 0.3px; }
+  .row-meta { display: flex; gap: 5px; margin-top: 5px; }
+  .row-sub { font-size: 11px; color: var(--t3); margin-top: 4px; letter-spacing: 0.3px; }
+  .row-add {
+    width: 46px; height: 30px; border-radius: 999px; background: var(--brand); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; letter-spacing: 0.5px; cursor: pointer;
+    box-shadow: var(--shadow-brand);
+  }
+  .row-add:active { opacity: .7; }
+
+  /* ===== 讨论页 ===== */
+  .post { padding: 16px 18px; }
+  .post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-weak); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--brand); }
+  .post-name { font-size: 13px; font-weight: 500; letter-spacing: 0.3px; }
+  .post-time { font-size: 11px; color: var(--t3); margin-top: 1px; }
+  .post-txt { font-size: 13px; line-height: 1.75; color: var(--t1); letter-spacing: 0.3px; }
+  .post-tags { display: flex; gap: 5px; margin-top: 9px; }
+  .fab {
+    position: absolute; right: 18px; bottom: 96px;
+    width: 50px; height: 50px; border-radius: 50%; background: var(--brand);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 22px; font-weight: 300; cursor: pointer;
+    box-shadow: var(--shadow-brand);
+  }
+  .fab:active { opacity: .75; }
+
+  /* ===== 色卡 ===== */
+  .palette { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 44px; justify-content: center; }
+  .sw { width: 108px; text-align: center; }
+  .sw .c { height: 56px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(43,39,36,0.06); }
+  .sw .n { font-size: 11px; color: var(--t2); margin-top: 7px; letter-spacing: 0.3px; }
+  .sw .v { font-size: 10px; color: var(--t3); font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ticket-radar · 奶油黏土风</h1>
+  <p class="lead">
+    风格语法逆向自你指定的参考站 <b>hijessie.space</b>（3D 黏土小岛乐园）——不是挑颜色，是整套语言：
+    奶油纸底、白卡暖棕柔影、pastel 贴纸色、大圆角全胶囊、圆体字栈、暖棕黑正文。
+  </p>
+  <ul class="fixes">
+    <li><b>奶油底 #F7F1E5 + 白卡</b>——参考站的第一要素是温度。文字全暖调（#353331/#5F574F/#756B61），掺冷灰立刻显脏</li>
+    <li><b>主色深莓粉 #AE4272</b>——参考站的粉压深到白字 5.2:1。pastel 只做点缀：薄荷（有票）/暖灰（无票）/玫瑰（异常）/奶黄（提醒）</li>
+    <li><b>柔影两层</b>——贴地 1px + 漫射 8px，暖棕色调。主按钮带粉色柔影，像软糖按在纸上</li>
+    <li><b>仍然零渐变</b>——骨架屏从 shimmer 扫光改成呼吸脉冲；渐变是 AI 指纹，一道不留</li>
+    <li><b>inset grouped list 保留</b>——列表不一人一张卡；「盯」改实心粉药丸 + 柔影，是 pastel 页面里唯一实心 CTA</li>
+    <li><b>20 项 WCAG AA 全过</b>（tools/check_palette.py），含 pastel 浅底上的深字——最容易翻车的一组</li>
+  </ul>
+
+  <div class="screens">
+    <!-- ============ 首页 ============ -->
+    <div>
+      <div class="phone">
+        <div class="nav">余票监控
+          <div class="caps"><div class="cap"></div><div class="cap r"></div></div>
+        </div>
+        <div class="body">
+          <div class="banner"><span>📢 国庆后余票波动大，监控已全部恢复正常频率</span><span>×</span></div>
+          <div class="hero">
+            <div>
+              <span class="hero-num">3</span><span class="hero-sep">/</span><span class="hero-total">5</span>
+              <div class="hero-sub">个监控有票 · 12 分钟前查过</div>
+            </div>
+            <div class="hero-add"><span class="p">＋</span>加监控</div>
+          </div>
+
+          <div class="segs">
+            <div class="seg on">全部 5</div>
+            <div class="seg">有票 3</div>
+            <div class="seg">无票 2</div>
+          </div>
+
+          <div class="group">
+            <div class="g-row">
+              <div class="task-bar task-bar-ok"></div>
+              <div class="task-body">
+                <div class="task-top">
+                  <div>
+                    <div class="task-name">孙燕姿 · 广州站</div>
+                    <div class="task-sub">摩天轮 · 10月18日 19:30</div>
+                  </div>
+                  <span class="tag tag-ok">有票 4</span>
+                </div>
+                <div class="spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:100%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:90%"></i></div>
+                <div class="task-foot">
+                  <span style="font-size:12px;color:var(--t3)">12 分钟前查过</span>
+                  <div class="task-foot-r">
+                    <span class="link">分享</span>
+                    <span class="link">展开 9 项 ›</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="g-row">
+              <div class="task-bar task-bar-none"></div>
+              <div class="task-body">
+                <div class="task-top">
+                  <div>
+                    <div class="task-name">广州南 → 长沙南</div>
+                    <div class="task-sub">12306 · 10月20日</div>
+                  </div>
+                  <span class="tag tag-none">无票</span>
+                </div>
+                <div class="task-foot">
+                  <span style="font-size:12px;color:var(--t3)">5 分钟前查过</span>
+                  <div class="task-foot-r"><span class="link">分享</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="g-row">
+              <div class="task-bar task-bar-none"></div>
+              <div class="task-body">
+                <div class="task-top">
+                  <div>
+                    <div class="task-name">周杰伦 · 上海站</div>
+                    <div class="task-sub">猫眼 · 11月02日</div>
+                  </div>
+                  <span class="tag tag-none">暂未开售</span>
+                </div>
+                <div class="task-foot">
+                  <span style="font-size:12px;color:var(--t3)">1 小时前查过</span>
+                  <div class="task-foot-r"><span class="link">分享</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb on"><div class="ic">⌂</div>首页</div>
+          <div class="tb"><div class="ic">⌕</div>演出</div>
+          <div class="tb"><div class="ic">∿</div>历史</div>
+          <div class="tb"><div class="ic">◌</div>讨论</div>
+          <div class="tb"><div class="ic">☺</div>我的</div>
+        </div>
+      </div>
+      <div class="phone-cap">首页 · 奶黄公告条 + inset list + 粉色柔影按钮</div>
+    </div>
+
+    <!-- ============ 演出 ============ -->
+    <div>
+      <div class="phone">
+        <div class="nav">找演出</div>
+        <div class="body">
+          <div class="searchbar">
+            <div class="search-box">孙燕姿</div>
+            <div class="search-btn">搜</div>
+          </div>
+          <div class="chips">
+            <div class="chip on">摩天轮</div>
+            <div class="chip">猫眼</div>
+            <div class="chip">12306</div>
+          </div>
+
+          <div class="group">
+            <div class="row-card">
+              <div class="poster">演</div>
+              <div class="row-main">
+                <div class="row-name">孙燕姿「就在日落以后」</div>
+                <div class="row-meta">
+                  <span class="tag tag-brand">摩天轮</span>
+                  <span class="tag tag-ok">在售中</span>
+                </div>
+                <div class="row-sub">10月18日 · 广州 · ¥480 起</div>
+              </div>
+              <div class="row-add">盯</div>
+            </div>
+            <div class="row-card">
+              <div class="poster">演</div>
+              <div class="row-main">
+                <div class="row-name">孙燕姿 巡回演唱会</div>
+                <div class="row-meta">
+                  <span class="tag tag-brand">摩天轮</span>
+                  <span class="tag tag-none">预售</span>
+                </div>
+                <div class="row-sub">11月22日 · 深圳 · ¥680 起</div>
+              </div>
+              <div class="row-add">盯</div>
+            </div>
+            <div class="row-card">
+              <div class="poster">演</div>
+              <div class="row-main">
+                <div class="row-name">孙燕姿 · 深圳站</div>
+                <div class="row-meta">
+                  <span class="tag tag-brand">猫眼</span>
+                  <span class="tag tag-ok">在售中</span>
+                </div>
+                <div class="row-sub">12月06日 · 深圳 · ¥380 起</div>
+              </div>
+              <div class="row-add">盯</div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb"><div class="ic">⌂</div>首页</div>
+          <div class="tb on"><div class="ic">⌕</div>演出</div>
+          <div class="tb"><div class="ic">∿</div>历史</div>
+          <div class="tb"><div class="ic">◌</div>讨论</div>
+          <div class="tb"><div class="ic">☺</div>我的</div>
+        </div>
+      </div>
+      <div class="phone-cap">演出 · 奶黄历史 chips + 实心粉「盯」药丸</div>
+    </div>
+
+    <!-- ============ 讨论 ============ -->
+    <div>
+      <div class="phone" style="position:relative">
+        <div class="nav">讨论区</div>
+        <div class="body">
+          <div class="group">
+            <div class="post">
+              <div class="post-head">
+                <div class="avatar">狐</div>
+                <div>
+                  <div class="post-name">小狐</div>
+                  <div class="post-time">2 小时前</div>
+                </div>
+              </div>
+              <div class="post-txt">广州站二开了，刚刷到 4 张连座。蹲了半个月终于动了。</div>
+              <div class="post-tags">
+                <span class="tag tag-brand">孙燕姿</span>
+                <span class="tag tag-ok">有票</span>
+              </div>
+            </div>
+            <div class="post">
+              <div class="post-head">
+                <div class="avatar">匿</div>
+                <div>
+                  <div class="post-name">匿名用户</div>
+                  <div class="post-time">5 小时前</div>
+                </div>
+              </div>
+              <div class="post-txt">上海站什么价位好抢？看台 880 会不会太悬。</div>
+              <div class="post-tags">
+                <span class="tag tag-brand">求经验</span>
+              </div>
+            </div>
+            <div class="post">
+              <div class="post-head">
+                <div class="avatar">兔</div>
+                <div>
+                  <div class="post-name">兔子不吃草</div>
+                  <div class="post-time">昨天</div>
+                </div>
+              </div>
+              <div class="post-txt">提醒一下，长沙南那条线每天早上 7 点放票最多，别大半夜刷。</div>
+              <div class="post-tags">
+                <span class="tag tag-brand">12306</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fab">＋</div>
+        <div class="tabbar">
+          <div class="tb"><div class="ic">⌂</div>首页</div>
+          <div class="tb"><div class="ic">⌕</div>演出</div>
+          <div class="tb"><div class="ic">∿</div>历史</div>
+          <div class="tb on"><div class="ic">◌</div>讨论</div>
+          <div class="tb"><div class="ic">☺</div>我的</div>
+        </div>
+      </div>
+      <div class="phone-cap">讨论 · 同一张容器卡 + 分隔线</div>
+    </div>
+  </div>
+
+  <div class="palette">
+    <div class="sw"><div class="c" style="background:#F7F1E5"></div><div class="n">奶油纸底</div><div class="v">#F7F1E5</div></div>
+    <div class="sw"><div class="c" style="background:#FFFFFF"></div><div class="n">纯白卡片</div><div class="v">#FFFFFF</div></div>
+    <div class="sw"><div class="c" style="background:#353331"></div><div class="n">暖棕黑正文</div><div class="v">#353331</div></div>
+    <div class="sw"><div class="c" style="background:#AE4272"></div><div class="n">深莓粉主色</div><div class="v">#AE4272</div></div>
+    <div class="sw"><div class="c" style="background:#347848"></div><div class="n">有票 · 深薄荷</div><div class="v">#347848</div></div>
+    <div class="sw"><div class="c" style="background:#6F665C"></div><div class="n">无票 · 暖灰</div><div class="v">#6F665C</div></div>
+    <div class="sw"><div class="c" style="background:#B54334"></div><div class="n">异常 · 暖红</div><div class="v">#B54334</div></div>
+    <div class="sw"><div class="c" style="background:#8A6208"></div><div class="n">提醒 · 琥珀</div><div class="v">#8A6208</div></div>
+    <div class="sw"><div class="c" style="background:#FBE9F1"></div><div class="n">粉浅底</div><div class="v">#FBE9F1</div></div>
+    <div class="sw"><div class="c" style="background:#DFF3E2"></div><div class="n">薄荷浅底</div><div class="v">#DFF3E2</div></div>
+    <div class="sw"><div class="c" style="background:#FFF3D6"></div><div class="n">奶黄浅底</div><div class="v">#FFF3D6</div></div>
+  </div>
+</div>
+</body>
+</html>

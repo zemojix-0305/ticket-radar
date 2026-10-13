@@ -1,5 +1,14 @@
-<!-- 历史页：把盯过的过程算成结论。数据不够就明说数据不够。 -->
+<!-- 历史页：历史曲线 + 推送记录两个 tab -->
 <view class="page">
+
+  <!-- tab 切换 -->
+  <view class="tabs">
+    <view class="tab {{tab === 0 ? 'tab-on' : ''}}" data-idx="0" bindtap="switchTab" hover-class="tab-hover">历史曲线</view>
+    <view class="tab {{tab === 1 ? 'tab-on' : ''}}" data-idx="1" bindtap="switchTab" hover-class="tab-hover">推送记录</view>
+  </view>
+
+  <!-- ===== 历史曲线 ===== -->
+  <view wx:if="{{tab === 0}}">
 
   <!-- 汇总 -->
   <view class="sum" wx:if="{{!loading && totalTasks}}">
@@ -31,12 +40,9 @@
 
   <!-- 一个监控都没有 -->
   <view class="card empty" wx:if="{{!loading && !rows.length && !fail}}">
-    <view class="empty-icon"></view>
-    <view class="empty-title">还没有可分析的数据</view>
-    <view class="empty-sub">
-      先去加一个监控。<br />
-      历史是盯出来的——盯得越久，这里越有用。
-    </view>
+    <view class="empty-mark"></view>
+    <view class="empty-title">还没有数据</view>
+    <view class="empty-sub">加个监控，盯几天这里就有用了。</view>
   </view>
 
   <!-- 每个监控一张 -->
@@ -51,7 +57,7 @@
 
     <!-- 余票柱状图 -->
     <view class="spark" wx:if="{{item.samples > 1}}">
-      <view class="spark-b {{item.bars[0].n > 0 ? '' : 'zero'}}" wx:for="{{item.bars}}" wx:for-item="b" wx:key="index" style="height:{{b.h}}%"></view>
+      <view class="spark-b {{b.n > 0 ? '' : 'zero'}}" wx:for="{{item.bars}}" wx:for-item="b" wx:key="index" style="height:{{b.h}}%"></view>
     </view>
     <view class="spark-ph" wx:elif="{{item.samples <= 1}}">
       只采了 {{item.samples}} 次，画不出曲线
@@ -76,4 +82,76 @@
   </view>
 
   <view class="safe"></view>
+  </view>
+
+  <!-- ===== 推送记录 ===== -->
+  <view wx:if="{{tab === 1}}">
+
+    <!-- 推送健康 -->
+    <view class="card health">
+      <view class="health-row">
+        <view class="health-l">
+          <view class="t3">推送额度</view>
+          <view class="health-v">
+            <text class="num health-n {{credit > 0 ? '' : 'health-bad'}}">{{credit}}</text>
+            <text class="t2"> 条</text>
+          </view>
+        </view>
+        <view class="health-l">
+          <view class="t3">平台连通</view>
+          <view class="health-v">
+            <text class="num health-n">{{healthy}}</text>
+            <text class="t2"> / {{total}} 正常</text>
+          </view>
+        </view>
+        <view class="health-l">
+          <view class="t3">上次检查</view>
+          <view class="health-v"><text class="t2">{{lastCheckRel || '—'}}</text></view>
+        </view>
+      </view>
+
+      <view class="notice notice-warn" wx:if="{{credit === 0}}">
+        额度用完了，现在有票也推不出去。点下面按钮重新领。
+      </view>
+      <view class="notice notice-ok" wx:else>
+        一切正常。有余票变化会立刻推到你微信。
+      </view>
+
+      <view class="btn btn-primary health-btn" bindtap="goMine" hover-class="press-hover">
+        {{credit > 0 ? '去领更多额度' : '现在去领额度'}}
+      </view>
+    </view>
+
+    <!-- 活动流 -->
+    <view class="sec">
+      <text class="sec-title">检查记录</text>
+      <text class="sec-more">只记状态变化，不刷屏</text>
+    </view>
+
+    <view class="card empty" wx:if="{{!activity.length}}">
+      <view class="empty-mark"></view>
+      <view class="empty-title">还没有记录</view>
+      <view class="empty-sub">
+        余票数量发生变化时，这里会留下一条。<br />
+        没有变化说明一切正常——没票的时候本来就该安静。
+      </view>
+    </view>
+
+    <view class="act" wx:for="{{activity}}" wx:key="t">
+      <view class="act-dot {{item.kind}}"></view>
+      <view class="act-l">
+        <view class="act-top">
+          <text class="act-name">{{item.name}}</text>
+          <text class="t3">{{item.rel}}</text>
+        </view>
+        <view class="act-detail">
+          <text class="tag {{item.kindTag}}">{{item.kindLabel}}</text>
+          <text class="t2 act-txt">{{item.detail}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="safe"></view>
+  </view>
+
 </view>
