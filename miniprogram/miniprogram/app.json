@@ -10,15 +10,15 @@
   ],
   "window": {
     "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#F7F2E7",
+    "navigationBarBackgroundColor": "#F7F7FA",
     "navigationBarTitleText": "余票监控",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7F2E7"
+    "backgroundColor": "#F7F7FA"
   },
   "tabBar": {
-    "color": "#6E6558",
-    "selectedColor": "#445C38",
-    "backgroundColor": "#FDFBF4",
+    "color": "#6C6C75",
+    "selectedColor": "#1C1C1E",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "list": [
       {

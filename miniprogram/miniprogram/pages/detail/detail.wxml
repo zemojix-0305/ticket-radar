@@ -26,7 +26,6 @@
   <block wx:if="{{!loading && !error}}">
     <!-- 大海报 -->
     <view class="hero">
-      <view class="tape"></view>
       <image class="hero-poster" src="{{poster}}" mode="aspectFill" wx:if="{{poster}}" />
       <view class="hero-poster hero-poster-blank" wx:if="{{!poster}}">暂无海报</view>
       <image class="hero-stk stk-a" src="/images/board2/origami21.png" mode="aspectFit" />
@@ -52,24 +51,21 @@
     <!-- 票根列表：场次间用打孔线分隔 -->
     <view class="card ticket">
       <view class="sess" wx:for="{{sessions}}" wx:key="name" wx:for-item="s" wx:for-index="si">
-        <view class="perf perf-on-card" wx:if="{{si > 0}}"></view>
         <view class="sess-head">
           <view class="sess-name">{{s.name}}</view>
-          <text class="stamp {{s.available ? 'stamp-green' : 'stamp-ink'}}">{{s.status || (s.available ? '可购' : '不可购')}}</text>
+          <text class="tag {{s.available ? 'tag-ok' : 'tag-none'}}">{{s.status || (s.available ? '可购' : '不可购')}}</text>
         </view>
         <view class="tier" wx:for="{{s.tiers}}" wx:key="name" wx:for-item="t">
           <view class="tier-dot {{t.available ? 'on' : ''}}"></view>
           <view class="tier-name">{{t.name}}</view>
           <view class="tier-price" wx:if="{{t.price}}">{{t.price}}</view>
-          <text class="stamp {{t.available ? 'stamp-green' : 'stamp-ink'}}">{{t.status}}</text>
+          <text class="tag {{t.available ? 'tag-ok' : 'tag-none'}}">{{t.status}}</text>
         </view>
         <view class="sess-empty" wx:if="{{!s.tiers.length}}">这个场次的票档还没拉到，先「盯这场」，有动静会告诉你。</view>
       </view>
     </view>
 
-    <view class="stitch-wrap">
-      <view class="stitch-tag">盯整场 = 任意票档从无到有就提醒你</view>
-    </view>
+    <view class="sec-more">盯整场 = 任意票档从无到有就提醒你</view>
   </block>
 
   <!-- 底部操作栏 -->

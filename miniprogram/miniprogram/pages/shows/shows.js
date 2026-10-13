@@ -240,8 +240,8 @@ Page({
       status: row.status || '',
       // 印章颜色：可买=茶绿，关闭=朱砂，其余=墨灰
       statusCls: /有票|在售|可售|可购|预售/.test(row.status || '')
-        ? 'stamp-green'
-        : (/售罄|不可购|停售/.test(row.status || '') ? 'stamp-red' : 'stamp-ink'),
+        ? 'tag-ok'
+        : (/售罄|不可购|停售/.test(row.status || '') ? 'tag-bad' : 'tag-none'),
       // 12306 专有
       route: row.route || '',
     };

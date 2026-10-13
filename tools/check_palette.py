@@ -7,26 +7,26 @@ from __future__ import annotations
 
 #: 与 miniprogram/miniprogram/app.wxss 里的 page{} 同源，改一处记得改两处。
 #:
-#: 纸感票根手账（第十七轮）。暖白期刊纸底 + 墨色文字 + 单一茶绿强调色；
-#: 语义色：朱砂（热卖/回流/售罄）、琥珀（额度提醒）；形状：纸直角 + 药丸。
+#: 白色灵动（第十九轮回归）。淡灰白底 + 纯白卡 + 近黑主色；
+#: 语义色：有票绿 / 无票灰 / 异常红 / 提醒琥珀；形状：大圆角 + 药丸。
 PALETTE = {
-    "bg": "#F7F2E7",       # 页面底：暖白期刊纸
-    "card": "#FDFBF4",     # 卡片纸
-    "paper-deep": "#EFE8D7",  # 牛皮纸块
-    "brand": "#445C38",    # 茶绿（唯一强调色）
-    "brand-deep": "#36492C",
-    "t1": "#2A2620",       # 主文字：暖墨
-    "t2": "#57503F",       # 次要
-    "t3": "#6E6558",       # 提示/占位
-    "ok": "#445C38",       # 有票/在售：茶绿
-    "none": "#6E6558",     # 无票/未开售：墨灰
-    "bad": "#A23B2E",      # 售罄/异常：朱砂
-    "warn": "#7E6118",     # 提醒：琥珀
-    "ok-weak": "#E9EDDF",  # 茶绿浅底
-    "none-weak": "#F3EDDE",
-    "bad-weak": "#F5E4E0",
-    "warn-weak": "#F4EBD4",
-    "brand-weak": "#E9EDDF",
+    "bg": "#F7F7FA",       # 页面底：淡灰白
+    "card": "#FFFFFF",     # 卡片：纯白
+    "paper-deep": "#F1F1F4",  # 深一档底（输入框）
+    "brand": "#1C1C1E",    # 近黑（唯一主色）
+    "brand-deep": "#000000",
+    "t1": "#1C1C1E",       # 主文字：近黑
+    "t2": "#5A5A60",       # 次要
+    "t3": "#6C6C75",       # 提示/占位
+    "ok": "#237A45",       # 有票/在售：绿
+    "none": "#6B6B73",     # 无票/未开售：灰
+    "bad": "#C43C2C",      # 售罄/异常：红
+    "warn": "#8D6308",     # 提醒：琥珀（纸面 5.0:1）
+    "ok-weak": "#E3F5EA",  # 绿浅底
+    "none-weak": "#F1F1F4",
+    "bad-weak": "#FCEBE9",
+    "warn-weak": "#FFF7E0",
+    "brand-weak": "#F1F1F4",
 }
 
 #: (用途, 前景, 背景, 是否大字)。大字阈值 3.0，普通文本 4.5。
@@ -34,23 +34,23 @@ CHECKS = [
     ("正文", "t1", "card", False),
     ("次要文字", "t2", "card", False),
     ("提示文字", "t3", "card", False),
-    ("正文/纸底", "t1", "bg", False),
-    ("次要/纸底", "t2", "bg", False),
-    ("占位/纸底", "t3", "bg", False),
-    ("次要/牛皮纸底", "t2", "paper-deep", False),
-    ("有票印章", "ok", "card", False),
-    ("无票印章", "none", "card", False),
-    ("售罄印章", "bad", "card", False),
-    ("提醒印章", "warn", "card", False),
+    ("正文/页面底", "t1", "bg", False),
+    ("次要/页面底", "t2", "bg", False),
+    ("占位/页面底", "t3", "bg", False),
+    ("次要/深一档底", "t2", "paper-deep", False),
+    ("有票标签", "ok", "card", False),
+    ("无票标签", "none", "card", False),
+    ("售罄标签", "bad", "card", False),
+    ("提醒标签", "warn", "card", False),
     ("主色链接", "brand", "card", False),
-    ("纸白字/主按钮", "card", "brand", False),
-    ("大数字/纸底", "brand", "bg", True),
+    ("白字/主按钮", "card", "brand", False),
+    ("大数字/页面底", "brand", "bg", True),
     # 浅底上的深字
-    ("茶绿浅底/绿字", "ok", "ok-weak", False),
+    ("绿浅底/绿字", "ok", "ok-weak", False),
     ("灰浅底/灰字", "none", "none-weak", False),
-    ("朱砂浅底/红字", "bad", "bad-weak", False),
+    ("红浅底/红字", "bad", "bad-weak", False),
     ("琥珀浅底/琥珀字", "warn", "warn-weak", False),
-    ("茶绿浅底/主色字", "brand", "brand-weak", False),
+    ("灰浅底/主色字", "brand", "brand-weak", False),
 ]
 
 

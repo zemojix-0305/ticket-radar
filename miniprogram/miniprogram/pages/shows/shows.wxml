@@ -14,7 +14,6 @@
 
   <!-- 顶部：标题 + 英文小注 + 胶带/蝴蝶结/贴纸 -->
   <view class="head">
-    <view class="tape"></view>
     <view class="head-row">
       <view class="head-hand title-strong">今天想看什么</view>
       <view class="head-stks">
@@ -97,7 +96,6 @@
 
   <!-- ============ 使用教程 / 常见问题 ============ -->
   <view class="card faq">
-    <view class="tape faq-tape"></view>
     <view class="faq-head" bindtap="toggleFaq" hover-class="press-hover">
       <view class="faq-head-l">
         <image class="faq-stk" src="/images/board2/cartoon7.png" mode="aspectFit" />
@@ -111,7 +109,6 @@
           <text class="faq-q-t">{{item.q}}</text>
         </view>
         <view class="faq-a">{{item.a}}</view>
-        <view class="lace" wx:if="{{index < faqList.length - 1}}"></view>
       </view>
     </view>
   </view>
@@ -133,7 +130,7 @@
 
     <view class="sec">
       <view class="sec-title title-strong">正在热卖</view>
-      <view class="stamp stamp-red sec-stamp">在售</view>
+      <view class="tag tag-bad">在售</view>
     </view>
 
     <view class="card sk-card" wx:if="{{hotLoading}}">
@@ -157,7 +154,7 @@
           <view class="show-name">{{item.name}}</view>
           <view class="show-meta">
             <text class="tag">{{item.platformLabel}}</text>
-            <text class="stamp {{item.statusCls}}" wx:if="{{item.status}}">{{item.status}}</text>
+            <text class="tag {{item.statusCls}}" wx:if="{{item.status}}">{{item.status}}</text>
           </view>
           <view class="show-sub">
             <text wx:if="{{item.city}}">{{item.city}}</text>
@@ -178,9 +175,7 @@
       </view>
     </view>
 
-    <view class="stitch-wrap" wx:if="{{hot.length}}">
-      <view class="stitch-tag">点开看场次和票档 · 数据来自{{platforms[platformIndex].label}}</view>
-    </view>
+    <view class="sec-more" wx:if="{{hot.length}}">点开看场次和票档 · 数据来自{{platforms[platformIndex].label}}</view>
   </block>
 
   <!-- ============ 搜索结果 ============ -->
@@ -202,7 +197,7 @@
           <view class="show-name">{{item.name}}</view>
           <view class="show-meta">
             <text class="tag">{{item.platformLabel}}</text>
-            <text class="stamp {{item.statusCls}}" wx:if="{{item.status}}">{{item.status}}</text>
+            <text class="tag {{item.statusCls}}" wx:if="{{item.status}}">{{item.status}}</text>
             <text class="tag tag-none" wx:if="{{!item.status && item.city}}">{{item.city}}</text>
           </view>
           <view class="show-sub">

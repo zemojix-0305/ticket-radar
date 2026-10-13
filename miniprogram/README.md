@@ -38,6 +38,28 @@ Python 那套跑在你自己电脑上；这套跑在微信云开发上，手机�
 | `miniprogram/app.js` | `env: '你的环境ID'` → 你自己的 |
 | `cloudfunctions/radar/` 里的 `index.js` | 不用改 |
 
+### 4.5 **配 downloadFile 合法域名**（海报图片必须，不漏这步海报全是裂图）
+
+小程序 `<image>` 加载外链海报，域名必须在小程序后台
+「开发 → 开发管理 → 开发设置 → 服务器域名 → downloadFile 合法域名」里登记
+（不用勾选校验，仅列表登记即可）。当前代码实测用到的图片域名：
+
+```
+p0.pipi.cn
+p1.pipi.cn
+i0.hdslb.com
+i1.hdslb.com
+i2.hdslb.com
+cdn.ticketmars.com
+img.alicdn.com
+gw.alicdn.com
+alipic.oss-cn-beijing.aliyuncs.com
+```
+
+> 域名清单来自 2026-10 对猫眼/B站/票星球/大麦接口的实测返回值。
+> 云函数出口有 `normalizePosters` 统一把协议相对（`//host/…`）和 `http://`
+> 升成 `https://`，所以这里只需登记 https 域名。
+
 ### 5. **先验证云 IP 能不能抓到数据**（重要，别跳）
 
 在开发者工具的云开发控制台 → 云函数 → 新建/上传 `radar`，
@@ -147,16 +169,20 @@ miniprogram/
 
 ---
 
-## 设计系统：纸感票根手账（第 17 轮）
+## 设计系统：白色灵动（第 19 轮）
 
 完整规范见仓库根目录 **`DESIGN.md`**（改任何页面样式前先读它）。要点：
 
-- **语言**：北港茶式手账纸感 × 票根隐喻。暖白期刊纸 `#F7F2E7` + 暖墨 `#2A2620`，
-  单一强调色茶绿 `#445C38`；语义色朱砂 `#A23B2E`（热卖/回流/售罄）、琥珀 `#7E6118`（额度提醒）。
-- **形状规则**：纸 = 裁纸直角 2px，功能 = 药丸 999px，全站统一。
+- **语言**：白色灵动。淡灰白底 `#F7F7FA` + 纯白卡 `#FFFFFF` + 近黑主色 `#1C1C1E`
+  （主 CTA/选中态/tabs 下划线），分区靠柔和阴影与大留白，不靠描边；
+  彩色只留给语义：绿 `#237A45`（有票/在售）、灰 `#6B6B73`（无票）、
+  红 `#C43C2C`（售罄/异常）、琥珀 `#8D6308`（额度提醒）。
+- **形状规则**：卡片/按钮大圆角 22px，功能件药丸 999px，全站统一。
 - **字体**：全部系统默认，零自定义字体声明（硬规则）。
-- **公共组件**都在 `miniprogram/app.wxss`：`.card` `.tag` `.stamp` `.perf` `.barcode`
-  `.tape` `.bow` `.lace` `.btn` `.sheet` `.bg-collage` 等，直接用 class，不要各写各的。
+- **手账元素已全废**（第 19 轮）：胶带/印章/打孔线/条码/蝴蝶结/英文小注/✦ 符号，
+  app.wxss 不再定义；拼贴只留在开屏与页面背景层（`bg-stk`）。
+- **公共组件**都在 `miniprogram/app.wxss`：`.card` `.tag` `.btn` `.sheet` `.field`
+  `.empty` `.bg-collage` 等，直接用 class，不要各写各的。
 - **对比度**：`python tools/check_palette.py`，19 项 WCAG AA 全过（改色板必须重跑）。
 
 ### Vant Weapp 组件库
@@ -187,5 +213,5 @@ Dialog.confirm({ title, message }).then(() => {}).catch(() => {});
 <van-dialog id="van-dialog" />
 ```
 
-纸感主题靠 vant 的 `addGlobalClass` 机制由 `app.wxss` 里的 `page .van-*` 选择器覆盖，
-新增组件若要改样式，加在 app.wxss 的「Vant Weapp 纸感主题覆盖」区。
+白灵动主题靠 vant 的 `addGlobalClass` 机制由 `app.wxss` 里的 `page .van-*` 选择器覆盖，
+新增组件若要改样式，加在 app.wxss 的「Vant Weapp 白色灵动主题覆盖」区。

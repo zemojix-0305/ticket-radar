@@ -11,7 +11,6 @@
 
   <!-- 顶部标题区 -->
   <view class="board-header">
-    <view class="tape"></view>
     <view class="board-head-l">
       <view class="board-title title-strong">问题反馈</view>
       <view class="board-line"></view>

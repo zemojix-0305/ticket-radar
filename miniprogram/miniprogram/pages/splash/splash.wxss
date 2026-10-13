@@ -1,4 +1,4 @@
-/* 开屏页 v6：纯拼贴，无文字（第十八轮）
+/* 开屏页 v7：纯拼贴，无文字（第十九轮：白灵动质感精修）
    暖白纸 + 手撕条 + 打孔线 + 折纸星星/手绘星轨/手剪胶带拼贴。
    动效克制：撕条/打孔线淡入，贴纸逐张「贴上」（内层 scale，外层旋转），全部 1.5s 内完成。 */
 .splash-page {
@@ -15,15 +15,15 @@
 .tear-strip {
   height: 56rpx;
   margin-top: env(safe-area-inset-top);
-  background: #ECE3CE;
+  background: #EDEDF0;
   border-bottom: 1rpx solid var(--line);
 }
 /* 撕条底边锯齿：两片 45° 渐变三角交错出撕口 */
 .tear-edge {
   height: 12rpx;
   background-image:
-    linear-gradient(135deg, #ECE3CE 50%, transparent 50%),
-    linear-gradient(-135deg, #ECE3CE 50%, transparent 50%);
+    linear-gradient(135deg, #EDEDF0 50%, transparent 50%),
+    linear-gradient(-135deg, #EDEDF0 50%, transparent 50%);
   background-size: 24rpx 12rpx;
   background-repeat: repeat-x;
   background-position: 0 0, 12rpx 0;
@@ -37,11 +37,36 @@
   min-height: 0;
 }
 
+/* ---------- 拼贴元素局部定义（全局手账组件已废除，开屏拼贴自足） ---------- */
+.tape {
+  position: absolute;
+  background: rgba(28, 28, 30, 0.10);
+  transform: rotate(-4deg);
+  border-radius: 2px;
+}
+.tape-red   { background: rgba(196, 60, 44, 0.16); }
+.tape-kraft { background: rgba(28, 28, 30, 0.13); }
+.perf {
+  position: relative;
+  height: 0;
+  border-top: 1.5px dashed var(--line2);
+}
+.barcode {
+  height: 30px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 2px, transparent 2px 5px,
+    var(--ink) 5px 6px, transparent 6px 10px,
+    var(--ink) 10px 13px, transparent 13px 15px
+  );
+}
+
 /* 外层：定位 + 手贴旋转；内层：贴上动画 */
 .stk { position: absolute; }
 .stk-in {
   opacity: 0;
   animation: stk-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  filter: drop-shadow(0 3rpx 6rpx rgba(28, 28, 30, 0.10));
 }
 .stk image { display: block; width: 100%; }
 @keyframes stk-in {
@@ -102,7 +127,7 @@
 .dock-barcode .barcode {
   width: 260rpx;
   height: 60rpx;
-  opacity: 0.85;
+  opacity: 0.7;
 }
 
 /* 圆形纸片按钮：纸卡底 + 墨色细边 + 贴纸星星 + 斜压胶带 */
@@ -114,7 +139,7 @@
   border-radius: 50%;
   background: var(--card);
   border: 1rpx solid var(--line2);
-  box-shadow: 0 2rpx 0 rgba(42, 38, 32, 0.05);
+  box-shadow: 0 2px 10px rgba(28, 28, 30, 0.08), 0 10px 28px rgba(28, 28, 30, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;

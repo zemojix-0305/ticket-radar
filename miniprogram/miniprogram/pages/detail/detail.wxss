@@ -149,11 +149,6 @@
 .action-btn.busy { background: var(--accent-deep); }
 
 /* ---------- 骨架/空态 ---------- */
-.stitch-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 18px 0 6px;
-}
 .sk-poster {
   width: 100%;
   height: 200px;

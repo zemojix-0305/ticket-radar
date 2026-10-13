@@ -133,7 +133,6 @@
   line-height: 1.75;
   margin: 5px 0 10px 19px;
 }
-.faq-item .lace { margin: 0 0 8px 19px; }
 
 /* ---------- 12306 携程式表单 ---------- */
 .rail-card {
@@ -264,7 +263,6 @@
   overflow: hidden;
 }
 .show-meta { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.show-meta .stamp { font-size: 10px; padding: 1px 7px; letter-spacing: 1.5px; }
 .show-sub {
   margin-top: 5px;
   font-size: 12px;
@@ -309,13 +307,6 @@
   font-weight: 500;
 }
 .btn-watch-busy { background: var(--card2); color: var(--ink3); }
-
-/* 刺绣字说明 */
-.stitch-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 18px 0 6px;
-}
 
 /* ---------- 失败 / 骨架 ---------- */
 .fail { padding: 16px; }

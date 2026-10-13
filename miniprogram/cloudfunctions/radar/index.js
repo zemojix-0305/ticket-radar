@@ -1435,9 +1435,9 @@ async function takeSubQuota(db, openid) {
 // 入口
 // ===========================================================================
 
-exports.main = async (event) => {
-  const action = (event && event.action) || 'query';
-  const db = cloud.database();
+// 主逻辑（原 exports.main 主体）。海报 URL 的规范化在新 exports.main
+// 的出口统一做，各 adapter 只管把平台返回的字段掏出来。
+async function handleAction(event, action, db) {
 
   try {
     // --- 部署后的第一件事：确认云 IP 能不能抓到数据 -------------------
@@ -1769,4 +1769,53 @@ exports._internals = {
   pollPiaoxingqiu: pollPiaoxingqiu,
   hotPiaoxingqiu: hotPiaoxingqiu,
   detailShow: detailShow,
+};
+
+// ===========================================================================
+// 海报 URL 出口规范化（第十九轮）
+// ---------------------------------------------------------------------------
+// 小程序 <image> 加载外链海报的硬约束：
+//   1. 协议相对 URL（//i2.hdslb.com/...）不认——必须补 https:；
+//   2. http:// 混合内容不支持——统一升 https；
+//   3. 域名必须在小程序后台「downloadFile 合法域名」里（见 README 清单）。
+// 各 adapter 返回的字段名不统一（poster/imgUrl/verticalPic/cover），
+// 在这里递归统一处理，出口只有一种干净形态。
+function normalizePosterUrl(u) {
+  if (typeof u !== 'string') return '';
+  let s = u.trim();
+  if (!s) return '';
+  if (s.startsWith('//')) s = 'https:' + s;
+  else if (s.slice(0, 7).toLowerCase() === 'http://') s = 'https:' + s.slice(5);
+  return s;
+}
+
+const POSTER_FIELDS = ['poster', 'imgUrl', 'verticalPic', 'cover'];
+
+function normalizePosters(out) {
+  if (!out || typeof out !== 'object') return out;
+  const seen = new Set();
+  const walk = (v) => {
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (!v || typeof v !== 'object' || seen.has(v)) return;
+    seen.add(v);
+    for (const k of POSTER_FIELDS) {
+      if (k in v) v[k] = normalizePosterUrl(v[k]);
+    }
+    for (const k of Object.keys(v)) {
+      const x = v[k];
+      if (x && typeof x === 'object') walk(x);
+    }
+  };
+  walk(out);
+  return out;
+}
+
+exports.main = async (event) => {
+  try {
+    return normalizePosters(
+      await handleAction(event, (event && event.action) || 'query', cloud.database())
+    );
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
 };

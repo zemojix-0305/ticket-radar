@@ -92,7 +92,6 @@
 
   <!-- 支持作者：默认字体 + 朴素排版（对齐用户给的参考截图） -->
   <view class="card support">
-    <view class="tape support-tape"></view>
     <view class="support-main">
       <view class="support-t">支持作者</view>
       <view class="support-d">项目开源在 GitHub，欢迎去点个 Star</view>

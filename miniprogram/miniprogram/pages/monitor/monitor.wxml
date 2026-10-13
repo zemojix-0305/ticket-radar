@@ -12,7 +12,6 @@
 
   <!-- 顶部 hero -->
   <view class="hero">
-    <view class="tape"></view>
     <view class="hero-l">
       <view class="hero-title-row">
         <view class="hero-title title-strong">正在盯的票</view>
