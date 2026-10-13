@@ -31,7 +31,9 @@ const DB_POSTS = 'radar_posts';
 // 推送永远发不出去（这就是「明明有票却收不到提醒」的根因）。
 const DB_SUBS = 'radar_subs';
 // 订阅消息模板 ID——与小程序端 mine.js 的 TMPL_ID 是同一个，改记得两边改。
-const NOTIFY_TMPL = 'YnMbguJ_UqIWb1eUOSMOp1RwdGJoIzhXYISaXFnsF4';
+// 字段（后台模板实际配置，2026-10 查证）：
+//   thing6=演出名称  thing8=场次名称  time7=放票时间  thing5=放票机构  thing4=温馨提示
+const NOTIFY_TMPL = 'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4';
 const CFG_KEY = 'radar_config';
 
 // ===========================================================================
@@ -839,6 +841,12 @@ const PLATFORMS = {
   piaoxingqiu: pollPiaoxingqiu,
 };
 
+// 平台中文名：推送消息里的「放票机构」字段用
+const LABEL_CN = {
+  maoyan: '猫眼', moretickets: '摩天轮', rail12306: '12306',
+  damai: '大麦', piaoxingqiu: '票星球',
+};
+
 const PLATFORM_PROBE = {
   maoyan: () => `${MAOYAN_BASE}/ajax/performance/501675?sellChannel=7`,
   moretickets: null, // POST 接口，probe 走真实轮询
@@ -975,14 +983,17 @@ exports.main = async (event) => {
           try {
             if (await takeSubQuota(db, task._openid)) {
               const first = (rec.items || []).find((i) => i.available) || {};
+              // 模板字段以小程序后台实际配置为准；thing 类字段限 20 字
               await cloud.openapi.subscribeMessage.send({
                 touser: task._openid,
                 templateId: NOTIFY_TMPL,
                 page: 'pages/monitor/monitor',
                 data: {
-                  // 模板字段以小程序后台实际配置为准；thing 类字段限 20 字
-                  thing1: { value: String(rec.name || '你盯的场次').slice(0, 20) },
-                  thing2: { value: String('回流票：' + (first.label || '有票了')).slice(0, 20) },
+                  thing6: { value: String(rec.name || '你盯的演出').slice(0, 20) },
+                  thing8: { value: String((first.label || '有场次放票')).slice(0, 20) },
+                  time7: { value: new Date().toLocaleString('zh-CN', { hour12: false }) },
+                  thing5: { value: String(LABEL_CN[task.adapter] || task.adapter).slice(0, 20) },
+                  thing4: { value: '回流票出现，尽快去官方渠道下单' },
                 },
               });
               rec.notify.sent = true;
