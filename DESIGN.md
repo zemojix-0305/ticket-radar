@@ -1,7 +1,7 @@
-# ticket-radar 设计规范 v17「纸感票根手账」
+# ticket-radar 设计规范 v18「纸感票根手账 · 纯拼贴开屏」
 
-> 第十七轮全站改版的设计单一事实来源。改任何页面样式前先读这份。
-> 参考：北港茶小程序（暖白期刊纸 + 手绘细线 + 大量留白 + 胶带拼贴）+ 复古票根（打孔线/副券/条码/编号/印章）。
+> 第十八轮在 v17 基础上做「去 AI 味、去土气」减法：删英文装饰小注、删 ✦ 符号、删蝴蝶结、开屏改纯拼贴零文字。
+> 参考：北港茶小程序（暖白期刊纸 + 手绘细线 + 大量留白 + 胶带拼贴）+ 复古票根（打孔线/副券/条码/印章）。
 
 ## 0. 设计原则（taste-skill 规则，按本项目情境化）
 
@@ -16,6 +16,15 @@
 - 标题类一律单行（white-space: nowrap），折行 = 排版事故；
 - 拼贴素材透明度 0.06~0.12，只在留白处透出，不压文字。
 
+### 0.1 去 AI 味硬规则（第十八轮新增，用户明确反馈后立）
+
+- **禁英文装饰小注**：不写 `WATCHING NOW` / `FIND SOMETHING TO WATCH` / `ADMIT ONE` / `ON SALE` / `SESSIONS & TICKETS` 这类翻译腔双语排版。界面语言只有中文，状态词一律中文（在售/售罄/预售中/缺票登记）；
+- **禁 ✦ 类符号装饰**：不当列表 dot、不当标题点缀、不当 sparkle 用；
+- **禁蝴蝶结**：coquette 残留，最显俗的元素，已从 app.wxss 删除，任何页面不得新增；
+- **禁带英文字的贴纸素材**：collage13（LOVE×3）、collage16（YOU ME）、collage8（英文句子）已全部替换为折纸星星/手绘线条类；
+- **禁矫情文案**：不写「不错过每一次回流」「点个 Star 就是最大的鼓励」「我们会持续替你看着」这类嗲语气泡文案，功能说明一句话说清；
+- **装饰做减法**：每个视觉焦点最多一种装饰（一片胶带 或 一张贴纸），不堆砌。
+
 ## 1. 设计令牌（定义在 app.wxss 的 page{}，直接用 var() 引用）
 
 ```
@@ -24,7 +33,7 @@
      --line #D9D0BC 纸边细线 | --line2 #C4B99F 打孔线/强分隔
 茶绿(唯一强调色): --accent #445C38 | --accent-deep #36492C | --accent-weak #E9EDDF
 朱砂(语义): --stamp #A23B2E | --stamp-weak #F5E4E0
-琥珀(语义): --warn #8A6A1B | --warn-weak #F4EBD4
+琥珀(语义): --warn #7E6118 | --warn-weak #F4EBD4
 形状: --r 2px(纸) | --r-sm 2px | --r-pill 999px(功能) | --gut 12px
 其他: --on-brand #FDFBF4(绿底上的纸白字) | --disabled #DCD5C4 | --bar-idle #EAE3D2
 ```
@@ -43,10 +52,7 @@
 | `.perf` / `.perf-on-card` | 打孔线：虚线 + 两侧半圆缺口（卡片内用 on-card 变体） |
 | `.barcode` | 条码：硬边条纹（可再用 width/height 覆盖） |
 | `.tape` + `.tape-red/.tape-kraft/.tape-wide` | 和纸胶带：半透明微斜，父容器需 position:relative |
-| `.bow` + `.bow-k` | 蝴蝶结（茶绿） |
 | `.lace` | 蕾丝点线软分隔 |
-| `.spark` / `.spark-lg` | ✦ 四角星符号 |
-| `.en-note` | 英文小注：10px 大写 + 2.5px 字距 |
 | `.btn` + `.btn-primary/.btn-ghost/.btn-line` | 按钮：44px 高，2px 直角 |
 | `.empty` + `.empty-mark/.empty-title/.empty-sub` | 空状态（必须给下一步动作） |
 | `.sheet` + `.sheet-grab/.sheet-title/.sheet-sub` | 底部纸弹层 |
@@ -56,7 +62,7 @@
 | `.sk` | 骨架屏 |
 | `.press` / `.press-hover` / `.press-card` / `.press-card-hover` | 按压反馈（可点元素必须带） |
 
-**已删除**：`.bg-tint` 系列（Y2K 光晕，本季废除）——wxml 里的 bg-tint 节点要删掉，bg-stk 保留。
+**已删除**：`.bg-tint` 系列（Y2K 光晕）、`.bow`/`.bow-k`（蝴蝶结）、`.spark`/`.spark-lg`（✦ 符号）、`.en-note`（英文小注）——wxml/wxss 均不得再引用。
 
 ## 3. Vant Weapp（已 vendor 到 `miniprogram/vant/`，共 19 个组件目录）
 
@@ -108,7 +114,7 @@ onTab(e) {
 }
 ```
 
-已接入的页面：shows（平台 tabs）、mine（toast）。本批要接入：discussion（分类 tabs + toast/dialog）。
+已接入的页面：shows（平台 tabs）、monitor/detail/discussion/mine（toast/dialog）。
 
 ## 4. 各页面现状与改版要求
 
@@ -119,10 +125,20 @@ onTab(e) {
 4. page.json 的 `navigationBarBackgroundColor` 改 `#F7F2E7`；
 5. **不得改动任何数据绑定字段名、事件 handler 名、js 业务逻辑**（Toast/Dialog 替换除外）；
 6. 不得新增 `font-family`；不得引用 app.wxss 里不存在的 var()；
-7. 图标/贴纸继续用 `/images/board2/` 与 `/images/board/` 现有素材，不新增图片文件。
+7. 遵守 0.1 节去 AI 味硬规则（无英文小注/无✦/无蝴蝶结/无英文字贴纸/无矫情文案）；
+8. 图标/贴纸继续用 `/images/board2/` 与 `/images/board/` 现有素材，不新增图片文件；
+9. hero 挂件贴纸每处最多 1 张。
+
+### splash（开屏，第十八轮重做：纯拼贴零文字）
+- **整个屏幕无任何文字**：不写品牌名/口号/编号/按钮字/提示语，图形自己说话；
+- 结构：暖白纸底 → 顶部手撕条（纯图形 + 底边锯齿撕口）→ 打孔线 → 主视觉拼贴区 → 打孔线 → 底部 dock；
+- 主视觉：大折纸星（origami11，视觉重心偏左上）+ 手绘星轨（cartoon10，右上）+ 小黄星（origami22，左下）+ 小红星（origami8，右中）+ 两片手剪胶带；不对称构图，留白 ≥ 60%；
+- 底部 dock：条码（纯图形，无编号）+ 圆形纸片按钮（card 底 + 墨色细边 + 折纸星贴纸 + 斜压胶带）；
+- 动效：撕条/打孔线/条码淡入；贴纸逐张「贴上」（外层定位+旋转，内层 scale 动画，全部 1.5s 内完成）；
+- 交互不变：整屏 bindtap 进入 + 2.4s 自动进入 + 24h 内不再展示（splash.js 不动）。
 
 ### monitor（首页，tab 第 1 页）
-- hero：标题「正在盯的票」+ 大数字 okCount/total + en-note WATCHING NOW + 加监控按钮（accent，2px 直角，去掉蓝色阴影）；
+- hero：标题「正在盯的票」+ 大数字 okCount/total + 加监控按钮（accent，2px 直角，去掉蓝色阴影）；hero 挂件贴纸仅 1 张（origami12）；
 - quick-grid 四个快捷入口：纸卡片，线性图标近墨色；
 - segs 筛选：药丸容器，选中 = accent 实心；
 - credit 额度条：纸卡，空额度时 warn-weak 底；
@@ -131,19 +147,20 @@ onTab(e) {
 - 分享画布 `#shareCanvas` 相关 js 一律不动。
 
 ### detail（演出详情）
-- 大海报 + 名称 + 平台/城市/票价信息区（信息格用虚线分栏，参考 splash 的 ticket-info）；
+- 大海报 + 名称 + 平台/城市/票价信息区（信息格用虚线分栏）；
 - 场次列表：每行像票根一行，场次间用 `.perf-on-card` 打孔线分隔；
 - 票档：名称 + 价格 + 状态（`.stamp`）；
 - 底部「盯这场」：accent 大按钮；
 - toast/dialog 接入（js 里现有的 wx.showToast/showModal 替换）。
 
 ### discussion（反馈/讨论区）
-- 分类 tabs（全部/问题反馈/建议留言/求助留言）换成 van-tabs，`onTab` 双签名兼容；
+- 分类 tabs（全部/问题反馈/建议留言/求助留言）用 van-tabs，`onTab` 双签名兼容；
 - 留言墙便签保留现有 note 图素材，便签上的文字/标签/头像meta 重新排版（纸感）；
-- 头部「问题反馈 / FEEDBACK」保留，胶带贴纸保留；
+- 头部「问题反馈」+ 茶绿小短线（board-line），无英文小注；挂件贴纸仅 1 张；
 - 搜索栏、fab 发帖按钮（accent）、发帖弹层（.sheet 纸面）、放大查看便签全部纸感化；
 - toast/dialog 接入；
-- 底部「数据来自社区 · 每五分钟刷新一次」文案保留。
+- 底部「数据来自社区 · 每五分钟刷新一次」文案保留；
+- 发帖可选便签素材 10 种（stickers 数组），全部不含英文字贴纸。
 
 ### history（余票历史）
 - 列表改纸卡；空状态/失败态用 app.wxss 公共类；toast 接入。
@@ -156,6 +173,10 @@ onTab(e) {
 1. `grep -rn "font-family" miniprogram/miniprogram` 零命中；
 2. 页面里所有 `var(--xxx)` 都能在 app.wxss 找到定义；
 3. wxml 里没有残留 `bg-tint`；
-4. js 里没有残留 `wx.showToast` / `wx.showModal`（discussion/monitor/detail/history/inbox 各自检查）；
-5. page.json 有正确的 usingComponents 与 #F7F2E7 导航色；
-6. 事件 handler 名与数据字段名与原版一致（git diff 只看 wxml/wxss/json + js 的反馈替换）。
+4. `grep -rn 'class="[^"]*\bbow\b\|en-note\|spark-lg\|quota-bow\|search-pin' miniprogram/miniprogram` 零命中；
+5. `grep -rn 'collage13\|collage16\|collage8.png' miniprogram/miniprogram` 零命中（带英文字的贴纸禁用）；
+6. `grep -rn 'WATCHING NOW\|FIND SOMETHING\|ADMIT ONE\|ON SALE\|SESSIONS\|FEEDBACK' miniprogram/miniprogram` 零命中；
+7. js 里没有残留 `wx.showToast` / `wx.showModal`（discussion/monitor/detail/history/inbox 各自检查）；
+8. page.json 有正确的 usingComponents 与 #F7F2E7 导航色；
+9. 事件 handler 名与数据字段名与原版一致（git diff 只看 wxml/wxss/json + js 的反馈替换）；
+10. wxml 标签配对、wxss 大括号配对、页面 js `node --check` 全过。

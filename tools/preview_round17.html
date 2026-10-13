@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN" data-page-node-id="QFXqTxwSWd8AUsiyWNzd35">
+<head data-page-node-id="3GEvcfqtzjLWqqCghvvAPN">
+<meta charset="UTF-8" data-page-node-id="g0po8j610BrRGpD0swzVxd">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="7SX6o9BypqScQLsHgN3VTe">
 <title>第17轮视觉稿：纸感票根手账</title>
 <style>
   /* ============ 设计令牌（抄自 app.wxss page{} 原值，定义在 :root）============ */
@@ -82,8 +82,6 @@
   .bg-soft   { opacity: .10; }
   .bg-visible { opacity: .12; }
 
-  .en-note { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink3); }
-  .spark { color: var(--accent); }
   .title-strong { font-weight: 600; letter-spacing: .5px; }
   .t1 { font-size: 16px; font-weight: 600; color: var(--ink); }
   .t2 { font-size: 13px; color: var(--ink2); }
@@ -118,11 +116,6 @@
   .tape-wide  { width: 88px; }
 
   /* 蝴蝶结 */
-  .bow { position: relative; width: 30px; height: 18px; flex-shrink: 0; }
-  .bow::before, .bow::after { content: ''; position: absolute; top: 2px; width: 12px; height: 14px; background: var(--accent-weak); border: 1.5px solid var(--accent); }
-  .bow::before { left: 1px; border-radius: 70% 15% 70% 15%; transform: rotate(-10deg); }
-  .bow::after  { right: 1px; border-radius: 15% 70% 15% 70%; transform: rotate(10deg); }
-  .bow-k { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--accent); border-radius: 3px; z-index: 1; }
 
   /* 打孔线 */
   .perf { position: relative; height: 0; border-top: 1.5px dashed var(--line2); margin: 0 -20px; }
@@ -147,41 +140,29 @@
   .vtab.on { color: var(--ink); font-weight: 600; }
   .vtab-line { position: absolute; bottom: -1px; height: 3px; background: var(--accent); border-radius: 1px; }
 
-  /* ============ 开屏票根 ============ */
+  /* ============ 开屏纯拼贴 v18（零文字） ============ */
   .splash-page { position: relative; height: 100%; background: var(--paper); overflow: hidden; display: flex; flex-direction: column; z-index: 1; }
-  .splash-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-  .sbg { position: absolute; }
-  .sbg-1 { width: 90px; height: 90px; top: 5%;  right: -23px; transform: rotate(14deg); opacity: .08; }
-  .sbg-2 { width: 70px; height: 70px; top: 30%; left: -20px; transform: rotate(-10deg); opacity: .07; }
-  .sbg-3 { width: 75px; height: 75px; bottom: 8%; left: -20px; transform: rotate(8deg); opacity: .07; }
-  .sbg-4 { width: 60px; height: 60px; bottom: 30%; right: -15px; transform: rotate(-14deg); opacity: .06; }
-  .sbg-5 { width: 27px; height: 27px; top: 11%; left: 13%; transform: rotate(-12deg); opacity: .09; }
-  .watermark { position: absolute; right: 3px; top: 0; bottom: 0; width: 17px; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1; }
-  .watermark-t { white-space: nowrap; font-size: 9px; letter-spacing: 3.5px; color: var(--ink); opacity: .07; transform: rotate(90deg); }
-  .ticket { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 100%; position: relative; z-index: 1; }
-  .ticket-top { display: flex; align-items: baseline; justify-content: space-between; padding: 26px 2px 10px; }
-  .top-name { font-size: 12px; font-weight: 600; letter-spacing: 2.5px; color: var(--ink); }
-  .top-no { font-size: 10px; letter-spacing: 1px; color: var(--ink3); font-variant-numeric: tabular-nums; }
-  .ticket-main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 24px 2px; position: relative; }
-  .ticket-eyebrow { font-size: 10px; letter-spacing: 2.5px; color: var(--ink3); margin-bottom: 11px; }
-  .ticket-title { font-size: 48px; font-weight: 700; letter-spacing: 5px; line-height: 1.12; color: var(--ink); }
-  .ticket-slogan { margin-top: 14px; font-size: 13px; letter-spacing: 1px; line-height: 1.6; color: var(--ink2); }
-  .ticket-info { margin-top: 36px; display: flex; }
-  .info-cell { flex: 1; min-width: 0; }
-  .info-cell + .info-cell { border-left: 1px dashed var(--line2); padding-left: 12px; }
-  .info-lbl { display: block; font-size: 8.5px; letter-spacing: 1px; color: var(--ink3); margin-bottom: 6px; }
-  .info-v { display: block; font-size: 15px; font-weight: 600; letter-spacing: .5px; color: var(--ink); }
-  .ticket-stamp { position: absolute; top: 28px; right: 2px; transform: rotate(-8deg); font-size: 11px; letter-spacing: 2.5px; padding: 4px 10px; border-width: 1px; border-radius: 3px; opacity: .8; }
-  .ticket-tape { top: 17px; left: 2px; width: 65px; height: 18px; transform: rotate(-6deg); }
-  .ticket-stk { position: absolute; }
-  .stk-a { width: 44px; top: 75px; right: 2px; transform: rotate(12deg); opacity: .92; }
-  .stk-b { width: 36px; bottom: 32px; left: 2px; transform: rotate(-9deg); opacity: .92; }
-  .ticket-stub { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; padding: 15px 2px 15px; }
-  .stub-barcode { width: 115px; height: 33px; }
-  .stub-no { display: block; margin-top: 7px; font-size: 9px; letter-spacing: 1.5px; color: var(--ink3); font-variant-numeric: tabular-nums; }
-  .stub-r { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-  .btn-enter { min-width: 104px; height: 43px; line-height: 43px; text-align: center; padding: 0 20px; background: var(--accent); color: var(--on-brand); border-radius: var(--r); font-size: 15px; font-weight: 500; letter-spacing: 4px; box-sizing: border-box; }
-  .stub-hint { font-size: 10px; letter-spacing: 1px; color: var(--ink3); }
+  .tear-strip { height: 26px; margin-top: 20px; background: #ECE3CE; border-bottom: 1px solid var(--line); }
+  .tear-edge { height: 6px; background-image: linear-gradient(135deg, #ECE3CE 50%, transparent 50%), linear-gradient(-135deg, #ECE3CE 50%, transparent 50%); background-size: 12px 6px; background-repeat: repeat-x; background-position: 0 0, 6px 0; }
+  .splash-perf { margin: 0 20px; }
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stk { position: absolute; }
+  .stk-in { opacity: .95; }
+  .stk img { display: block; width: 100%; }
+  .stk-main { width: 140px; top: 60px; left: 95px; transform: rotate(-7deg); }
+  .stk-tape1 { top: 48px; left: 129px; transform: rotate(-24deg); }
+  .stk-tape1 .tape { width: 75px; height: 20px; }
+  .stk-trail { width: 90px; top: 35px; right: 18px; transform: rotate(12deg); }
+  .stk-yellow { width: 48px; top: 235px; left: 42px; transform: rotate(-16deg); }
+  .stk-red { width: 30px; top: 260px; right: 75px; transform: rotate(10deg); }
+  .stk-tape2 { top: 300px; right: 105px; transform: rotate(16deg); }
+  .stk-tape2 .tape { width: 60px; height: 17px; }
+  .dock { display: flex; align-items: flex-end; justify-content: space-between; padding: 17px 28px 20px; }
+  .dock-barcode .barcode { width: 130px; opacity: .85; }
+  .stk-btn { padding-bottom: 4px; }
+  .enter-disc { position: relative; width: 108px; height: 108px; border-radius: 50%; background: var(--card); border: 1px solid var(--line2); box-shadow: 0 1px 0 rgba(42,38,32,.05); display: flex; align-items: center; justify-content: center; transform: rotate(-4deg); }
+  .enter-tape { position: absolute; top: -8px; left: 50%; margin-left: -23px; width: 46px; height: 15px; background: rgba(162,59,46,.32); transform: rotate(-8deg); }
+  .enter-stk { width: 48px; display: block; margin-top: 5px; }
 
   /* ============ 监控页 ============ */
   .hero { display: flex; align-items: center; justify-content: space-between; padding: 26px 20px 16px; position: relative; z-index: 1; }
@@ -190,7 +171,6 @@
   .hero-l { flex: 1; min-width: 0; }
   .hero-stks { display: flex; align-items: center; gap: 2px; }
   .hero-stk { width: 30px; height: 30px; margin-bottom: 6px; transform: rotate(10deg); opacity: .9; }
-  .hero-stk.stk-b { width: 24px; height: 24px; transform: rotate(-8deg); margin-left: -4px; }
   .hero-count { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; }
   .hero-ok { color: var(--ink); }
   .hero-total { color: var(--ink3); }
@@ -249,7 +229,6 @@
   .head-row { display: flex; align-items: center; gap: 8px; }
   .head-stks { display: flex; align-items: center; gap: 2px; }
   .head-stk { width: 28px; height: 28px; transform: rotate(10deg); opacity: .95; }
-  .head-stk.stk-b { width: 22px; height: 22px; transform: rotate(-8deg); margin-left: -4px; }
   .searchbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; position: relative; z-index: 1; }
   .search-box { flex: 1; min-width: 0; display: flex; align-items: center; height: 42px; padding: 0 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-pill); }
   .search-ico { width: 17px; height: 12px; border: 2px solid var(--accent); border-radius: 3px; flex-shrink: 0; position: relative; transform: rotate(-10deg); }
@@ -258,7 +237,6 @@
   .search-ph { color: var(--ink3); font-size: 14px; }
   .search-clear { font-size: 13px; color: var(--ink3); padding-left: 8px; }
   .search-btn { flex-shrink: 0; height: 42px; line-height: 42px; padding: 0 18px; border-radius: var(--r); background: var(--accent); color: var(--on-brand); font-size: 15px; font-weight: 500; letter-spacing: 1px; }
-  .search-pin { position: absolute; top: 0; right: 108px; width: 26px; height: 26px; transform: rotate(14deg); opacity: .9; pointer-events: none; }
   .sec-stamp { font-size: 10px; letter-spacing: 2px; padding: 2px 8px; align-self: center; }
   .hot-list { padding: 0 12px; position: relative; z-index: 1; }
   .show-card { display: flex; gap: 14px; padding: 14px; margin-bottom: 10px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); position: relative; }
@@ -280,7 +258,6 @@
   .d-hero-poster { display: block; width: 100%; height: 200px; border-radius: var(--r); border: 1px solid var(--line2); background: var(--card2); object-fit: cover; }
   .d-hero-stk { position: absolute; width: 34px; height: 34px; }
   .d-hero-stk.stk-a { right: 12px; bottom: 14px; transform: rotate(12deg); opacity: .95; }
-  .d-hero-stk.stk-b { left: 10px; bottom: 10px; transform: rotate(-10deg); opacity: .9; }
   .d-info { padding: 16px 18px; }
   .d-info-name { font-size: 18px; font-weight: 600; color: var(--ink); line-height: 1.45; letter-spacing: .3px; }
   .d-info-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -305,7 +282,6 @@
   .board-title { font-size: 26px; font-weight: 600; color: var(--ink); letter-spacing: .5px; white-space: nowrap; }
   .board-stks { display: flex; align-items: center; gap: 2px; }
   .board-stk { width: 30px; height: 30px; margin-top: 2px; transform: rotate(10deg); opacity: .95; }
-  .board-stk.stk-b { width: 24px; height: 24px; transform: rotate(-8deg); margin-left: -4px; }
   .board-subtitle { font-size: 10px; color: var(--ink3); letter-spacing: 6px; text-transform: uppercase; margin-top: 4px; }
   .board-line { width: 40px; height: 2px; background: var(--accent); margin-top: 10px; }
   .post-board { padding: 6px 0 14px; position: relative; z-index: 1; }
@@ -338,7 +314,6 @@
   .uid { font-size: 12px; color: var(--ink2); background: var(--card2); padding: 3px 9px; border-radius: var(--r-pill); }
   .uid-copy { font-size: 12px; color: var(--accent); }
   .quota { padding: 16px 18px; position: relative; }
-  .quota-bow { position: absolute; top: 12px; right: 14px; transform: rotate(9deg); opacity: .9; }
   .quota-v { display: flex; align-items: baseline; margin-bottom: 14px; }
   .quota-n { color: var(--accent); }
   .acts { display: flex; gap: 10px; margin-top: 14px; }
@@ -384,557 +359,519 @@
   .cap b { color: var(--ink2); font-weight: 600; }
 </style>
 </head>
-<body>
-<div class="board">
+<body data-page-node-id="sNHwOLmjtkd43dE6Detb34">
+<div class="board" data-page-node-id="qiYIzlf0ob4AtlPpzht0UZ">
 
   <!-- ============ 板上标题 ============ -->
-  <div class="board-head">
-    <h1>ticket-radar · 第 17 轮设计稿 / 纸感票根手账</h1>
-    <div class="board-sub">
-      <span class="board-no">NO.17</span>
+  <div class="board-head" data-page-node-id="d4LsarDWqEa1zCNt2ko7DE">
+    <h1 data-page-node-id="9GAgEdSgetDtktpKens1Of">ticket-radar · 第 17 轮设计稿 / 纸感票根手账</h1>
+    <div class="board-sub" data-page-node-id="1tLEDrpU1LpxHJk8x3AiUw">
+      <span class="board-no" data-page-node-id="w97ExptR8AcIJGa6X5T2UJ">NO.17</span>
       PAPER TICKET PASSBOOK · ROUND 17 DESIGN BOARD
     </div>
-    <div class="board-desc">
+    <div class="board-desc" data-page-node-id="Lzi8uaLSgbUlw28ZXUjlIQ">
       全站改版「纸感票根手账」：暖白期刊纸 + 手绘细线 + 胶带拼贴，叠加复古票根语言（打孔线 / 副券 / 条码 / 编号 / 印章）。
       下列 6 个手机框为各页面真机样式复刻，配色、圆角、间距、字号均抄自 app.wxss 与各页 wxss。
     </div>
   </div>
 
   <!-- ============ 手机框区 ============ -->
-  <div class="row">
+  <div class="row" data-page-node-id="I94ZDTzAho06uwij49qfcw">
 
     <!-- ====== 1. 开屏票根 ====== -->
-    <div>
-      <div class="phone">
-        <div class="phone-tag">开屏票根</div>
-        <div class="screen">
-          <view class="splash-page">
-            <div class="splash-bg">
-              <img class="sbg sbg-1" src="../miniprogram/miniprogram/images/board2/collage13.png">
-              <img class="sbg sbg-2" src="../miniprogram/miniprogram/images/board2/cartoon12.png">
-              <img class="sbg sbg-3" src="../miniprogram/miniprogram/images/board2/collage3.png">
-              <img class="sbg sbg-4" src="../miniprogram/miniprogram/images/board2/origami1.png">
-              <img class="sbg sbg-5" src="../miniprogram/miniprogram/images/board2/origami22.png">
+    <div data-page-node-id="HGCNoYG2fHaOOCh3YDxUEY">
+      <div class="phone" data-page-node-id="qhCxokoCJRKHqN1IgNC6sp">
+        <div class="phone-tag" data-page-node-id="fRmXauu2mxNiLEVBT3MNOZ">开屏票根</div>
+        <div class="screen" data-page-node-id="tHuINNX4gtiqvfFD0reybH">
+          <view class="splash-page" data-page-node-id="ac8aiIVWPhvonPjPffsUR3">
+            <div class="tear-strip"></div>
+            <div class="tear-edge"></div>
+            <div class="perf splash-perf"></div>
+            <div class="stage">
+              <div class="stk stk-main"><div class="stk-in"><img src="../miniprogram/miniprogram/images/board2/origami11.png"></div></div>
+              <div class="stk stk-tape1"><div class="stk-in"><div class="tape tape-kraft"></div></div></div>
+              <div class="stk stk-trail"><div class="stk-in"><img src="../miniprogram/miniprogram/images/board2/cartoon10.png"></div></div>
+              <div class="stk stk-yellow"><div class="stk-in"><img src="../miniprogram/miniprogram/images/board2/origami22.png"></div></div>
+              <div class="stk stk-red"><div class="stk-in"><img src="../miniprogram/miniprogram/images/board2/origami8.png"></div></div>
+              <div class="stk stk-tape2"><div class="stk-in"><div class="tape tape-red"></div></div></div>
             </div>
-            <div class="watermark"><span class="watermark-t">TICKET · RADAR · ADMIT ONE · 2026</span></div>
-            <div class="ticket">
-              <div class="ticket-top">
-                <span class="top-name">TICKET-RADAR</span>
-                <span class="top-no">NO. 2026</span>
-              </div>
-              <div class="perf ticket-perf"></div>
-              <div class="ticket-main">
-                <div class="ticket-eyebrow">ADMIT ONE · 余票监控</div>
-                <div class="ticket-title">票务雷达</div>
-                <div class="ticket-slogan">盯紧每一场演出，不错过每一次回流</div>
-                <div class="ticket-info">
-                  <div class="info-cell"><span class="info-lbl">日期 DATE</span><span class="info-v">2026.10</span></div>
-                  <div class="info-cell"><span class="info-lbl">场次 SESSION</span><span class="info-v">全平台</span></div>
-                  <div class="info-cell"><span class="info-lbl">座位 SEAT</span><span class="info-v">自由座</span></div>
-                </div>
-                <span class="stamp stamp-green ticket-stamp">监控中</span>
-                <div class="tape ticket-tape"></div>
-                <img class="ticket-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami12.png">
-                <img class="ticket-stk stk-b" src="../miniprogram/miniprogram/images/board2/cartoon7.png">
-              </div>
-              <div class="perf ticket-perf"></div>
-              <div class="ticket-stub">
-                <div class="stub-l">
-                  <div class="barcode stub-barcode"></div>
-                  <span class="stub-no">NO. 000001</span>
-                </div>
-                <div class="stub-r">
-                  <div class="btn-enter">进入</div>
-                  <span class="stub-hint">轻触任意处进入</span>
-                </div>
-              </div>
+            <div class="perf splash-perf"></div>
+            <div class="dock">
+              <div class="dock-barcode"><div class="barcode"></div></div>
+              <div class="stk stk-btn"><div class="stk-in"><div class="enter-disc"><div class="enter-tape"></div><img class="enter-stk" src="../miniprogram/miniprogram/images/board2/origami22.png"></div></div></div>
             </div>
           </view>
         </div>
       </div>
-      <div class="cap"><b>开屏 v5</b>：整屏即一张票——撕条 TICKET-RADAR / NO.2026 → 打孔线 → 主券（ADMIT ONE 眉题 + 96rpx 大标题 + 口号 + 虚线分栏信息格 + 监控中印章）→ 打孔线 → 副券（条码 + 进入按钮）。茶绿只给「进入」与印章。</div>
+      <div class="cap" data-page-node-id="c3OyUXJYiimQJXg9xedoca"><b data-page-node-id="l0O2IzI3xXZWRMkDdmR7Ac">开屏 v18</b>：纯拼贴、零文字——手撕条（纯图形）→ 打孔线 → 大折纸星 + 手绘星轨 + 双星 + 两片手剪胶带不对称拼贴（留白 ≥60%）→ 打孔线 → 条码 + 圆形纸片按钮。贴纸逐张贴上，全部 1.5s 内完成。</div>
     </div>
 
     <!-- ====== 2. 监控页 ====== -->
-    <div>
-      <div class="phone">
-        <div class="phone-tag">监控页</div>
-        <div class="screen">
-          <div class="page">
-            <div class="bg-collage">
-              <img class="bg-stk bg-faint bg-youme" src="../miniprogram/miniprogram/images/board2/collage16.png" style="width:90px;height:90px;top:430px;right:-20px;transform:rotate(-10deg)">
-              <img class="bg-stk bg-visible bg-star3" src="../miniprogram/miniprogram/images/board2/origami13.png" style="width:22px;height:22px;top:300px;left:7%;transform:rotate(-14deg)">
+    <div data-page-node-id="lKqjbGz3ZmIzlc7gytH86h">
+      <div class="phone" data-page-node-id="tGZZPI0RvRjRavVQIqYTXx">
+        <div class="phone-tag" data-page-node-id="qfpRqQyKZgW6c2pesZ1Dt9">监控页</div>
+        <div class="screen" data-page-node-id="TrENsIUAJhwaAC0JpDvlZD">
+          <div class="page" data-page-node-id="TVV7MGqGzMTwsaHll8ml6K">
+            <div class="bg-collage" data-page-node-id="QV6lvzzea6d2Xl0YwAEpQY">
+              <img class="bg-stk bg-faint bg-youme" src="../miniprogram/miniprogram/images/board2/origami17.png" style="width:90px;height:90px;top:430px;right:-20px;transform:rotate(-10deg)" data-page-node-id="wE6AJqjl811RNXaHePf0ou">
+              <img class="bg-stk bg-visible bg-star3" src="../miniprogram/miniprogram/images/board2/origami13.png" style="width:22px;height:22px;top:300px;left:7%;transform:rotate(-14deg)" data-page-node-id="rcchYGTkqBXOxhTt3ala4Y">
             </div>
-            <div class="hero">
-              <div class="tape"></div>
-              <div class="hero-l">
-                <div class="hero-title-row">
-                  <div class="bow"><div class="bow-k"></div></div>
-                  <div class="hero-title title-strong">正在盯的票</div>
-                  <div class="hero-stks">
-                    <img class="hero-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami12.png">
-                    <img class="hero-stk stk-b" src="../miniprogram/miniprogram/images/board2/cartoon7.png">
+            <div class="hero" data-page-node-id="BKL2lpt0k29JArEnbxJmoY">
+              <div class="tape" data-page-node-id="2Bxr2UywTtOF4fSzzorUQG"></div>
+              <div class="hero-l" data-page-node-id="KsGaeEaL5e3TYIXSjHmn64">
+                <div class="hero-title-row" data-page-node-id="vsPoDY6gwAHwHxIxrcq9XB">
+                  <div class="hero-title title-strong" data-page-node-id="lINN6qNz2Fkc2mjYf7ZKsB">正在盯的票</div>
+                  <div class="hero-stks" data-page-node-id="3OLmWDIWfLHBo1ItxM3cV9">
+                    <img class="hero-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami12.png" data-page-node-id="WuZIGDWG4cOk6w4Yju8CTg">
                   </div>
                 </div>
-                <div class="en-note">WATCHING NOW <span class="spark">✦</span></div>
-                <div class="hero-count">
-                  <span class="num hero-ok">5</span>
-                  <span class="hero-sep">/</span>
-                  <span class="num hero-total">8</span>
-                  <span class="hero-sub">有票</span>
+                <div class="hero-count" data-page-node-id="f6cHfHTxLQvxgQLsCFnBvy">
+                  <span class="num hero-ok" data-page-node-id="8LHoVsC2CE9A8FRR1ykAmn">5</span>
+                  <span class="hero-sep" data-page-node-id="MJ3ebduptm5U1r5afIOsez">/</span>
+                  <span class="num hero-total" data-page-node-id="5hj0ngiHKFJn8hwcf5ecAl">8</span>
+                  <span class="hero-sub" data-page-node-id="KW8IAB65rwAy1xENKwohVo">有票</span>
                 </div>
               </div>
-              <div class="hero-add"><span class="hero-plus">＋</span><span class="hero-add-t">加监控</span></div>
+              <div class="hero-add" data-page-node-id="uFknKxwbgJxyjqFBg8uSEH"><span class="hero-plus" data-page-node-id="BwOlcDGiabQOBmL01zO3h9">＋</span><span class="hero-add-t" data-page-node-id="z52Xovf1qwRAwluFWMthwp">加监控</span></div>
             </div>
 
-            <div class="quick-grid">
-              <div class="quick-item"><div class="quick-icon"><div class="quick-cross"></div></div><span class="quick-t">加监控</span></div>
-              <div class="quick-item"><div class="quick-icon"><div class="scan-frame"></div></div><span class="quick-t">扫一扫</span></div>
-              <div class="quick-item"><div class="quick-icon"><div class="search-mag"></div></div><span class="quick-t">搜演出</span></div>
-              <div class="quick-item"><div class="quick-icon"><div class="chart-bars"><span></span><span></span><span></span></div></div><span class="quick-t">历史</span></div>
+            <div class="quick-grid" data-page-node-id="CbUl1tRHMXsl6PzXGFSXDG">
+              <div class="quick-item" data-page-node-id="wtVDhds3uYUw7EikaWXMDW"><div class="quick-icon" data-page-node-id="JDsXetmht6xFLkzffjIpDw"><div class="quick-cross" data-page-node-id="0AtVHSgMUEaAphfDATDI43"></div></div><span class="quick-t" data-page-node-id="oXylRDsfwzddWouLyFeGAU">加监控</span></div>
+              <div class="quick-item" data-page-node-id="6v5C4gEjsADfZNyJkwnzWz"><div class="quick-icon" data-page-node-id="fv5WNuxToVsaMJklCt2ETQ"><div class="scan-frame" data-page-node-id="SMWNpusgifEpMudg7gTYoy"></div></div><span class="quick-t" data-page-node-id="6xGW7n2BKiwB3Erjz20IbC">扫一扫</span></div>
+              <div class="quick-item" data-page-node-id="6Ntckntk8U9cgajVFgnNv4"><div class="quick-icon" data-page-node-id="vQaslwhZlJeeuZBUU2FK2P"><div class="search-mag" data-page-node-id="4UU3ESzFT4oVgdl9Vj58rN"></div></div><span class="quick-t" data-page-node-id="Iw9y0zS4i6mx94pneNIhqD">搜演出</span></div>
+              <div class="quick-item" data-page-node-id="anu1tlqrNvPOPLo28moDWi"><div class="quick-icon" data-page-node-id="cOXvrsBiaUZ8euWp9vdmpe"><div class="chart-bars" data-page-node-id="aHhdPESOPDkDNVtjpAvEXV"><span data-page-node-id="EThqWviEhrvcpfUerSXAjH"></span><span data-page-node-id="VZ0UQNqAOVYRdvSDZAleoQ"></span><span data-page-node-id="AYxWExDuz2ozd1A2mg0r9w"></span></div></div><span class="quick-t" data-page-node-id="hpckQyZCshr20tcnupk19O">历史</span></div>
             </div>
 
-            <div class="credit">
-              <div class="credit-l">
-                <span class="credit-t">还能收 <span class="credit-n">12</span> 条推送</span>
-                <span class="credit-s">用完了点这领新的</span>
+            <div class="credit" data-page-node-id="6D17EKoD9Ingu8tOSwBD2v">
+              <div class="credit-l" data-page-node-id="Fpb0RoJYzoZe1mVr8s6cfO">
+                <span class="credit-t" data-page-node-id="p7eB7nAVXILz7G4dwD82KS">还能收 <span class="credit-n" data-page-node-id="aXmuaj2dpYu5GSU37TKsFa">12</span> 条推送</span>
+                <span class="credit-s" data-page-node-id="8XxmuC9BB4Zd0Bikybec2y">用完了点这领新的</span>
               </div>
-              <span class="credit-go">领额度</span>
+              <span class="credit-go" data-page-node-id="crO4PzpetialRzhsynTdZ0">领额度</span>
             </div>
 
-            <div class="task-list">
-              <div class="task-card">
-                <div class="task-topline task-bar-ok"></div>
-                <div class="task-body">
-                  <div class="task-top">
-                    <div class="task-poster"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/collage13.png" style="opacity:.9"></div>
-                    <div class="task-l">
-                      <div class="task-name">孙燕姿 2026 世界巡回演唱会</div>
-                      <div class="task-sub">大麦 · 广州站</div>
+            <div class="task-list" data-page-node-id="NLJGaNlzpwPW3obkmFYTLv">
+              <div class="task-card" data-page-node-id="ClBcsavPZz6s5nXeRsr4AT">
+                <div class="task-topline task-bar-ok" data-page-node-id="VFOBxlKHFA6XdfT58xv8D4"></div>
+                <div class="task-body" data-page-node-id="z1ROeYgzjkkJfDwIloFutW">
+                  <div class="task-top" data-page-node-id="BAPsnArA0Vh4F1FYEBlEzo">
+                    <div class="task-poster" data-page-node-id="kaKqsGfBITS4iHzooythVC"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/origami24.png" style="opacity:.9" data-page-node-id="WQCKv2vxOVE4iR7nvPnbEn"></div>
+                    <div class="task-l" data-page-node-id="YPpZ67MuJglgIcHD6SFqTl">
+                      <div class="task-name" data-page-node-id="nq3CJ6GypefPADsmaeLoMR">孙燕姿 2026 世界巡回演唱会</div>
+                      <div class="task-sub" data-page-node-id="GQzQzho9wCZywVngdS5IEL">大麦 · 广州站</div>
                     </div>
-                    <span class="tag tag-ok">有票</span>
+                    <span class="tag tag-ok" data-page-node-id="pnBAdVc4M89sUOGWUQHyDX">有票</span>
                   </div>
-                  <div class="task-foot">
-                    <span class="t3">12 分钟前</span>
-                    <div class="task-foot-r">
-                      <span class="link">分享</span>
-                      <span class="link">展开 3 项 ›</span>
+                  <div class="task-foot" data-page-node-id="ea03JyAzwosYEd6HIyLdhU">
+                    <span class="t3" data-page-node-id="1b6d6rAiHHjj4mTKMkPGVz">12 分钟前</span>
+                    <div class="task-foot-r" data-page-node-id="p5uyyJgnqhPbUs3boshlKk">
+                      <span class="link" data-page-node-id="9UdEYyCcHAQHz0dm3UyT73">分享</span>
+                      <span class="link" data-page-node-id="IxldV2xdAG8qsQmUsGoN68">展开 3 项 ›</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="task-card">
-                <div class="task-topline task-bar-none"></div>
-                <div class="task-body">
-                  <div class="task-top">
-                    <div class="task-poster"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/collage4.png" style="opacity:.9"></div>
-                    <div class="task-l">
-                      <div class="task-name">周杰伦 嘉年华世界巡回</div>
-                      <div class="task-sub">猫眼 · 上海站</div>
+              <div class="task-card" data-page-node-id="EgCA1fBZR5zqfdSKX3thSe">
+                <div class="task-topline task-bar-none" data-page-node-id="KPKI6WTUM8aAHISCTf7OLd"></div>
+                <div class="task-body" data-page-node-id="TDAjCZKxBCq2JGEEr1FGY6">
+                  <div class="task-top" data-page-node-id="hIVftFtg0WQvF2S9ocYb2F">
+                    <div class="task-poster" data-page-node-id="mWD7n2j7dPu854h2ZLuF1e"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/collage4.png" style="opacity:.9" data-page-node-id="ctUwPNFZv5B7XPfphhDImW"></div>
+                    <div class="task-l" data-page-node-id="mu0rE2Lu9SjkVRJ9yiLSFy">
+                      <div class="task-name" data-page-node-id="v5FmMULNTb68J7vpYT2HVH">周杰伦 嘉年华世界巡回</div>
+                      <div class="task-sub" data-page-node-id="Q6aSBK2bhbxYdzIw3B9yoX">猫眼 · 上海站</div>
                     </div>
-                    <span class="tag tag-none">无票</span>
+                    <span class="tag tag-none" data-page-node-id="AqM7KuQta2w0su4kOz8fjy">无票</span>
                   </div>
-                  <div class="task-foot">
-                    <span class="t3">1 小时前</span>
-                    <div class="task-foot-r">
-                      <span class="link">分享</span>
-                      <span class="link">展开 2 项 ›</span>
+                  <div class="task-foot" data-page-node-id="8yC9sDAPO2kfjCHHrHKyZv">
+                    <span class="t3" data-page-node-id="2uZbePzVlqPQXGG5amq4Yt">1 小时前</span>
+                    <div class="task-foot-r" data-page-node-id="saOq1O6ABnsyA1YYsZWJhA">
+                      <span class="link" data-page-node-id="e2T41wxiZAHUZGDZtF6hQh">分享</span>
+                      <span class="link" data-page-node-id="p27sj9qsHrfXFQTtNp2g1R">展开 2 项 ›</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="card faq">
-              <div class="faq-head">
-                <div class="faq-head-l">
-                  <img class="faq-stk" src="../miniprogram/miniprogram/images/board2/cartoon7.png">
-                  <span class="faq-title">常见问题 · 使用教程</span>
+            <div class="card faq" data-page-node-id="kvduL5BzwhD3vqEoaf9n1W">
+              <div class="faq-head" data-page-node-id="fvZihNSVPA6t9QJMd4kGaX">
+                <div class="faq-head-l" data-page-node-id="u6hqOOTbnntFaci3HxnwrY">
+                  <img class="faq-stk" src="../miniprogram/miniprogram/images/board2/cartoon7.png" data-page-node-id="SampN1jo2TySkWCf2osbXp">
+                  <span class="faq-title" data-page-node-id="nzWk9I5bI9nOT6QId4eoRS">常见问题 · 使用教程</span>
                 </div>
-                <span class="t3">▾</span>
+                <span class="t3" data-page-node-id="Y1QrRyNpuT0stXZ9BTnPCZ">▾</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="cap"><b>监控首页</b>：hero「正在盯的票」+ 大数字 5/8 + 加监控按钮（accent 直角）；四宫格快捷入口（纸卡 + 近墨色线性图标）；额度条；任务卡纸卡带 4px 状态线 + 虚线 foot 分隔。</div>
+      <div class="cap" data-page-node-id="FCuobnecTsiZP91HecFgQW"><b data-page-node-id="HsHbIdJONvWV3wfGMOL7o5">监控首页</b>：hero「正在盯的票」+ 大数字 5/8 + 加监控按钮（accent 直角）；四宫格快捷入口（纸卡 + 近墨色线性图标）；额度条；任务卡纸卡带 4px 状态线 + 虚线 foot 分隔。</div>
     </div>
 
     <!-- ====== 3. 演出页 ====== -->
-    <div>
-      <div class="phone">
-        <div class="phone-tag">演出页</div>
-        <div class="screen">
-          <div class="page">
-            <div class="bg-collage">
-              <img class="bg-stk bg-faint bg-love" src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:96px;height:96px;top:300px;right:-24px;transform:rotate(14deg)">
-              <img class="bg-stk bg-visible bg-star1" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:24px;height:24px;top:210px;left:8%;transform:rotate(-12deg)">
+    <div data-page-node-id="e3ZyUoS4GAOHE0hhss5NV5">
+      <div class="phone" data-page-node-id="9M8HYJhGIe4gXclB4GSp2t">
+        <div class="phone-tag" data-page-node-id="ORJNlWnejVdUAJH84iyCfp">演出页</div>
+        <div class="screen" data-page-node-id="TsGRgoObeV1eGpEQV2XGfv">
+          <div class="page" data-page-node-id="EDZ2kR7hJVh7DmqfvcVVGG">
+            <div class="bg-collage" data-page-node-id="RpH1VQciGjZYd7vObUxrSX">
+              <img class="bg-stk bg-faint bg-love" src="../miniprogram/miniprogram/images/board2/origami24.png" style="width:96px;height:96px;top:300px;right:-24px;transform:rotate(14deg)" data-page-node-id="vC3ps0uVGPApL033wdpEeg">
+              <img class="bg-stk bg-visible bg-star1" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:24px;height:24px;top:210px;left:8%;transform:rotate(-12deg)" data-page-node-id="HPywytBrw9ULAAEflCemyR">
             </div>
-            <div class="head">
-              <div class="tape"></div>
-              <div class="head-row">
-                <div class="bow"><div class="bow-k"></div></div>
-                <div class="head-hand title-strong">今天想看什么</div>
-                <div class="head-stks">
-                  <img class="head-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami21.png">
-                  <img class="head-stk stk-b" src="../miniprogram/miniprogram/images/board2/cartoon11.png">
+            <div class="head" data-page-node-id="lSEPZlQosQCd5yzIURMsXR">
+              <div class="tape" data-page-node-id="MnInuZnkiVOlM51aFDmBLJ"></div>
+              <div class="head-row" data-page-node-id="R2NLn9KYQylxa3iNARI7eB">
+                <div class="head-hand title-strong" data-page-node-id="Hpl2mfx5rAMDHXDeQyJg6v">今天想看什么</div>
+                <div class="head-stks" data-page-node-id="6g2yhbZsXBDD91MM6ABI5A">
+                  <img class="head-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami21.png" data-page-node-id="G4GnvVcepi8SBEBw1BooBI">
                 </div>
               </div>
-              <div class="en-note">FIND SOMETHING TO WATCH <span class="spark">✦</span></div>
             </div>
 
-            <div class="vtabs">
-              <div class="vtabs-row">
-                <span class="vtab on">大麦</span>
-                <span class="vtab">猫眼</span>
-                <span class="vtab">摩天轮</span>
-                <span class="vtab">B站</span>
-                <span class="vtab">票星球</span>
-                <span class="vtab">12306</span>
+            <div class="vtabs" data-page-node-id="8yCfiRdbgwfqU2TkoChCai">
+              <div class="vtabs-row" data-page-node-id="tN58gLKDSKxGDLkTgsp35m">
+                <span class="vtab on" data-page-node-id="awmS8N4GPYMiFoAXfqGkIL">大麦</span>
+                <span class="vtab" data-page-node-id="8jEXN2MvgUlJzKIuFWtB92">猫眼</span>
+                <span class="vtab" data-page-node-id="ngmWWnFse1BrTYWWTzpjML">摩天轮</span>
+                <span class="vtab" data-page-node-id="oC5ZkKdfSpVZFA2J6zFJGg">B站</span>
+                <span class="vtab" data-page-node-id="AbZ1rhYhnb0WRT4HnHe4ag">票星球</span>
+                <span class="vtab" data-page-node-id="Jbk5Li6f4ptEhtHGEuypus">12306</span>
               </div>
-              <div class="vtab-line" style="left:22px;width:26px;"></div>
+              <div class="vtab-line" style="left:22px;width:26px;" data-page-node-id="PO1z3zGF739kaDjHVFJLXe"></div>
             </div>
 
-            <div class="searchbar">
-              <div class="search-box">
-                <span class="search-ico"></span>
-                <span class="search-inp" style="color:var(--ink3)">搜索演出、巡演、场馆</span>
+            <div class="searchbar" data-page-node-id="40ijBhAWE7EvSDAYEJ9Kf8">
+              <div class="search-box" data-page-node-id="RhhNnKCjBae5IUKReiWULO">
+                <span class="search-ico" data-page-node-id="qlo2Oo9UBsFbWt6uK9ZHD2"></span>
+                <span class="search-inp" style="color:var(--ink3)" data-page-node-id="aIyDTeOgpvtLMfhU6GpnH2">搜索演出、巡演、场馆</span>
               </div>
-              <div class="search-btn">搜索</div>
-              <img class="search-pin" src="../miniprogram/miniprogram/images/board2/cartoon6.png">
+              <div class="search-btn" data-page-node-id="tnpFv0VFC2VK7toDdi3vSa">搜索</div>
             </div>
 
-            <div class="sec">
-              <div class="sec-title title-strong">正在热卖</div>
-              <span class="stamp stamp-red sec-stamp">ON SALE</span>
+            <div class="sec" data-page-node-id="TTlqalZINQMhXE1BaDcvDC">
+              <div class="sec-title title-strong" data-page-node-id="YgYtpVzE6uo1WAvfqECKxH">正在热卖</div>
+              <span class="stamp stamp-red sec-stamp" data-page-node-id="UP7assQgPfA96lQM1vrBZc">在售</span>
             </div>
 
-            <div class="hot-list">
-              <div class="show-card">
-                <div class="poster"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/collage8.png"></div>
-                <div class="show-main">
-                  <div class="show-name">上海·「小孩姐大派对」GBC 同人 Only</div>
-                  <div class="show-meta">
-                    <span class="tag">B站会员购</span>
-                    <span class="stamp stamp-green">预售中</span>
+            <div class="hot-list" data-page-node-id="u8traOpR3vBDALEqTLA0HL">
+              <div class="show-card" data-page-node-id="dAly7subLcmMPg6wCvAgEd">
+                <div class="poster" data-page-node-id="aDHUccrmzGny9RDjJrvlRr"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/origami20.png" data-page-node-id="d5ki8kbZr96rJu3jdr2GDU"></div>
+                <div class="show-main" data-page-node-id="33nCjGCGocg1OAxPinfxfq">
+                  <div class="show-name" data-page-node-id="pRKUhZwHHzoCDn5F5i9vTh">上海·「小孩姐大派对」GBC 同人 Only</div>
+                  <div class="show-meta" data-page-node-id="ZexCUWRROmEMt4N0HVrVBj">
+                    <span class="tag" data-page-node-id="QOSgwJK3dF3bDQOWBVTfWv">B站会员购</span>
+                    <span class="stamp stamp-green" data-page-node-id="g7kzXHBkmsyl8Fs5kQgJgj">预售中</span>
                   </div>
-                  <div class="show-sub">2026-10-24</div>
-                  <div class="show-foot">
-                    <span class="show-price">¥48 起</span>
-                    <span class="show-more">详情 ›</span>
-                    <span class="btn-watch">盯</span>
+                  <div class="show-sub" data-page-node-id="KDAfpyTpzNCmfeRNRCcUFH">2026-10-24</div>
+                  <div class="show-foot" data-page-node-id="Az8OAXtItYeucUq98gE0xb">
+                    <span class="show-price" data-page-node-id="diaNNhyZiW7m2WcXMHsAfZ">¥48 起</span>
+                    <span class="show-more" data-page-node-id="cFKbaYAJVQ7DCqhK77lQZR">详情 ›</span>
+                    <span class="btn-watch" data-page-node-id="Et3VXsxoYRhm1St7ykHmzF">盯</span>
                   </div>
                 </div>
               </div>
-              <div class="show-card">
-                <div class="poster"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/collage15.png"></div>
-                <div class="show-main">
-                  <div class="show-name">【北京】凤凰传奇「吉祥如意」2026 演唱会</div>
-                  <div class="show-meta">
-                    <span class="tag">票星球</span>
-                    <span class="stamp stamp-ink">缺票登记</span>
+              <div class="show-card" data-page-node-id="l4bwYdx4MvCdPxhdaCPOVS">
+                <div class="poster" data-page-node-id="GnZvoFjg8c78lOrFgKv21D"><img class="poster-img" src="../miniprogram/miniprogram/images/board2/collage15.png" data-page-node-id="aBiWaSbHZKwCEhHPA8DDUj"></div>
+                <div class="show-main" data-page-node-id="bTWHXt9AExakzWMi8chkTX">
+                  <div class="show-name" data-page-node-id="OYZk6DY7ujW18aAADRYgNx">【北京】凤凰传奇「吉祥如意」2026 演唱会</div>
+                  <div class="show-meta" data-page-node-id="sASaTV9lG0LS6zE6efg35s">
+                    <span class="tag" data-page-node-id="y9SteG7Ve1Dx4GsthCjoFi">票星球</span>
+                    <span class="stamp stamp-ink" data-page-node-id="tNITFiVjHRfPy8dkjLFVc0">缺票登记</span>
                   </div>
-                  <div class="show-sub">北京 · 国家体育场—鸟巢</div>
-                  <div class="show-foot">
-                    <span class="show-price">¥380 起</span>
-                    <span class="show-more">详情 ›</span>
-                    <span class="btn-watch">盯</span>
+                  <div class="show-sub" data-page-node-id="BiokPUixCPL8yLoig11mJg">北京 · 国家体育场—鸟巢</div>
+                  <div class="show-foot" data-page-node-id="2nWrCZwulyu0llrcBx3CjP">
+                    <span class="show-price" data-page-node-id="7Fn3D8ldVDeH9ARxe9FCIG">¥380 起</span>
+                    <span class="show-more" data-page-node-id="coEpsM0KfUqSuymAyV7bdC">详情 ›</span>
+                    <span class="btn-watch" data-page-node-id="BvRWMifyK1C3TZQ9FpSGHX">盯</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="stitch-wrap"><span class="stitch-tag">点开看场次和票档 · 数据来自大麦</span></div>
+            <div class="stitch-wrap" data-page-node-id="g5lZoMfTcxXUMgcO3kzIdG"><span class="stitch-tag" data-page-node-id="fGS0RFERgnbVMzpTliQQQp">点开看场次和票档 · 数据来自大麦</span></div>
           </div>
         </div>
       </div>
-      <div class="cap"><b>演出页</b>：标题 + 英文小注 + 胶带/蝴蝶结/贴纸；平台用 van-tabs 切换（纸感主题，accent 下划线 26px）；演出卡像小票（海报 + 信息 + 虚线 foot + 茶绿「盯」）。</div>
+      <div class="cap" data-page-node-id="pX9s2a3M8HJNERTdsX6ymw"><b data-page-node-id="EfqN46b0oqvRwgsIre1vYF">演出页</b>：标题 + 英文小注 + 胶带/蝴蝶结/贴纸；平台用 van-tabs 切换（纸感主题，accent 下划线 26px）；演出卡像小票（海报 + 信息 + 虚线 foot + 茶绿「盯」）。</div>
     </div>
 
     <!-- ====== 4. 详情页 ====== -->
-    <div>
-      <div class="phone">
-        <div class="phone-tag">详情页</div>
-        <div class="screen">
-          <div class="page">
-            <div class="bg-collage">
-              <img class="bg-stk bg-faint bg-love" src="../miniprogram/miniprogram/images/board2/collage13.png" style="width:96px;height:96px;top:430px;right:-24px;transform:rotate(14deg)">
-              <img class="bg-stk bg-visible bg-star1" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:24px;height:24px;top:200px;left:8%;transform:rotate(-12deg)">
+    <div data-page-node-id="zKRWfpUfMEJg8jeyHGdEaS">
+      <div class="phone" data-page-node-id="PjiFB8rNwbG4ZeJyDN8vfd">
+        <div class="phone-tag" data-page-node-id="Jr4NDD3UDuoSELO5ZqGnM3">详情页</div>
+        <div class="screen" data-page-node-id="OjS8TI0NG7jYI0QAcBoICC">
+          <div class="page" data-page-node-id="pOY09kxn9mtAyVdsDHAymR">
+            <div class="bg-collage" data-page-node-id="StGBTUNubQJUnLSgcJX23o">
+              <img class="bg-stk bg-faint bg-love" src="../miniprogram/miniprogram/images/board2/origami20.png" style="width:96px;height:96px;top:430px;right:-24px;transform:rotate(14deg)" data-page-node-id="qpKVc3JcL1ZSYhCPKqAdOe">
+              <img class="bg-stk bg-visible bg-star1" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:24px;height:24px;top:200px;left:8%;transform:rotate(-12deg)" data-page-node-id="zsuz3iPK5aCasayErA0Q7d">
             </div>
-            <div class="d-hero">
-              <div class="tape"></div>
-              <div class="bow"><div class="bow-k"></div></div>
-              <img class="d-hero-poster" src="../miniprogram/miniprogram/images/board2/collage4.png">
-              <img class="d-hero-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami21.png">
-              <img class="d-hero-stk stk-b" src="../miniprogram/miniprogram/images/board2/cartoon7.png">
+            <div class="d-hero" data-page-node-id="wm73YqCB2ARqXmOIcQUSBa">
+              <div class="tape" data-page-node-id="1Snfzj8I9lHMIj17NODdnu"></div>
+              <img class="d-hero-poster" src="../miniprogram/miniprogram/images/board2/collage4.png" data-page-node-id="qHxmay9kQs3kGl8Yd8X27p">
+              <img class="d-hero-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami21.png" data-page-node-id="Y8ZKUgRqrZyO4G15INtZLP">
             </div>
 
-            <div class="card d-info">
-              <div class="d-info-name">【北京】凤凰传奇「吉祥如意」2026演唱会-北京站</div>
-              <div class="d-info-meta">
-                <span class="tag tag-brand">票星球</span>
-                <span class="tag tag-none">北京</span>
+            <div class="card d-info" data-page-node-id="3atfoFLJU1216oRdnxbDNM">
+              <div class="d-info-name" data-page-node-id="f0s959aY2sE6jjf8g8Hjbr">【北京】凤凰传奇「吉祥如意」2026演唱会-北京站</div>
+              <div class="d-info-meta" data-page-node-id="oJ2tfCZIWpEjI9AQumLZvt">
+                <span class="tag tag-brand" data-page-node-id="iVxDIbuYLAtsgmt4D6g4QG">票星球</span>
+                <span class="tag tag-none" data-page-node-id="DAsADlavt1QqhloX69WSaE">北京</span>
               </div>
-              <div class="d-info-row">场馆 · 国家体育场—鸟巢</div>
-              <div class="d-info-row">时间 · 2026.10.30 - 11.08</div>
-              <div class="d-info-row d-info-price">¥380 起</div>
+              <div class="d-info-row" data-page-node-id="q7zv5O79KggjmPYg5aDaFp">场馆 · 国家体育场—鸟巢</div>
+              <div class="d-info-row" data-page-node-id="TDXaAcylABPzawpmyuLTb3">时间 · 2026.10.30 - 11.08</div>
+              <div class="d-info-row d-info-price" data-page-node-id="G3C7QCSmYt1A2DOy1W23YJ">¥380 起</div>
             </div>
 
-            <div class="sec">
-              <div class="sec-title title-strong">场次与票档</div>
-              <div class="en-note">SESSIONS <span class="spark">✦</span> TICKETS</div>
+            <div class="sec" data-page-node-id="emCf8m7fTMWKbhknZAZIuH">
+              <div class="sec-title title-strong" data-page-node-id="VpGbmhNrrmd3RYhL3k4tvg">场次与票档</div>
             </div>
 
-            <div class="card d-ticket">
-              <div class="sess">
-                <div class="sess-head">
-                  <div class="sess-name">2026-10-30 周五 19:00</div>
-                  <span class="stamp stamp-ink">缺票登记</span>
+            <div class="card d-ticket" data-page-node-id="us49K9F8iVFEBcFLXaCPis">
+              <div class="sess" data-page-node-id="lA53pqcAYmVZP6oTYfmYAB">
+                <div class="sess-head" data-page-node-id="yG9wlmvek1Sw2euODzr06H">
+                  <div class="sess-name" data-page-node-id="hEKihAOgtlCBwNyoVOYKfw">2026-10-30 周五 19:00</div>
+                  <span class="stamp stamp-ink" data-page-node-id="14DjYHpEnbD16nRW2pBDgq">缺票登记</span>
                 </div>
-                <div class="tier"><div class="tier-dot"></div><div class="tier-name">看台 380元</div><div class="tier-price">¥380</div><span class="stamp stamp-ink">停售</span></div>
-                <div class="tier"><div class="tier-dot"></div><div class="tier-name">看台 480元</div><div class="tier-price">¥480</div><span class="stamp stamp-ink">停售</span></div>
-                <div class="tier"><div class="tier-dot on"></div><div class="tier-name">内场 880元</div><div class="tier-price">¥880</div><span class="stamp stamp-green">可购 ×3</span></div>
+                <div class="tier" data-page-node-id="XVhMZ18tx2PBFIlfLmer76"><div class="tier-dot" data-page-node-id="GQnUEB5uTWJq1GwX0fj5o0"></div><div class="tier-name" data-page-node-id="Hq7HYRIh3XEyFnFEeH14Dt">看台 380元</div><div class="tier-price" data-page-node-id="eRxTu5sV76UQ3uSn4gTi62">¥380</div><span class="stamp stamp-ink" data-page-node-id="DSAxyX8lOEI0SYNZPHj8uC">停售</span></div>
+                <div class="tier" data-page-node-id="91snHKj1JyDDdlAidhFQIu"><div class="tier-dot" data-page-node-id="KEqOGZZoRkFBpiyg5AJBoo"></div><div class="tier-name" data-page-node-id="AXIFEhTAblUcCvQsBabvHJ">看台 480元</div><div class="tier-price" data-page-node-id="hA5u8iXEn6eHInZEGMevqo">¥480</div><span class="stamp stamp-ink" data-page-node-id="JDaKK9ayEYK4m3YiDCsTkL">停售</span></div>
+                <div class="tier" data-page-node-id="F4P5DETGGV3BRiGYZlKFVA"><div class="tier-dot on" data-page-node-id="LbPJ13YuElJdMJ6KXk8UPK"></div><div class="tier-name" data-page-node-id="pRkTEufmUdiG8AESgv5Cag">内场 880元</div><div class="tier-price" data-page-node-id="KUuP7lYUCT1c7jkIQP6L7z">¥880</div><span class="stamp stamp-green" data-page-node-id="DVhcDhoNUtUyZ9zBBXUIe5">可购 ×3</span></div>
               </div>
-              <div class="perf perf-on-card"></div>
-              <div class="sess">
-                <div class="sess-head">
-                  <div class="sess-name">2026-10-31 周六 19:00</div>
-                  <span class="stamp stamp-ink">缺票登记</span>
+              <div class="perf perf-on-card" data-page-node-id="rtzOZTa1QMuwEl4frDXAAE"></div>
+              <div class="sess" data-page-node-id="5lEKy966jiJ9wmeOXFRNKa">
+                <div class="sess-head" data-page-node-id="eN6tRu7cGtZAtyYsOLjuF8">
+                  <div class="sess-name" data-page-node-id="bpoBEfqhwf0g0HhH3RAL1T">2026-10-31 周六 19:00</div>
+                  <span class="stamp stamp-ink" data-page-node-id="uoi9B05HHLXhG6QrBWkwOM">缺票登记</span>
                 </div>
-                <div class="tier"><div class="tier-dot on"></div><div class="tier-name">看台 380元</div><div class="tier-price">¥380</div><span class="stamp stamp-green">可购 ×12</span></div>
-                <div class="tier"><div class="tier-dot"></div><div class="tier-name">看台 580元</div><div class="tier-price">¥580</div><span class="stamp stamp-ink">停售</span></div>
+                <div class="tier" data-page-node-id="zogSGhMjrLGVLRL3mLgiRi"><div class="tier-dot on" data-page-node-id="QnfIJk6GgWwb58iX8tO9kB"></div><div class="tier-name" data-page-node-id="OIeqdETTXUOrin2dt79SdE">看台 380元</div><div class="tier-price" data-page-node-id="JUxG8IMqFgtM7GOVGpBh1a">¥380</div><span class="stamp stamp-green" data-page-node-id="miw2t1N4LLClZ9pFKGPCJo">可购 ×12</span></div>
+                <div class="tier" data-page-node-id="AAaC7YP4a10sWChAhfjw4e"><div class="tier-dot" data-page-node-id="ULmqUiviEhyll18YK6pJu0"></div><div class="tier-name" data-page-node-id="F3Gvkh4vEtzxGS5qD4F0fL">看台 580元</div><div class="tier-price" data-page-node-id="NxtCmRgKh5kF8j1XtnIEMW">¥580</div><span class="stamp stamp-ink" data-page-node-id="QEIV2XWfb7trauePesr6Di">停售</span></div>
               </div>
             </div>
 
-            <div class="stitch-wrap"><span class="stitch-tag">盯整场 = 任意票档从无到有就提醒你</span></div>
+            <div class="stitch-wrap" data-page-node-id="koQtulJRE1CN6sL6UHUxw9"><span class="stitch-tag" data-page-node-id="Yeck2yftfI1Dc7EaxtMl3A">盯整场 = 任意票档从无到有就提醒你</span></div>
 
-            <div class="actionbar"><div class="action-btn">盯这场演出</div></div>
+            <div class="actionbar" data-page-node-id="efzjZVwcEQualWU0HMLS2t"><div class="action-btn" data-page-node-id="dXB1okf7wrnnyAGhw72N9e">盯这场演出</div></div>
           </div>
         </div>
       </div>
-      <div class="cap"><b>详情页</b>：大海报 + 信息格（虚线分栏）+ 场次列表（场次间打孔线分隔）+ 逐票档状态（dot + 印章）+ 底部 accent 大按钮「盯这场」。</div>
+      <div class="cap" data-page-node-id="uOtdCXy3l1w3ZiA4WtqWhi"><b data-page-node-id="3WlElhIDBrFvECnmsOj5GB">详情页</b>：大海报 + 信息格（虚线分栏）+ 场次列表（场次间打孔线分隔）+ 逐票档状态（dot + 印章）+ 底部 accent 大按钮「盯这场」。</div>
     </div>
 
     <!-- ====== 5. 讨论区 ====== -->
-    <div>
-      <div class="phone">
-        <div class="phone-tag">讨论区</div>
-        <div class="screen">
-          <div class="page">
-            <div class="bg-collage">
-              <img class="bg-stk bg-faint bg-leaf" src="../miniprogram/miniprogram/images/board2/collage12.png" style="width:80px;height:80px;top:600px;right:-16px;transform:rotate(10deg)">
-              <img class="bg-stk bg-visible bg-star5" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:22px;height:22px;top:160px;right:16%;transform:rotate(-10deg)">
+    <div data-page-node-id="ug0R7JBritAR0XBBa5Ffo5">
+      <div class="phone" data-page-node-id="azdFz8cskEufJxnw69iOQC">
+        <div class="phone-tag" data-page-node-id="Bb2OIYnuIIUCfDbLR2CSvx">讨论区</div>
+        <div class="screen" data-page-node-id="LfO1QijAvN4dDkWr41oLfj">
+          <div class="page" data-page-node-id="9C3BEzMxSZd0B3nGt2hZAP">
+            <div class="bg-collage" data-page-node-id="akYySHKD0xmykQqiRZoB4k">
+              <img class="bg-stk bg-faint bg-leaf" src="../miniprogram/miniprogram/images/board2/collage12.png" style="width:80px;height:80px;top:600px;right:-16px;transform:rotate(10deg)" data-page-node-id="6nDQ9mEj6AAL921LfSb5Am">
+              <img class="bg-stk bg-visible bg-star5" src="../miniprogram/miniprogram/images/board2/origami1.png" style="width:22px;height:22px;top:160px;right:16%;transform:rotate(-10deg)" data-page-node-id="HHH6kjt9Y68HPHSYkeSVRS">
             </div>
-            <div class="board-header">
-              <div class="tape"></div>
-              <div class="board-head-l">
-                <div class="board-title title-strong">问题反馈</div>
-                <div class="board-subtitle">FEEDBACK <span class="spark">✦</span></div>
-                <div class="board-line"></div>
+            <div class="board-header" data-page-node-id="hmTd9g1jJJjZ5K94bHEQ7T">
+              <div class="tape" data-page-node-id="74Wu07St9FpME9VG2mW3nV"></div>
+              <div class="board-head-l" data-page-node-id="02xXMI6oBuQiZcEOnZHNJL">
+                <div class="board-title title-strong" data-page-node-id="HPN3XTn2bT9lJtm9F2DnSF">问题反馈</div>
+                <div class="board-line" data-page-node-id="KgzAme05HgkCAG71kNGIHe"></div>
               </div>
-              <div class="bow"><div class="bow-k"></div></div>
-              <div class="board-stks">
-                <img class="board-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami13.png">
-                <img class="board-stk stk-b" src="../miniprogram/miniprogram/images/board2/cartoon1.png">
+              <div class="board-stks" data-page-node-id="ryJNaxrJOEdisAFUrviXnx">
+                <img class="board-stk stk-a" src="../miniprogram/miniprogram/images/board2/origami13.png" data-page-node-id="AjzRwZgkn6UjDphI9L9Ckr">
               </div>
             </div>
 
-            <div class="vtabs">
-              <div class="vtabs-row">
-                <span class="vtab on">全部</span>
-                <span class="vtab">问题反馈</span>
-                <span class="vtab">建议留言</span>
-                <span class="vtab">求助留言</span>
+            <div class="vtabs" data-page-node-id="hKqe1RFVdT1dLoZo1FXHnE">
+              <div class="vtabs-row" data-page-node-id="ylRWzc8KQ1BCJnn3TArhYW">
+                <span class="vtab on" data-page-node-id="or1AADKAOY31LhQEG8ZUkH">全部</span>
+                <span class="vtab" data-page-node-id="8yF7mM5UgME6l1gXh4gPPF">问题反馈</span>
+                <span class="vtab" data-page-node-id="Bj28m9mxRGMBctgVbnkGCQ">建议留言</span>
+                <span class="vtab" data-page-node-id="6dxW2qsIBobf8clXPejHZ0">求助留言</span>
               </div>
-              <div class="vtab-line" style="left:18px;width:26px;"></div>
+              <div class="vtab-line" style="left:18px;width:26px;" data-page-node-id="z06OMd2QyDQr70AcKmzLHN"></div>
             </div>
 
-            <div class="searchbar">
-              <div class="search-box">
-                <span class="search-ico" style="border-color:var(--ink3)"></span>
-                <span class="search-inp" style="color:var(--ink3)">搜帖子 / 场次 / 关键词</span>
+            <div class="searchbar" data-page-node-id="2A7clZ2y3qiuSTHJt8rK8W">
+              <div class="search-box" data-page-node-id="tcSAB2vWYMPuPY6jysX5gK">
+                <span class="search-ico" style="border-color:var(--ink3)" data-page-node-id="12UfyxQF2C4wlIswbeTYnL"></span>
+                <span class="search-inp" style="color:var(--ink3)" data-page-node-id="QJA5LnFZaLiAg3UZkVxR14">搜帖子 / 场次 / 关键词</span>
               </div>
             </div>
 
-            <div class="post-board">
-              <div class="note-wrap" style="transform:rotate(-2deg)">
-                <img class="note-bg" src="../miniprogram/miniprogram/images/board/note1.png">
-                <img class="note-clip" src="../miniprogram/miniprogram/images/board/clip1.png">
-                <div class="note-body">
-                  <div class="note-head">
-                    <img class="note-avatar" src="../miniprogram/miniprogram/images/avatar_fox.png">
-                    <div class="post-meta">
-                      <span class="note-name">小雷达</span>
-                      <span class="note-time">12 分钟前</span>
+            <div class="post-board" data-page-node-id="InH4Ch6SZhMNLmEglRKwyE">
+              <div class="note-wrap" style="transform:rotate(-2deg)" data-page-node-id="CnWctn7AyGCpll1syww6iM">
+                <img class="note-bg" src="../miniprogram/miniprogram/images/board/note1.png" data-page-node-id="xJqk0B0Tz5QnnOB2aMMbRw">
+                <img class="note-clip" src="../miniprogram/miniprogram/images/board/clip1.png" data-page-node-id="IIbS5DH2y2x7pMwwibQSgS">
+                <div class="note-body" data-page-node-id="KOe7hQrgZPPcDdwYdiZg6A">
+                  <div class="note-head" data-page-node-id="pwqJjNtnOGGyXzlkesHfor">
+                    <img class="note-avatar" src="../miniprogram/miniprogram/images/avatar_fox.png" data-page-node-id="nbAbkQQ4OKEEI1Vk1krOPq">
+                    <div class="post-meta" data-page-node-id="1kAbNI2rH4Nz2Ii88fGyHy">
+                      <span class="note-name" data-page-node-id="lHqp9hDaDDQDMYJpLVYfiL">小雷达</span>
+                      <span class="note-time" data-page-node-id="9YAxlKlXDlGGYtmyCs97XK">12 分钟前</span>
                     </div>
-                    <span class="post-type-tag">问题反馈</span>
+                    <span class="post-type-tag" data-page-node-id="La82VDCQfVVRdyFARkDXXd">问题反馈</span>
                   </div>
-                  <div class="note-text">孙燕姿广州二开大概什么时候？盯了很久一直没动静，求知情人。</div>
-                  <div class="post-tags"><span class="post-tag">#孙燕姿</span><span class="post-tag">#广州</span><span class="post-tag">#二开</span></div>
+                  <div class="note-text" data-page-node-id="lB3RPGyGPsLeusT7GPkjvl">孙燕姿广州二开大概什么时候？盯了很久一直没动静，求知情人。</div>
+                  <div class="post-tags" data-page-node-id="rVL6VI5bwnl7rbrmBQEUFY"><span class="post-tag" data-page-node-id="XLiJDsEsXpcrRYt9PNxTVM">#孙燕姿</span><span class="post-tag" data-page-node-id="yDIU26BZV1eRZLwqpgMvkm">#广州</span><span class="post-tag" data-page-node-id="oN2Dr25rI4MOzVoi8uRvHk">#二开</span></div>
                 </div>
               </div>
             </div>
 
-            <div class="post-board">
-              <div class="note-wrap" style="transform:rotate(1.5deg)">
-                <img class="note-bg" src="../miniprogram/miniprogram/images/board/note5.png">
-                <img class="note-clip" src="../miniprogram/miniprogram/images/board/clip6.png">
-                <div class="note-body">
-                  <div class="note-head">
-                    <img class="note-avatar" src="../miniprogram/miniprogram/images/avatar_fox.png">
-                    <div class="post-meta">
-                      <span class="note-name">票务阿绿</span>
-                      <span class="note-time">1 小时前</span>
+            <div class="post-board" data-page-node-id="81H9R16mQpJ6ZMHTXlPALZ">
+              <div class="note-wrap" style="transform:rotate(1.5deg)" data-page-node-id="4ag2weulZaVlR4rTwxq0u5">
+                <img class="note-bg" src="../miniprogram/miniprogram/images/board/note5.png" data-page-node-id="qpjSYUW6b4svW0L2na0t5l">
+                <img class="note-clip" src="../miniprogram/miniprogram/images/board/clip6.png" data-page-node-id="YvvFkru8WmWLukX1qxgMBZ">
+                <div class="note-body" data-page-node-id="ACnB44RlFsFhAtOMRcntjw">
+                  <div class="note-head" data-page-node-id="N9YgpFDjICAaa0x6Zyds2A">
+                    <img class="note-avatar" src="../miniprogram/miniprogram/images/avatar_fox.png" data-page-node-id="Ou97mHvUQNET8fR7DROC7f">
+                    <div class="post-meta" data-page-node-id="5j7ZHFcpjLHUDGZB73ESSn">
+                      <span class="note-name" data-page-node-id="fzWH4YAYS8N2yT0jpzrfeg">票务阿绿</span>
+                      <span class="note-time" data-page-node-id="HWGcfzUzLWhvECd3TyZuzF">1 小时前</span>
                     </div>
-                    <span class="post-type-tag" style="background:var(--warn-weak);color:var(--warn)">建议留言</span>
+                    <span class="post-type-tag" style="background:var(--warn-weak);color:var(--warn)" data-page-node-id="GJtT70TCONIHPuJKpAlJ6R">建议留言</span>
                   </div>
-                  <div class="note-text">希望能加个「按城市筛选」就好啦，现在跨城太多看得眼花。</div>
-                  <div class="post-tags"><span class="post-tag">#功能建议</span><span class="post-tag">#筛选</span></div>
+                  <div class="note-text" data-page-node-id="rdLqT5RcB6pBBckjenepRx">希望能加个「按城市筛选」就好啦，现在跨城太多看得眼花。</div>
+                  <div class="post-tags" data-page-node-id="DeHsT0Uvx1IDoQq2Xw66ml"><span class="post-tag" data-page-node-id="TAzfbjuqBLkwUlP0kAMGfh">#功能建议</span><span class="post-tag" data-page-node-id="8FVcYLEmEaafxvIjrUkadV">#筛选</span></div>
                 </div>
               </div>
             </div>
 
-            <div class="board-footer"><span class="t3 stitch-text">数据来自社区 · 每五分钟刷新一次</span></div>
-            <div class="fab"><span class="fab-icon">✍</span></div>
+            <div class="board-footer" data-page-node-id="TRT5pmW51cUFUOUsqNlPDW"><span class="t3 stitch-text" data-page-node-id="AgEzDwIBCY7tmTSwUwxnEv">数据来自社区 · 每五分钟刷新一次</span></div>
+            <div class="fab" data-page-node-id="gbo7AFnIP3hvALDfFJRJlw"><span class="fab-icon" data-page-node-id="zkxLbhadNjpRzFhbTbSIcX">✍</span></div>
           </div>
         </div>
       </div>
-      <div class="cap"><b>讨论区</b>：问题反馈白板风——标题 + 英文小注 + 胶带/蝴蝶结/贴纸；分类用 van-tabs；留言墙为手账便签（note 背景 + 夹子 + 头像 meta + 标签），右下角茶绿发帖 fab。</div>
+      <div class="cap" data-page-node-id="tyYTztaKlcCeESzBABHA5g"><b data-page-node-id="sDXxBfoIsEBSeCYgXaLjGu">讨论区</b>：问题反馈白板风——标题 + 英文小注 + 胶带/蝴蝶结/贴纸；分类用 van-tabs；留言墙为手账便签（note 背景 + 夹子 + 头像 meta + 标签），右下角茶绿发帖 fab。</div>
     </div>
 
     <!-- ====== 6. 我的页 ====== -->
-    <div>
-      <div class="phone">
-        <div class="phone-tag">我的页</div>
-        <div class="screen">
-          <div class="page">
-            <div class="bg-collage">
-              <img class="bg-stk bg-faint bg-note" src="../miniprogram/miniprogram/images/board2/collage8.png" style="width:80px;height:80px;top:480px;right:-18px;transform:rotate(8deg)">
-              <img class="bg-stk bg-visible bg-star7" src="../miniprogram/miniprogram/images/board2/origami19.png" style="width:22px;height:22px;top:330px;right:12%;transform:rotate(-12deg)">
+    <div data-page-node-id="n1AohK9cHQ7gh9KCgLEdpQ">
+      <div class="phone" data-page-node-id="SAHb1KBF4Mtbmar73FWY6I">
+        <div class="phone-tag" data-page-node-id="X0yyyCZBLynqbcxgNTt2lq">我的页</div>
+        <div class="screen" data-page-node-id="WzYXIGmlt8JNJMjQKQL1Jy">
+          <div class="page" data-page-node-id="Xbksqdurl6EBo69TZyCxSo">
+            <div class="bg-collage" data-page-node-id="1Q1ZpAOuxh6hKM0WtctPsI">
+              <img class="bg-stk bg-faint bg-note" src="../miniprogram/miniprogram/images/board2/origami15.png" style="width:80px;height:80px;top:480px;right:-18px;transform:rotate(8deg)" data-page-node-id="l9k5hRmpvhi5aCGJ7M3h7B">
+              <img class="bg-stk bg-visible bg-star7" src="../miniprogram/miniprogram/images/board2/origami19.png" style="width:22px;height:22px;top:330px;right:12%;transform:rotate(-12deg)" data-page-node-id="ycgh8vD8waGIyRbKNZBZ8j">
             </div>
 
-            <div class="card profile">
-              <img class="avatar" src="../miniprogram/miniprogram/images/avatar_fox.png">
-              <div class="profile-info">
-                <div class="nickname-row"><span class="nickname">票雷达用户</span><span class="t3 nickname-edit">改</span></div>
-                <div class="uid-row"><span class="uid">uid_8f3a2c</span><span class="uid-copy">复制</span></div>
-              </div>
-            </div>
-
-            <div class="card quota">
-              <div class="bow quota-bow"><div class="bow-k"></div></div>
-              <div class="quota-v">
-                <span class="num quota-n">12</span>
-                <span class="t2"> 条可收</span>
-              </div>
-              <div class="acts">
-                <div class="btn btn-primary">领一条</div>
-                <div class="btn btn-ghost">一次领 5 条</div>
+            <div class="card profile" data-page-node-id="na1tDt1pgcXlYLdxeBYkH1">
+              <img class="avatar" src="../miniprogram/miniprogram/images/avatar_fox.png" data-page-node-id="T8usH8dTatztwSMFPSNPRa">
+              <div class="profile-info" data-page-node-id="QJBmKpQDiaBwVyZXcx9mvV">
+                <div class="nickname-row" data-page-node-id="4WegnWNjLZ0FBQvFA3t7J3"><span class="nickname" data-page-node-id="vV0gG2ZzD37UF7RQPEM7Jb">票雷达用户</span><span class="t3 nickname-edit" data-page-node-id="LWYmDWg6d3kpw5CHm1U2xk">改</span></div>
+                <div class="uid-row" data-page-node-id="p31dI01dt96exieHx4KhtC"><span class="uid" data-page-node-id="dogfjgtDYpeC5rtTvOV6EJ">uid_8f3a2c</span><span class="uid-copy" data-page-node-id="TKGiuaHbF5Zbf2ODyAABsp">复制</span></div>
               </div>
             </div>
 
-            <div class="card bind">
-              <div class="bind-head">
-                <span class="t1">推送绑定</span>
-                <span class="t3">▾</span>
+            <div class="card quota" data-page-node-id="EErxCJYEYSj4caz8MMTmEs">
+              <div class="quota-v" data-page-node-id="QF95xbHzx33oIaga6kuVzn">
+                <span class="num quota-n" data-page-node-id="qLxgjKwxDZZgiSHGmr5QMO">12</span>
+                <span class="t2" data-page-node-id="CZk07Y3AvsUphULC99Njy4"> 条可收</span>
               </div>
-              <div class="code-box"><span class="code">radar-bind-7c2e91fa4b</span></div>
-              <div class="acts">
-                <div class="btn btn-ghost">复制 code</div>
-                <div class="btn btn-ghost">换一个</div>
+              <div class="acts" data-page-node-id="HjETTv6kaQMpcCzqYnOquD">
+                <div class="btn btn-primary" data-page-node-id="DxkcpIFRNAg8D1LF9lEPEq">领一条</div>
+                <div class="btn btn-ghost" data-page-node-id="MUVetArDuGN3z8tSaDlFCp">一次领 5 条</div>
               </div>
-              <div class="cmd"><span class="cmd-c">radar wxbind radar-bind-7c2e91fa4b</span></div>
             </div>
 
-            <div class="card support">
-              <div class="tape support-tape"></div>
-              <div class="support-main">
-                <div class="support-t">支持作者</div>
-                <div class="support-d">项目已开源，点个 Star 就是最大的鼓励</div>
+            <div class="card bind" data-page-node-id="xLmECeoAFIHS4hhFK4NeG7">
+              <div class="bind-head" data-page-node-id="PG9W2zyhesCCy3rUUnVGQF">
+                <span class="t1" data-page-node-id="9h0hEAXzsBzxQWvvI1HuPn">推送绑定</span>
+                <span class="t3" data-page-node-id="ArAMLSsRFBnyjTbAZt0cYL">▾</span>
               </div>
-              <div class="support-btn">☆ Star</div>
+              <div class="code-box" data-page-node-id="wbjoCLsGMZv2Ir70w6ZHiy"><span class="code" data-page-node-id="ewNKY2Wi7RHiquzdGXH87U">radar-bind-7c2e91fa4b</span></div>
+              <div class="acts" data-page-node-id="ak9lPCKaUOOEEtmTBbBv8c">
+                <div class="btn btn-ghost" data-page-node-id="SKpyAprbz13GMWgNNRdPb7">复制 code</div>
+                <div class="btn btn-ghost" data-page-node-id="vwVnsU7pytrnGVRA8e3zaw">换一个</div>
+              </div>
+              <div class="cmd" data-page-node-id="aerQDRIFt87IAYPDI689Sf"><span class="cmd-c" data-page-node-id="FSfB3pii0yaIsgzIEmdpu2">radar wxbind radar-bind-7c2e91fa4b</span></div>
+            </div>
+
+            <div class="card support" data-page-node-id="OOLmf8oJdNyjGlPCIpmDKh">
+              <div class="tape support-tape" data-page-node-id="gB1n3KWP9q98O949xBcl2s"></div>
+              <div class="support-main" data-page-node-id="CQalv8G7QxhnNhHezdLlD2">
+                <div class="support-t" data-page-node-id="F7N67FXFMSm2BCIxmjEGpa">支持作者</div>
+                <div class="support-d" data-page-node-id="J7X7Fbi68G5wUQptX88gka">项目已开源，点个 Star 就是最大的鼓励</div>
+              </div>
+              <div class="support-btn" data-page-node-id="YxJpM6Hjx3bkafqTmrWN8L">☆ Star</div>
             </div>
           </div>
         </div>
       </div>
-      <div class="cap"><b>我的页</b>：资料卡（头像 + 昵称 + uid 复制）/ 额度卡（蝴蝶结 + 大数字 + 领额度）/ 推送绑定卡（code + 命令）/ 支持作者卡（胶带 + 朴素排版 + 茶绿 Star 按钮）。</div>
+      <div class="cap" data-page-node-id="OGztgoGH1obCOgZgzHf9Nu"><b data-page-node-id="1B7Q0HMWjWMenjpwOB9FcG">我的页</b>：资料卡（头像 + 昵称 + uid 复制）/ 额度卡（蝴蝶结 + 大数字 + 领额度）/ 推送绑定卡（code + 命令）/ 支持作者卡（胶带 + 朴素排版 + 茶绿 Star 按钮）。</div>
     </div>
 
   </div>
 
   <!-- ============ 组件标本区 ============ -->
-  <div class="lab">
-    <h2>组件标本 <span class="en">COMPONENT SPECIMENS</span></h2>
-    <div class="lab-sub">公共组件抄自 app.wxss，所有彩色仅来自茶绿 / 朱砂 / 琥珀三个语义色。</div>
-    <div class="lab-grid">
+  <div class="lab" data-page-node-id="QGOqEs4DsRY3S7caRqR2zn">
+    <h2 data-page-node-id="KqgT0M2kTMHCOvRwkYRYOV">组件标本 <span class="en" data-page-node-id="k0c0DCMFV0ByCMJUMDKBKi">COMPONENT SPECIMENS</span></h2>
+    <div class="lab-sub" data-page-node-id="stPRYqS0JXs4S8Hj7Fgthz">公共组件抄自 app.wxss，所有彩色仅来自茶绿 / 朱砂 / 琥珀三个语义色。</div>
+    <div class="lab-grid" data-page-node-id="50yEnLPKlrsBAD6PyHTbGx">
 
-      <div class="lab-cell">
-        <span class="lab-lbl">和纸胶带 ×3</span>
-        <div style="position:relative;height:24px;width:200px">
-          <div class="tape" style="position:relative;top:0;left:0;display:inline-block"></div>
-          <div class="tape tape-red" style="position:relative;top:0;left:8px;display:inline-block"></div>
-          <div class="tape tape-kraft" style="position:relative;top:0;left:16px;display:inline-block"></div>
+      <div class="lab-cell" data-page-node-id="yiWJHILQEXiZvxbl4UWrYP">
+        <span class="lab-lbl" data-page-node-id="Pd3L5bfiK5aKqZ8i65Ua6g">和纸胶带 ×3</span>
+        <div style="position:relative;height:24px;width:200px" data-page-node-id="VjKiOaSpxiU0Ac7ZHoz8v1">
+          <div class="tape" style="position:relative;top:0;left:0;display:inline-block" data-page-node-id="fPywFzf4YESKHYL89XgKSy"></div>
+          <div class="tape tape-red" style="position:relative;top:0;left:8px;display:inline-block" data-page-node-id="yPpmzvxSV2yUPKHerR5jTi"></div>
+          <div class="tape tape-kraft" style="position:relative;top:0;left:16px;display:inline-block" data-page-node-id="5jTqWNuwaoHud7pyP2XYGu"></div>
         </div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">印章 ×3</span>
-        <div style="display:flex;gap:12px;align-items:center">
-          <span class="stamp stamp-green">监控中</span>
-          <span class="stamp stamp-red">售罄</span>
-          <span class="stamp stamp-ink">未开售</span>
+      <div class="lab-cell" data-page-node-id="xYODNQSEDqmhNlSMhT6k6M">
+        <span class="lab-lbl" data-page-node-id="j96ulWusPnpdatrguzWZif">印章 ×3</span>
+        <div style="display:flex;gap:12px;align-items:center" data-page-node-id="C2MK52yNNCVleWUgqhsrIW">
+          <span class="stamp stamp-green" data-page-node-id="bpuMttIER84xb0rr0JKsBr">监控中</span>
+          <span class="stamp stamp-red" data-page-node-id="HA8pWdN5BtswGChDTNnInP">售罄</span>
+          <span class="stamp stamp-ink" data-page-node-id="KnkKLrLk6rsD4eMPgJf92F">未开售</span>
         </div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">打孔线</span>
-        <div class="perf" style="margin:14px 0;width:240px"></div>
+      <div class="lab-cell" data-page-node-id="BF2XmL5BJdRFZOkFgvMw2o">
+        <span class="lab-lbl" data-page-node-id="UVeHa0EfljoSw5UrF5Igdr">打孔线</span>
+        <div class="perf" style="margin:14px 0;width:240px" data-page-node-id="lKyKBB6SbOPaWSkwvdzxlg"></div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">条码</span>
-        <div class="barcode" style="width:200px"></div>
+      <div class="lab-cell" data-page-node-id="RBQNHC8qGZSpUHIizT99DH">
+        <span class="lab-lbl" data-page-node-id="1ld4UgArknhz4JEBTrN0Il">条码</span>
+        <div class="barcode" style="width:200px" data-page-node-id="HC9qsashxKPV7QiJwon5GP"></div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">纸签 ×5</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;max-width:300px">
-          <span class="tag">平台</span>
-          <span class="tag tag-brand">在售</span>
-          <span class="tag tag-ok">有票</span>
-          <span class="tag tag-bad">售罄</span>
-          <span class="tag tag-warn">额度</span>
-          <span class="tag tag-none">无票</span>
+      <div class="lab-cell" data-page-node-id="pUTn33fpK6tpzP1sBjZGzo">
+        <span class="lab-lbl" data-page-node-id="wpwpkiotEFwtD20K8WHHpn">纸签 ×5</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;max-width:300px" data-page-node-id="3IqFvYmhaxvWtohUIr5Js2">
+          <span class="tag" data-page-node-id="GMk0gRd3c41qZxYNrZQMoT">平台</span>
+          <span class="tag tag-brand" data-page-node-id="knftrXJvhK6KBzPfH9uj4A">在售</span>
+          <span class="tag tag-ok" data-page-node-id="1n6K0AsPp4MId7yZcdsF5v">有票</span>
+          <span class="tag tag-bad" data-page-node-id="ueV1fhamHSbBRpbl6wHd8G">售罄</span>
+          <span class="tag tag-warn" data-page-node-id="hSO4KrDdNWZAxBttyCIqG7">额度</span>
+          <span class="tag tag-none" data-page-node-id="dRsGUyJLCPG6AHGcLGLwDq">无票</span>
         </div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">按钮 ×3</span>
-        <div style="display:flex;gap:10px;align-items:center">
-          <span class="btn btn-primary" style="height:36px;font-size:13px">进入</span>
-          <span class="btn btn-ghost" style="height:36px;font-size:13px">取消</span>
-          <span class="btn btn-line" style="height:36px;font-size:13px">详情</span>
+      <div class="lab-cell" data-page-node-id="7qxIo372KropClmYTOBAMI">
+        <span class="lab-lbl" data-page-node-id="JYeyvYvT49fJlzRjYfyaZG">按钮 ×3</span>
+        <div style="display:flex;gap:10px;align-items:center" data-page-node-id="wTiTSSxe4PGEtJDoJiHC2A">
+          <span class="btn btn-primary" style="height:36px;font-size:13px" data-page-node-id="1KSDxG5VJZBMiC3DKpgjnw">进入</span>
+          <span class="btn btn-ghost" style="height:36px;font-size:13px" data-page-node-id="7b05O9dcHYGoS42X0IunSE">取消</span>
+          <span class="btn btn-line" style="height:36px;font-size:13px" data-page-node-id="OMBE75MQXHMy5iWD47aOma">详情</span>
         </div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">van-tabs 样式条</span>
-        <div class="vtabs" style="margin:0;width:280px">
-          <div class="vtabs-row">
-            <span class="vtab on">全部</span>
-            <span class="vtab">问题</span>
-            <span class="vtab">建议</span>
+      <div class="lab-cell" data-page-node-id="xJPZlWUWsvd5nxAmP2kiZY">
+        <span class="lab-lbl" data-page-node-id="YIJCXJE5ExYbB2gNWsdh8N">van-tabs 样式条</span>
+        <div class="vtabs" style="margin:0;width:280px" data-page-node-id="knDoywTSlkCW5Fk6GT5t3Q">
+          <div class="vtabs-row" data-page-node-id="823GA4jAbRDa5YSk0KnwxW">
+            <span class="vtab on" data-page-node-id="Mm7Wb6v9yw6A6apGIi7NQR">全部</span>
+            <span class="vtab" data-page-node-id="Ki6Y6elDFGOrwD9ROb5EqJ">问题</span>
+            <span class="vtab" data-page-node-id="hJhzZ8BVSz1SDpli32PXxv">建议</span>
           </div>
-          <div class="vtab-line" style="left:14px;width:26px;"></div>
+          <div class="vtab-line" style="left:14px;width:26px;" data-page-node-id="zzTEXeNjBNgBvuNq9Xhx6O"></div>
         </div>
       </div>
 
-      <div class="lab-cell">
-        <span class="lab-lbl">缝线标签 / 蕾丝</span>
-        <div style="display:flex;flex-direction:column;gap:10px;width:240px">
-          <span class="stitch-tag">点开看场次和票档</span>
-          <div class="lace"></div>
+      <div class="lab-cell" data-page-node-id="q0lxWpbXfifmTU9iX9D5EJ">
+        <span class="lab-lbl" data-page-node-id="HMpO6HjmCaCPnVSycavLbL">缝线标签 / 蕾丝</span>
+        <div style="display:flex;flex-direction:column;gap:10px;width:240px" data-page-node-id="x4e13taThM4YVwRgkAxOnt">
+          <span class="stitch-tag" data-page-node-id="cC0x4NUbkmsKJVBh4AfJrU">点开看场次和票档</span>
+          <div class="lace" data-page-node-id="hLv25N5yZXUnEw1S9kGHIU"></div>
         </div>
       </div>
 
@@ -942,37 +879,37 @@
   </div>
 
   <!-- ============ 色板区 ============ -->
-  <div class="lab">
-    <h2>色板 <span class="en">PALETTE · 纸面 #F7F2E7 上的对比度</span></h2>
-    <div class="lab-sub">全部由 check_palette.py 校验，过 WCAG AA。墨色与纸白替代纯黑 #000 / 纯白 #fff。</div>
-    <div class="palette">
-      <div class="sw"><div class="sw-c" style="background:var(--paper)"></div><div class="sw-n">纸底</div><div class="sw-h">#F7F2E7</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--card)"></div><div class="sw-n">卡片纸</div><div class="sw-h">#FDFBF4</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--card2)"></div><div class="sw-n">卡内嵌</div><div class="sw-h">#F3EDDE</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--line)"></div><div class="sw-n">纸边线</div><div class="sw-h">#D9D0BC</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--line2)"></div><div class="sw-n">打孔线</div><div class="sw-h">#C4B99F</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--ink)"></div><div class="sw-n">墨（主文字）</div><div class="sw-h">#2A2620</div><div class="sw-cr">13.5:1 ✔</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--ink2)"></div><div class="sw-n">次文字</div><div class="sw-h">#57503F</div><div class="sw-cr">7.3:1 ✔</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--ink3)"></div><div class="sw-n">弱文字</div><div class="sw-h">#6E6558</div><div class="sw-cr">5.1:1 ✔</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--accent)"></div><div class="sw-n">茶绿（强调）</div><div class="sw-h">#445C38</div><div class="sw-cr">6.6:1 ✔</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--accent-weak)"></div><div class="sw-n">茶绿浅底</div><div class="sw-h">#E9EDDF</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--stamp)"></div><div class="sw-n">朱砂（语义）</div><div class="sw-h">#A23B2E</div><div class="sw-cr">5.9:1 ✔</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--stamp-weak)"></div><div class="sw-n">朱砂浅底</div><div class="sw-h">#F5E4E0</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--warn)"></div><div class="sw-n">琥珀（语义）</div><div class="sw-h">#8A6A1B</div><div class="sw-cr">4.5:1 ✔</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--warn-weak)"></div><div class="sw-n">琥珀浅底</div><div class="sw-h">#F4EBD4</div></div>
-      <div class="sw"><div class="sw-c" style="background:var(--on-brand)"></div><div class="sw-n">绿底纸白</div><div class="sw-h">#FDFBF4</div></div>
+  <div class="lab" data-page-node-id="6d7xpClYXPHjaRfVRMig3P">
+    <h2 data-page-node-id="Nc16qJi11UIb6ruDx2qTxH">色板 <span class="en" data-page-node-id="dvAk1jZhgIU0OzLHf9TSsb">PALETTE · 纸面 #F7F2E7 上的对比度</span></h2>
+    <div class="lab-sub" data-page-node-id="iGTBibPkWCC6OmvlrzVXQa">全部由 check_palette.py 校验，过 WCAG AA。墨色与纸白替代纯黑 #000 / 纯白 #fff。</div>
+    <div class="palette" data-page-node-id="QeWNHSGFrUHQfQNMF4D9Qm">
+      <div class="sw" data-page-node-id="R4kHqO1zjUAr0tLBTYAwaG"><div class="sw-c" style="background:var(--paper)" data-page-node-id="RfGr9UBTWQvfOg2VLIYIoY"></div><div class="sw-n" data-page-node-id="MQLB3g6RZobZ9aDCsdKUHN">纸底</div><div class="sw-h" data-page-node-id="b0EoAURUHk7Zb3Yv2HtBG3">#F7F2E7</div></div>
+      <div class="sw" data-page-node-id="g97y4Kx8nJKfQFaKI1jen6"><div class="sw-c" style="background:var(--card)" data-page-node-id="bUMgYnsRru7fLJsTbZCF2F"></div><div class="sw-n" data-page-node-id="wKp2IkIFewK8yMOlN56UE6">卡片纸</div><div class="sw-h" data-page-node-id="nqXVGUPuhS1Q771VLDRLsh">#FDFBF4</div></div>
+      <div class="sw" data-page-node-id="7gW9CGUbATAnNZSzXCDR4F"><div class="sw-c" style="background:var(--card2)" data-page-node-id="r1VrHTp9Ovd0ARvIimmccg"></div><div class="sw-n" data-page-node-id="V1EFoEUeNHfJp8YGGqAarB">卡内嵌</div><div class="sw-h" data-page-node-id="9CIvdzcPgZsFD4pvBRjJlX">#F3EDDE</div></div>
+      <div class="sw" data-page-node-id="DYVLLkumjZbBGVVxVjeHct"><div class="sw-c" style="background:var(--line)" data-page-node-id="WacJxauHgvHCrIXvXnmlXn"></div><div class="sw-n" data-page-node-id="NZtra0hDFWQgkzr7kQtica">纸边线</div><div class="sw-h" data-page-node-id="hxM3kpZUDAD1PgiL2vYJ4s">#D9D0BC</div></div>
+      <div class="sw" data-page-node-id="8p6owbHF1gLXpg4jocm2Qg"><div class="sw-c" style="background:var(--line2)" data-page-node-id="1ZE1BvFnVMO6sgTxn96JFy"></div><div class="sw-n" data-page-node-id="NM9DEq7uNdiMCj2ztH1Unc">打孔线</div><div class="sw-h" data-page-node-id="BGXrWfPOvZKJpzUIxEsXCd">#C4B99F</div></div>
+      <div class="sw" data-page-node-id="FqDgX159YNQPPJfAQo0mvA"><div class="sw-c" style="background:var(--ink)" data-page-node-id="kwGA4NCaIPD7iZEQE9Dku5"></div><div class="sw-n" data-page-node-id="56pT4C0r3JlLRCRoh28hqx">墨（主文字）</div><div class="sw-h" data-page-node-id="1ipjSJxmSfWDX7HEzeFv9k">#2A2620</div><div class="sw-cr" data-page-node-id="gThz8eDVzFTG0jDDZ3iRWZ">13.5:1 ✔</div></div>
+      <div class="sw" data-page-node-id="AzfPmuX0pNt4D9mYWOyJ6M"><div class="sw-c" style="background:var(--ink2)" data-page-node-id="1lDCFUpEpgnuiCsrHGKQA8"></div><div class="sw-n" data-page-node-id="76Ks97cSw87wvWvFaDNsU8">次文字</div><div class="sw-h" data-page-node-id="9kD01ZyzEcIM2tWfS2V8eO">#57503F</div><div class="sw-cr" data-page-node-id="xfgET0cuEqKG5hXDOZ9faH">7.3:1 ✔</div></div>
+      <div class="sw" data-page-node-id="lnp5TrjPOHKiHX8eUZRF0d"><div class="sw-c" style="background:var(--ink3)" data-page-node-id="xPwGP3COtfA0sgztEhx7TK"></div><div class="sw-n" data-page-node-id="9iRNEkA2riLEZzMEHeYfz4">弱文字</div><div class="sw-h" data-page-node-id="wmLnvsXWsYcXR5uXgs8X0G">#6E6558</div><div class="sw-cr" data-page-node-id="llMGX9YToAhbAvStA9Hm41">5.1:1 ✔</div></div>
+      <div class="sw" data-page-node-id="WpefHdCEDYbOfGetYvgIMm"><div class="sw-c" style="background:var(--accent)" data-page-node-id="BucucXTXmR2ESKl5nzpK40"></div><div class="sw-n" data-page-node-id="0hlewCL0gIYW0cvYJ0KswI">茶绿（强调）</div><div class="sw-h" data-page-node-id="GsXMrGhopxGX96D2VJr0oW">#445C38</div><div class="sw-cr" data-page-node-id="vCsL4F4yJbfe98dgVuLpyf">6.6:1 ✔</div></div>
+      <div class="sw" data-page-node-id="C6OsI7Mz0fnbGpV8t9J0i7"><div class="sw-c" style="background:var(--accent-weak)" data-page-node-id="rQB1l8s2yOUaCfVlvItFt1"></div><div class="sw-n" data-page-node-id="UedX7oJjqpUrpkESRFxELE">茶绿浅底</div><div class="sw-h" data-page-node-id="HwvnxbLCgJEHTnRAvEGZhd">#E9EDDF</div></div>
+      <div class="sw" data-page-node-id="UI6w2fNwSg8QEyrXOELCcr"><div class="sw-c" style="background:var(--stamp)" data-page-node-id="HsvB7h1n2Bww5ScJOqA1la"></div><div class="sw-n" data-page-node-id="uZubC24sigWLQlDl9zIuo9">朱砂（语义）</div><div class="sw-h" data-page-node-id="VmiGsoHsmlpomtow7tWEiI">#A23B2E</div><div class="sw-cr" data-page-node-id="39zLXsovoStkgekL3moABJ">5.9:1 ✔</div></div>
+      <div class="sw" data-page-node-id="WqEAM4xPn345TVN3QXV750"><div class="sw-c" style="background:var(--stamp-weak)" data-page-node-id="R6lQSEoZJztpM3jRhBhgtb"></div><div class="sw-n" data-page-node-id="MqOLl0AqLJyjXMYNhzxvOH">朱砂浅底</div><div class="sw-h" data-page-node-id="1fhzDDadhJERyb960IXQEV">#F5E4E0</div></div>
+      <div class="sw" data-page-node-id="uiuLyxxTfGhjItSJBQSUlV"><div class="sw-c" style="background:var(--warn)" data-page-node-id="qSZhHy68UoU0k6ne6sPg1A"></div><div class="sw-n" data-page-node-id="6HAHh8JO2mtfwcL3VEBG5f">琥珀（语义）</div><div class="sw-h" data-page-node-id="hmTGiuOl02TQmN2zGkBtup">#8A6A1B</div><div class="sw-cr" data-page-node-id="N10qfNSIZrCsUef9goXhZW">4.5:1 ✔</div></div>
+      <div class="sw" data-page-node-id="bmGC1IInHD1GTjHRufUuZo"><div class="sw-c" style="background:var(--warn-weak)" data-page-node-id="ZwAxsfBqPE79ehhjpVVoYL"></div><div class="sw-n" data-page-node-id="m659s1SZZ7AC8SE2QPaa2d">琥珀浅底</div><div class="sw-h" data-page-node-id="AKZBT5sIbTcpoWPVXnS22t">#F4EBD4</div></div>
+      <div class="sw" data-page-node-id="aeol57NwIYDnbziss0jTHs"><div class="sw-c" style="background:var(--on-brand)" data-page-node-id="8bc4Z6CXMprLAwnPHCxTiV"></div><div class="sw-n" data-page-node-id="HkbvkZDHfqi7PRPEpDtPKp">绿底纸白</div><div class="sw-h" data-page-node-id="CvIKiXBAw2wwluK5tTP8iB">#FDFBF4</div></div>
     </div>
   </div>
 
   <!-- ============ 设计说明区 ============ -->
-  <div class="notes">
-    <h2>设计说明 · DESIGN NOTES</h2>
-    <ol>
-      <li><b>纸感票根手账语言</b>：暖白期刊纸（#F7F2E7）+ 手绘细线 + 大量留白 + 胶带拼贴，叠加复古票根隐喻——打孔线 / 副券 / 条码 / 编号 / 印章，参考北港茶小程序与两张复古票根。</li>
-      <li><b>单一强调色 + 语义色</b>：茶绿 <span class="mono">#445C38</span> 全站唯一强调（可交互 / 有票）；朱砂 = 热卖·回流·售罄（<span class="mono">#A23B2E</span>），琥珀 = 额度提醒（<span class="mono">#8A6A1B</span>）。</li>
-      <li><b>形状规则</b>：纸 = 裁纸直角 2px（<span class="mono">--r</span>），功能 = 药丸 999px（<span class="mono">--r-pill</span>）；阴影一律暖墨调 <span class="mono">rgba(42,38,32,.07)</span>，禁纯黑投影。</li>
-      <li><b>零自定义字体</b>：全站系统默认字体，无 <span class="mono">font-family</span> 声明；标题一律单行（<span class="mono">white-space:nowrap</span>），折行视为排版事故。</li>
-      <li><b>WCAG AA 19 项全过</b>：纸面 #F7F2E7 上 ink 13.5:1 / accent 6.6:1 / stamp 5.9:1 / warn 4.5:1 等，由 <span class="mono">tools/check_palette.py</span> 校验。</li>
+  <div class="notes" data-page-node-id="LRzoUGG4bBzp1kb6bnIKBE">
+    <h2 data-page-node-id="Z6UqTYaIEmeCYB8poY3HhE">设计说明 · DESIGN NOTES</h2>
+    <ol data-page-node-id="gwln8MOyU4YWUcgoQNcyx8">
+      <li data-page-node-id="NPJE2KndXmUvg3scj3FjfG"><b data-page-node-id="iwYv7TnPUzPBrcOtO93z6Q">纸感票根手账语言</b>：暖白期刊纸（#F7F2E7）+ 手绘细线 + 大量留白 + 胶带拼贴，叠加复古票根隐喻——打孔线 / 副券 / 条码 / 编号 / 印章，参考北港茶小程序与两张复古票根。</li>
+      <li data-page-node-id="s40co6xs6xc6amCieyR6pk"><b data-page-node-id="rSKxX1hOHdF5yuoT2HWLnt">单一强调色 + 语义色</b>：茶绿 <span class="mono" data-page-node-id="co5IskgFiTvqeY2L3avt1x">#445C38</span> 全站唯一强调（可交互 / 有票）；朱砂 = 热卖·回流·售罄（<span class="mono" data-page-node-id="gipdwfF6Tkc6C8mq0GVmhN">#A23B2E</span>），琥珀 = 额度提醒（<span class="mono" data-page-node-id="1SnSm2DjmnmC2kBxMO6aZ0">#8A6A1B</span>）。</li>
+      <li data-page-node-id="M9e5691FsrlR8wcAdCr6zd"><b data-page-node-id="MSzy5hZd54C9lHdjxBR9Z8">形状规则</b>：纸 = 裁纸直角 2px（<span class="mono" data-page-node-id="wt2Var747x3lXnXYrbMghq">--r</span>），功能 = 药丸 999px（<span class="mono" data-page-node-id="S5Nbu7WTFcAt3q7AVWMQUP">--r-pill</span>）；阴影一律暖墨调 <span class="mono" data-page-node-id="TkqAcoJTkXi9rTvJFbOAfC">rgba(42,38,32,.07)</span>，禁纯黑投影。</li>
+      <li data-page-node-id="hXJtXyO4ouC5qUkD3MBcHN"><b data-page-node-id="44RrRtItrdiEs1s4YWaXwh">零自定义字体</b>：全站系统默认字体，无 <span class="mono" data-page-node-id="dNLN9doewu75kmwR9DpOWm">font-family</span> 声明；标题一律单行（<span class="mono" data-page-node-id="qRZ2mJYo5Wv1XuOBEuWGpD">white-space:nowrap</span>），折行视为排版事故。</li>
+      <li data-page-node-id="8camWYoOtRqXNA02FKAIGc"><b data-page-node-id="ywhbqTgN4RmBNhA7Upkp45">WCAG AA 19 项全过</b>：纸面 #F7F2E7 上 ink 13.5:1 / accent 6.6:1 / stamp 5.9:1 / warn 4.5:1 等，由 <span class="mono" data-page-node-id="GnI3oClds4UDuzYux9kWiR">tools/check_palette.py</span> 校验。</li>
     </ol>
   </div>
 

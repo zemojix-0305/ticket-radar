@@ -1,9 +1,6 @@
-/* 开屏页 v5：整屏票根（第十七轮）
-   整个屏幕 = 一张暖白期刊纸票根：
-   顶部撕条（TICKET-RADAR / NO.2026）→ 打孔线 → 主券（眉题/大标题/口号/场次信息格/印章）
-   → 打孔线 → 副券（条码/编号/进入按钮）。
-   动效克制（MOTION 5）：内容级联上浮 60ms 一档，贴纸「啪」地贴上。
-   配色：纸 #F7F2E7 + 暖墨 #2A2620，茶绿只给「进入」按钮和「监控中」印章。 */
+/* 开屏页 v6：纯拼贴，无文字（第十八轮）
+   暖白纸 + 手撕条 + 打孔线 + 折纸星星/手绘星轨/手剪胶带拼贴。
+   动效克制：撕条/打孔线淡入，贴纸逐张「贴上」（内层 scale，外层旋转），全部 1.5s 内完成。 */
 .splash-page {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -14,225 +11,137 @@
   flex-direction: column;
 }
 
-/* ---------- 拼贴层：透明度 0.06~0.09，只在四角留白处 ---------- */
-.splash-bg {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
+/* ---------- 顶部手撕条：纯图形 ---------- */
+.tear-strip {
+  height: 56rpx;
+  margin-top: env(safe-area-inset-top);
+  background: #ECE3CE;
+  border-bottom: 1rpx solid var(--line);
 }
-.sbg { position: absolute; }
-.sbg-1 { width: 180rpx; height: 180rpx; top: 5%;    right: -46rpx; transform: rotate(14deg);  opacity: 0.08; }
-.sbg-2 { width: 140rpx; height: 140rpx; top: 30%;   left: -40rpx;  transform: rotate(-10deg); opacity: 0.07; }
-.sbg-3 { width: 150rpx; height: 150rpx; bottom: 8%; left: -40rpx;  transform: rotate(8deg);   opacity: 0.07; }
-.sbg-4 { width: 120rpx; height: 120rpx; bottom: 30%; right: -30rpx; transform: rotate(-14deg); opacity: 0.06; }
-.sbg-5 { width: 54rpx;  height: 54rpx;  top: 11%;   left: 13%;     transform: rotate(-12deg); opacity: 0.09; }
+/* 撕条底边锯齿：两片 45° 渐变三角交错出撕口 */
+.tear-edge {
+  height: 12rpx;
+  background-image:
+    linear-gradient(135deg, #ECE3CE 50%, transparent 50%),
+    linear-gradient(-135deg, #ECE3CE 50%, transparent 50%);
+  background-size: 24rpx 12rpx;
+  background-repeat: repeat-x;
+  background-position: 0 0, 12rpx 0;
+}
+.splash-perf { margin: 0 40rpx; }
 
-/* ---------- 右侧竖排水印 ---------- */
-.watermark {
-  position: absolute;
-  right: 6rpx;
-  top: 0; bottom: 0;
-  width: 34rpx;
+/* ---------- 主视觉拼贴区 ---------- */
+.stage {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+/* 外层：定位 + 手贴旋转；内层：贴上动画 */
+.stk { position: absolute; }
+.stk-in {
+  opacity: 0;
+  animation: stk-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.stk image { display: block; width: 100%; }
+@keyframes stk-in {
+  from { opacity: 0; transform: scale(1.35); }
+  to   { opacity: 0.95; transform: scale(1); }
+}
+
+/* 大折纸星：280rpx，中央偏左上，视觉重心 */
+.stk-main {
+  width: 280rpx;
+  top: 120rpx;
+  left: 190rpx;
+  transform: rotate(-7deg);
+}
+/* 胶带1：斜压大星星上沿 */
+.stk-tape1 {
+  top: 96rpx;
+  left: 258rpx;
+  transform: rotate(-24deg);
+}
+.stk-tape1 .tape { width: 150rpx; height: 40rpx; }
+/* 手绘星轨：右上 */
+.stk-trail {
+  width: 180rpx;
+  top: 70rpx;
+  right: 36rpx;
+  transform: rotate(12deg);
+}
+/* 小黄折纸星：左下 */
+.stk-yellow {
+  width: 96rpx;
+  top: 470rpx;
+  left: 84rpx;
+  transform: rotate(-16deg);
+}
+/* 小红折纸星：右中点缀 */
+.stk-red {
+  width: 60rpx;
+  top: 520rpx;
+  right: 150rpx;
+  transform: rotate(10deg);
+}
+/* 胶带2：右下 */
+.stk-tape2 {
+  top: 600rpx;
+  right: 210rpx;
+  transform: rotate(16deg);
+}
+.stk-tape2 .tape { width: 120rpx; height: 34rpx; }
+
+/* ---------- 底部：条码 + 圆形纸片按钮 ---------- */
+.dock {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 34rpx 56rpx calc(env(safe-area-inset-bottom) + 40rpx);
+}
+.dock-barcode .barcode {
+  width: 260rpx;
+  height: 60rpx;
+  opacity: 0.85;
+}
+
+/* 圆形纸片按钮：纸卡底 + 墨色细边 + 贴纸星星 + 斜压胶带 */
+.stk-btn { padding-bottom: 8rpx; }
+.enter-disc {
+  position: relative;
+  width: 216rpx;
+  height: 216rpx;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1rpx solid var(--line2);
+  box-shadow: 0 2rpx 0 rgba(42, 38, 32, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  transform: rotate(-4deg);
 }
-.watermark-t {
-  white-space: nowrap;
-  font-size: 17rpx;
-  letter-spacing: 7rpx;
-  color: var(--ink);
-  opacity: 0.07;
-  transform: rotate(90deg);
-}
-
-/* ---------- 票根：整屏一列 ---------- */
-.ticket {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0 40rpx;
-  min-height: 100%;
-}
-
-/* 顶部撕条 */
-.ticket-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 24rpx) 4rpx 20rpx;
-}
-.top-name {
-  font-size: 24rpx;
-  font-weight: 600;
-  letter-spacing: 5rpx;
-  color: var(--ink);
-}
-.top-no {
-  font-size: 20rpx;
-  letter-spacing: 2rpx;
-  color: var(--ink3);
-  font-variant-numeric: tabular-nums;
-}
-/* 打孔线在票内通栏 */
-.ticket-perf { margin: 0 -40rpx; }
-
-/* 主券 */
-.ticket-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 48rpx 4rpx;
-  position: relative;   /* 容纳印章 / 胶带 / 贴纸 */
-}
-.ticket-eyebrow {
-  font-size: 20rpx;
-  letter-spacing: 5rpx;
-  color: var(--ink3);
-  margin-bottom: 22rpx;
-}
-.ticket-title {
-  font-size: 96rpx;
-  font-weight: 700;
-  letter-spacing: 10rpx;
-  line-height: 1.12;
-  color: var(--ink);
-}
-.ticket-slogan {
-  margin-top: 28rpx;
-  font-size: 26rpx;
-  letter-spacing: 2rpx;
-  line-height: 1.6;
-  color: var(--ink2);
-}
-
-/* 场次信息格：虚线分栏，像真票的演出信息 */
-.ticket-info {
-  margin-top: 72rpx;
-  display: flex;
-}
-.info-cell { flex: 1; min-width: 0; }
-.info-cell + .info-cell {
-  border-left: 1px dashed var(--line2);
-  padding-left: 24rpx;
-}
-.info-lbl {
-  display: block;
-  font-size: 17rpx;
-  letter-spacing: 2rpx;
-  color: var(--ink3);
-  margin-bottom: 12rpx;
-}
-.info-v {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 600;
-  letter-spacing: 1rpx;
-  color: var(--ink);
-}
-
-/* 印章：监控中 */
-.ticket-stamp {
+.enter-tape {
   position: absolute;
-  top: 56rpx;
-  right: 4rpx;
+  top: -16rpx;
+  left: 50%;
+  margin-left: -46rpx;
+  width: 92rpx;
+  height: 30rpx;
+  background: rgba(162, 59, 46, 0.32);
   transform: rotate(-8deg);
-  font-size: 22rpx;
-  letter-spacing: 5rpx;
-  padding: 8rpx 20rpx;
-  border-width: 2rpx;
-  border-radius: 6rpx;
-  opacity: 0.8;
 }
-
-/* 胶带 + 贴纸：贴在主券两角 */
-.ticket-tape {
-  top: 34rpx;
-  left: 4rpx;
-  width: 130rpx;
-  height: 36rpx;
-  transform: rotate(-6deg);
-}
-.ticket-stk {
-  position: absolute;
-  opacity: 0;
-  animation: sticker-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-.stk-a { width: 88rpx; top: 150rpx; right: 4rpx;   transform: rotate(12deg); animation-delay: 0.8s;  opacity: 0; }
-.stk-b { width: 72rpx; bottom: 64rpx; left: 4rpx;  transform: rotate(-9deg); animation-delay: 0.95s; opacity: 0; }
-@keyframes sticker-in {
-  from { opacity: 0; scale: 1.4; }
-  to   { opacity: 0.92; scale: 1; }
-}
-
-/* 副券 */
-.ticket-stub {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28rpx;
-  padding: 30rpx 4rpx calc(env(safe-area-inset-bottom) + 30rpx);
-}
-.stub-barcode {
-  width: 230rpx;
-  height: 66rpx;
-}
-.stub-no {
+.enter-stk {
+  width: 96rpx;
   display: block;
-  margin-top: 14rpx;
-  font-size: 18rpx;
-  letter-spacing: 3rpx;
-  color: var(--ink3);
-  font-variant-numeric: tabular-nums;
-}
-.stub-r {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 16rpx;
-}
-.btn-enter {
-  min-width: 208rpx;
-  height: 86rpx;
-  line-height: 86rpx;
-  text-align: center;
-  padding: 0 40rpx;
-  background: var(--accent);
-  color: var(--on-brand);
-  border-radius: var(--r);
-  font-size: 30rpx;
-  font-weight: 500;
-  letter-spacing: 8rpx;
-  box-sizing: border-box;
-}
-.stub-hint {
-  font-size: 20rpx;
-  letter-spacing: 2rpx;
-  color: var(--ink3);
-  animation: hint-blink 2.2s ease-in-out infinite;
-}
-@keyframes hint-blink {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
+  margin-top: 10rpx;
 }
 
-/* ---------- 入场动效：内容级联上浮 ---------- */
-.anim {
-  opacity: 0;
-  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(26rpx); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-/* 只有淡入（不覆盖自身 transform 的元素用） */
+/* ---------- 淡入（撕条 / 打孔线 / 条码用） ---------- */
 .anim-fade {
   opacity: 0;
   animation: fade-in 0.5s ease forwards;
 }
 @keyframes fade-in {
   from { opacity: 0; }
-  to   { opacity: 0.85; }
+  to   { opacity: 1; }
 }

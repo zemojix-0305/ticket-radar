@@ -3,7 +3,7 @@
 
   <!-- 背景拼贴层：仅保留 bg-stk 拼贴 -->
   <view class="bg-collage">
-    <image class="bg-stk bg-faint bg-youme"  src="/images/board2/collage16.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-youme"  src="/images/board2/origami17.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-cloud"  src="/images/board2/collage4.png"  mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star3" src="/images/board2/origami13.png" mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star4" src="/images/board2/origami5.png"  mode="aspectFit" />
@@ -15,14 +15,11 @@
     <view class="tape"></view>
     <view class="hero-l">
       <view class="hero-title-row">
-        <view class="bow"><view class="bow-k"></view></view>
         <view class="hero-title title-strong">正在盯的票</view>
         <view class="hero-stks">
           <image class="hero-stk stk-a" src="/images/board2/origami12.png" mode="aspectFit" />
-          <image class="hero-stk stk-b" src="/images/board2/cartoon7.png" mode="aspectFit" />
         </view>
       </view>
-      <view class="en-note">WATCHING NOW <text class="spark">✦</text></view>
       <view class="hero-count">
         <text class="num hero-ok">{{okCount}}</text>
         <text class="hero-sep">/</text>
@@ -98,7 +95,7 @@
     <image class="empty-stk" src="/images/board2/collage15.png" mode="aspectFit" />
     <view class="empty-mark"></view>
     <view class="empty-title">还没在盯任何场次</view>
-    <view class="empty-sub">去「搜演出」找想看的场次，<br />点一下就能开始监控。</view>
+    <view class="empty-sub">去「搜演出」加一个。</view>
     <view class="empty-acts">
       <button class="btn btn-primary press" bindtap="goShows" hover-class="press-hover">去找演出</button>
     </view>
@@ -161,7 +158,6 @@
     <view class="faq-list" wx:if="{{faqOpen}}">
       <view class="faq-item" wx:for="{{faqList}}" wx:key="q" data-idx="{{index}}" bindtap="onFaqItem" hover-class="press-hover">
         <view class="faq-q">
-          <text class="faq-dot">✦</text>
           <text>{{item.q}}</text>
         </view>
         <view class="faq-a" wx:if="{{item.open}}">{{item.a}}</view>

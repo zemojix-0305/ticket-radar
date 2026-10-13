@@ -31,7 +31,7 @@ const STICKERS = [
   { key: 'starPurple', label: '星星', bg: '/images/board2/cartoon8.png', dark: false },
   { key: 'leaf', label: '叶子', bg: '/images/board2/collage12.png', dark: true },
   { key: 'dolls', label: '娃娃', bg: '/images/board2/collage14.png', dark: true },
-  { key: 'puzzle', label: '拼图', bg: '/images/board2/collage16.png', dark: false },
+  { key: 'puzzle', label: '格纹星', bg: '/images/board2/origami7.png', dark: false },
   { key: 'twins', label: '双星', bg: '/images/board2/cartoon11.png', dark: false },
   { key: 'ice', label: '冰块', bg: '/images/board2/cartoon3.png', dark: false },
 ];

@@ -31,7 +31,6 @@
   transform: rotate(10deg);
   opacity: 0.95;
 }
-.head-stk.stk-b { width: 22px; height: 22px; transform: rotate(-8deg); margin-left: -4px; }
 
 /* ---------- 平台 Tabs（vant，主题在 app.wxss） ---------- */
 .platform-tabs {
@@ -110,18 +109,6 @@
 }
 .search-btn.disabled { background: var(--disabled); }
 
-/* 定位针贴纸：斜贴在搜索栏右上角 */
-.search-pin {
-  position: absolute;
-  top: -10px;
-  right: 108px;
-  width: 26px;
-  height: 26px;
-  transform: rotate(14deg);
-  opacity: 0.9;
-  pointer-events: none;
-}
-
 /* ---------- 使用教程 / 常见问题 ---------- */
 .faq { padding: 0; }
 .faq-tape { top: -8px; left: 20px; }
@@ -138,8 +125,7 @@
 .faq-arrow-open { transform: rotate(180deg); }
 .faq-body { padding: 0 16px 6px; }
 .faq-item { padding: 2px 0 6px; }
-.faq-q { display: flex; align-items: flex-start; gap: 7px; }
-.faq-q .spark { margin-top: 2px; flex-shrink: 0; }
+.faq-q { display: flex; align-items: flex-start; }
 .faq-q-t { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.5; }
 .faq-a {
   font-size: 13px;

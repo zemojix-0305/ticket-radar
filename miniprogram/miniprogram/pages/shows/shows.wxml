@@ -5,7 +5,7 @@
 
   <!-- 背景拼贴层：贴纸透明度压到 0.06~0.12，只在留白缝隙透出 -->
   <view class="bg-collage">
-    <image class="bg-stk bg-faint bg-love"   src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-love"   src="/images/board2/origami24.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-swirl"  src="/images/board2/cartoon12.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-burst"  src="/images/board2/collage3.png"  mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star1" src="/images/board2/origami1.png" mode="aspectFit" />
@@ -16,14 +16,11 @@
   <view class="head">
     <view class="tape"></view>
     <view class="head-row">
-      <view class="bow"><view class="bow-k"></view></view>
       <view class="head-hand title-strong">今天想看什么</view>
       <view class="head-stks">
         <image class="head-stk stk-a" src="/images/board2/origami21.png" mode="aspectFit" />
-        <image class="head-stk stk-b" src="/images/board2/cartoon11.png" mode="aspectFit" />
       </view>
     </view>
-    <view class="en-note">FIND SOMETHING TO WATCH <text class="spark">✦</text></view>
   </view>
 
   <!-- 平台筛选：vant Tabs（纸感主题，app.wxss 覆盖） -->
@@ -61,8 +58,6 @@
     <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
       {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜索')}}
     </view>
-    <!-- 定位针贴纸：斜贴在搜索栏右上角 -->
-    <image class="search-pin" src="/images/board2/cartoon6.png" mode="aspectFit" />
   </view>
 
   <!-- 票星球：粘贴链接模式说明 -->
@@ -113,7 +108,6 @@
     <view class="faq-body" wx:if="{{faqOpen}}">
       <view class="faq-item" wx:for="{{faqList}}" wx:key="q">
         <view class="faq-q">
-          <text class="spark">✦</text>
           <text class="faq-q-t">{{item.q}}</text>
         </view>
         <view class="faq-a">{{item.a}}</view>
@@ -139,7 +133,7 @@
 
     <view class="sec">
       <view class="sec-title title-strong">正在热卖</view>
-      <view class="stamp stamp-red sec-stamp">ON SALE</view>
+      <view class="stamp stamp-red sec-stamp">在售</view>
     </view>
 
     <view class="card sk-card" wx:if="{{hotLoading}}">

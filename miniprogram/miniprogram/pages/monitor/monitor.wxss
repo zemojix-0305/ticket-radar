@@ -37,7 +37,6 @@
   transform: rotate(10deg);
   opacity: 0.9;
 }
-.hero-stk.stk-b { width: 24px; height: 24px; transform: rotate(-8deg); margin-left: -4px; }
 .hero-count { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; }
 .hero-ok { color: var(--ink); }
 .hero-total { color: var(--ink3); }
@@ -353,7 +352,6 @@
   color: var(--ink);
   line-height: 1.5;
 }
-.faq-dot { color: var(--accent); font-size: 12px; margin-top: 2px; flex-shrink: 0; }
 .faq-a {
   margin-top: 8px;
   padding: 10px 12px;

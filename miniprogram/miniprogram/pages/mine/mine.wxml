@@ -3,7 +3,7 @@
 
   <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
   <view class="bg-collage">
-    <image class="bg-stk bg-faint bg-note"   src="/images/board2/collage8.png"  mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-note"   src="/images/board2/origami15.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-trail"  src="/images/board2/cartoon10.png" mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star7" src="/images/board2/origami19.png" mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star8" src="/images/board2/origami6.png"  mode="aspectFit" />
@@ -51,7 +51,6 @@
 
   <!-- 额度 -->
   <view class="card quota">
-    <view class="bow quota-bow"><view class="bow-k"></view></view>
     <view class="quota-v">
       <text class="num quota-n">{{credit}}</text>
       <text class="t2"> 条可收</text>
@@ -96,7 +95,7 @@
     <view class="tape support-tape"></view>
     <view class="support-main">
       <view class="support-t">支持作者</view>
-      <view class="support-d">项目已开源，点个 Star 就是最大的鼓励</view>
+      <view class="support-d">项目开源在 GitHub，欢迎去点个 Star</view>
     </view>
     <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ Star</view>
   </view>

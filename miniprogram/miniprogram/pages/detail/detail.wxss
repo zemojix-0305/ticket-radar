@@ -29,7 +29,6 @@
 }
 .hero-stk { position: absolute; width: 44rpx; height: 44rpx; }
 .hero-stk.stk-a { right: 18rpx; bottom: 26rpx; transform: rotate(12deg); opacity: 0.95; }
-.hero-stk.stk-b { left: 14rpx; bottom: 18rpx; transform: rotate(-10deg); opacity: 0.9; }
 
 /* ---------- 标题信息卡（虚线分栏）---------- */
 .info { padding: 16px 18px; }

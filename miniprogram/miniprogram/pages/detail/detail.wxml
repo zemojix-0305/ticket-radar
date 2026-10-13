@@ -3,7 +3,7 @@
 
   <!-- 背景拼贴层：仅保留 bg-stk 拼贴 -->
   <view class="bg-collage">
-    <image class="bg-stk bg-faint bg-love"  src="/images/board2/collage13.png" mode="aspectFit" />
+    <image class="bg-stk bg-faint bg-love"  src="/images/board2/origami20.png" mode="aspectFit" />
     <image class="bg-stk bg-faint bg-swirl" src="/images/board2/cartoon12.png" mode="aspectFit" />
     <image class="bg-stk bg-visible bg-star1" src="/images/board2/origami1.png" mode="aspectFit" />
   </view>
@@ -27,11 +27,9 @@
     <!-- 大海报 -->
     <view class="hero">
       <view class="tape"></view>
-      <view class="bow"><view class="bow-k"></view></view>
       <image class="hero-poster" src="{{poster}}" mode="aspectFill" wx:if="{{poster}}" />
       <view class="hero-poster hero-poster-blank" wx:if="{{!poster}}">暂无海报</view>
       <image class="hero-stk stk-a" src="/images/board2/origami21.png" mode="aspectFit" />
-      <image class="hero-stk stk-b" src="/images/board2/cartoon7.png" mode="aspectFit" />
     </view>
 
     <!-- 标题信息区：虚线分栏 -->
@@ -49,7 +47,6 @@
     <!-- 场次与票档 -->
     <view class="sec">
       <view class="sec-title title-strong">场次与票档</view>
-      <view class="en-note">SESSIONS <text class="spark">✦</text> TICKETS</view>
     </view>
 
     <!-- 票根列表：场次间用打孔线分隔 -->
@@ -66,7 +63,7 @@
           <view class="tier-price" wx:if="{{t.price}}">{{t.price}}</view>
           <text class="stamp {{t.available ? 'stamp-green' : 'stamp-ink'}}">{{t.status}}</text>
         </view>
-        <view class="sess-empty" wx:if="{{!s.tiers.length}}">这个场次的票档信息还没拉下来，点「盯这场」后我们会持续替你看着。</view>
+        <view class="sess-empty" wx:if="{{!s.tiers.length}}">这个场次的票档还没拉到，先「盯这场」，有动静会告诉你。</view>
       </view>
     </view>
 
