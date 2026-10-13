@@ -1,20 +1,19 @@
 .page { padding-bottom: 8px; }
 
-/* ---------- 顶部：ins 风排版，无插画无装饰 ---------- */
+/* ---------- 顶部：极简排版 ---------- */
 .hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 18px 14px;
+  padding: 26px 20px 16px;
 }
 .hero-title {
   font-size: 26px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--t1);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
-.hero-count { display: flex; align-items: baseline; gap: 5px; }
+.hero-count { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; }
 .hero-ok { color: var(--t1); }
 .hero-total { color: var(--t3); }
 .hero-sep { font-size: 20px; font-weight: 300; color: var(--t3); margin: 0 2px; }
@@ -27,8 +26,8 @@
   width: 62px;
   height: 62px;
   padding: 0;
-  background: var(--t1);
-  border-radius: 20px;
+  background: var(--brand);
+  border-radius: 50%;
   line-height: 1.15;
   flex-shrink: 0;
 }
@@ -45,7 +44,7 @@
   padding: 14px 0;
   background: var(--card);
   border-radius: var(--r);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 .quick-item {
   display: flex;
@@ -146,7 +145,7 @@
   padding: 3px;
   background: var(--card);
   border-radius: 999px;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 .seg {
   flex: 1;
@@ -175,7 +174,7 @@
   padding: 10px 14px;
   background: var(--card);
   border-radius: var(--r-sm);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 .credit-empty { background: var(--warn-weak); }
 .credit-l { min-width: 0; }
@@ -243,7 +242,7 @@
   border-radius: var(--r);
   margin-bottom: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 .task-topline {
   height: 5px;

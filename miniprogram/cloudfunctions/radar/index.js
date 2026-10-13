@@ -929,7 +929,17 @@ exports.main = async (event) => {
       const keyword = String((event && event.keyword) || '').trim();
       const limit = (event && event.limit) || 20;
       const platform = String((event && event.platform) || 'moretickets').trim();
-      if (!keyword) return { ok: false, error: '关键词是空的' };
+
+      // 空关键词 = 热门列表。实测（2026-10）只有猫眼支持：k= 直接返回
+      // 在售演出（带海报）。摩天轮空关键词 403、大麦风控、票星球无接口
+      // ——拿不到就明说，不造假列表。
+      if (!keyword) {
+        if (platform === 'maoyan') {
+          const rows = await findMaoyan('', limit);
+          return { ok: true, keyword: '', platform, rows };
+        }
+        return { ok: false, error: '该平台没有热门列表，请输入关键词搜索' };
+      }
 
       if (platform === 'maoyan') {
         const rows = await findMaoyan(keyword, limit);

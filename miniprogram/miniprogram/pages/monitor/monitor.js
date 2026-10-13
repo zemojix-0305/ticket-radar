@@ -243,11 +243,11 @@ Page({
         ctx.arc(16 + pw - 11, 30, 11, 0, Math.PI * 2);
         ctx.rect(16 + 11, 19, pw - 22, 22);
         ctx.fill();
-        ctx.fillStyle = ok ? '#237A45' : '#6C6C75';
+        ctx.fillStyle = ok ? '#1E7A46' : '#6E6E73';
         ctx.fillText(pill, 16 + 11, 34.5);
 
         // 任务名
-        ctx.fillStyle = '#1C1C1E';
+        ctx.fillStyle = '#1A1A1A';
         ctx.font = '600 17px -apple-system, "PingFang SC", sans-serif';
         let name = s.name || '监控';
         while (ctx.measureText(name).width > W - 40 && name.length > 2) {
@@ -257,7 +257,7 @@ Page({
         ctx.fillText(name, 16, 84);
 
         // 平台 + 时间
-        ctx.fillStyle = '#6C6C75';
+        ctx.fillStyle = '#6E6E73';
         ctx.font = '12px -apple-system, "PingFang SC", sans-serif';
         const sub = [s.platform, s.relTime].filter(Boolean).join(' · ');
         ctx.fillText(sub, 16, 108);
@@ -271,14 +271,14 @@ Page({
         const hMax = 30;
         for (let i = 0; i < bars; i += 1) {
           const h = ok ? hMax * (0.45 + 0.55 * ((i % 3) / 2)) : hMax * 0.18;
-          ctx.fillStyle = ok ? '#1C1C1E' : '#E5E5EA';
+          ctx.fillStyle = ok ? '#1A1A1A' : '#E5E5EA';
           ctx.beginPath();
           ctx.rect(x0 + i * (bw + gap), y0 - h, bw, h);
           ctx.fill();
         }
 
         // 品牌行
-        ctx.fillStyle = '#1C1C1E';
+        ctx.fillStyle = '#1A1A1A';
         ctx.font = '600 12px -apple-system, "PingFang SC", sans-serif';
         ctx.fillText('余票监控', 16, 172);
         ctx.fillStyle = '#8E8E93';

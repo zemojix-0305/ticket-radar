@@ -1,5 +1,11 @@
-<!-- 场次页：打名字 → 搜 → 点一下开始盯。 -->
+<!-- 场次页：进来就有热门演出逛，想搜再搜；12306 是携程式的站站选择。 -->
 <view class="page">
+
+  <!-- 顶部：手写体标题 + 英文小注（参考图的双语排版） -->
+  <view class="head">
+    <view class="head-hand font-hand">今天想看什么</view>
+    <view class="en-note">FIND SOMETHING TO WATCH</view>
+  </view>
 
   <!-- 平台筛选 -->
   <view class="platform-bar">
@@ -21,7 +27,7 @@
       <text class="search-ico"></text>
       <input
         class="search-inp"
-        placeholder="{{platforms[platformIndex].linkOnly ? '粘贴该平台的演出分享链接' : '演出名 / 巡演名，中英文都行'}}"
+        placeholder="{{platforms[platformIndex].linkOnly ? '粘贴该平台的演出分享链接' : '搜索演出、巡演、场馆'}}"
         placeholder-class="search-ph"
         value="{{kw}}"
         confirm-type="search"
@@ -31,94 +37,152 @@
       <text class="search-clear press" wx:if="{{kw}}" bindtap="clearAll" hover-class="press-hover">清除</text>
     </view>
     <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
-      {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜')}}
+      {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜索')}}
     </view>
   </view>
 
-  <!-- 大麦/票星球：粘贴链接模式下的说明，一句话讲清楚为什么要这样 -->
+  <!-- 大麦/票星球：粘贴链接模式说明 -->
   <view class="link-hint" wx:if="{{platforms[platformIndex].linkOnly}}">
     这两个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里即可盯它的开售状态。
   </view>
 
-  <!-- 12306：出发地 → 目的地 + 日期 -->
-  <view class="rail-form" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
-    <view class="rail-row">
-      <input class="rail-inp" placeholder="出发地，如 广州南" value="{{from}}" bindinput="onFrom" />
-      <text class="rail-arrow">→</text>
-      <input class="rail-inp" placeholder="目的地，如 长沙南" value="{{to}}" bindinput="onTo" />
+  <!-- 12306：携程式表单 —— 起点终点两大块 + 交换 + 日期 -->
+  <view class="rail-card" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
+    <view class="rail-top">
+      <view class="rail-station">
+        <view class="rail-station-lbl">出发地</view>
+        <input class="rail-station-inp" placeholder="如 广州南" value="{{from}}" bindinput="onFrom" />
+      </view>
+      <view class="rail-swap press" bindtap="swapStations" hover-class="press-hover">
+        <view class="rail-swap-line"></view>
+        <view class="rail-swap-arrow">⇌</view>
+      </view>
+      <view class="rail-station rail-station-r">
+        <view class="rail-station-lbl">目的地</view>
+        <input class="rail-station-inp" placeholder="如 长沙南" value="{{to}}" bindinput="onTo" />
+      </view>
     </view>
-    <view class="rail-row">
-      <picker mode="date" value="{{date}}" bindchange="onDate" class="rail-date">
-        <view class="rail-date-in">{{date || '选乘车日期'}}</view>
-      </picker>
+    <view class="rail-bottom">
+      <view class="rail-dates">
+        <view class="rail-date-chip press {{date === todayStr ? 'chip-on' : ''}}" data-off="0" bindtap="quickDate" hover-class="press-hover">今天</view>
+        <view class="rail-date-chip press {{date === tomorrowStr ? 'chip-on' : ''}}" data-off="1" bindtap="quickDate" hover-class="press-hover">明天</view>
+        <picker mode="date" value="{{date}}" bindchange="onDate" class="rail-date-pick">
+          <view class="rail-date-chip">{{date}}</view>
+        </picker>
+      </view>
       <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
         {{searching ? '查着' : '查余票'}}
       </view>
     </view>
   </view>
 
-  <!-- 还没搜过：只留一句，别上课 -->
-  <view class="card empty" wx:if="{{!searched && !searching}}">
-    <view class="empty-mark"></view>
-    <view class="empty-title" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">查哪条线</view>
-    <view class="empty-title" wx:else>想盯什么就打什么</view>
-    <view class="empty-sub" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
-      填出发地、目的地，选个日期。
-    </view>
-    <view class="empty-sub" wx:else>演出名、巡演名、车站名都行。</view>
-  </view>
-
-  <!-- 搜过没结果 -->
-  <view class="card empty" wx:if="{{!searching && searched && !rows.length && !fail}}">
-    <view class="empty-mark"></view>
-    <view class="empty-title">没搜到</view>
-    <view class="empty-sub">换个词试试。</view>
-  </view>
-
+  <!-- 搜索失败 -->
   <view class="card fail" wx:if="{{fail}}">
     <view class="fail-t">搜索失败</view>
     <view class="fail-b">{{fail}}</view>
   </view>
 
-  <!-- 搜索中：骨架卡，比转圈更有耐心 -->
+  <!-- 搜索中：骨架 -->
   <view class="card sk-card" wx:if="{{searching}}">
     <view class="sk sk-t" style="width:60%"></view>
     <view class="sk" style="width:40%;height:12px;margin-top:12px"></view>
   </view>
 
-  <!-- 结果 -->
-  <view class="row-card press-card" wx:for="{{rows}}" wx:key="id" hover-class="press-card-hover">
-    <view class="poster" wx:if="{{item.poster}}">
-      <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
-    </view>
-    <view class="poster poster-blank" wx:else></view>
+  <!-- ============ 热门演出（猫眼 & 没在展示搜索结果时） ============ -->
+  <block wx:if="{{platforms[platformIndex].key === 'maoyan' && !searched && !searching}}">
 
-    <view class="row-main">
-      <view class="row-name">{{item.name}}</view>
-      <view class="row-meta">
-        <text class="tag tag-brand">{{item.platformLabel}}</text>
-        <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
-        <text class="tag tag-none" wx:if="{{!item.status && item.city}}">{{item.city}}</text>
-      </view>
-      <view class="row-sub">
-        <text wx:if="{{item.dateRange}}">{{item.dateRange}}</text>
-        <text wx:if="{{item.route}}">{{item.route}}</text>
-        <text wx:if="{{item.price}}" class="row-price">{{item.price}} 起</text>
-      </view>
+    <view class="sec">
+      <view class="sec-title font-hand">正在热卖</view>
+      <view class="en-note">TRENDING NOW</view>
     </view>
 
-    <view
-      class="row-add {{adding === item.id ? 'row-add-busy' : ''}}"
-      data-row="{{item}}"
-      bindtap="add"
-      hover-class="press-hover"
-    >
-      {{adding === item.id ? '…' : '盯'}}
+    <view class="card sk-card" wx:if="{{hotLoading}}">
+      <view class="sk sk-t" style="width:55%"></view>
+      <view class="sk" style="width:35%;height:12px;margin-top:12px"></view>
     </view>
-  </view>
+
+    <view class="card empty" wx:if="{{!hotLoading && hotFail}}">
+      <view class="empty-mark"></view>
+      <view class="empty-title">热门列表拿不到</view>
+      <view class="empty-sub">{{hotFail}}</view>
+    </view>
+
+    <view class="hot-list" wx:if="{{!hotLoading && hot.length}}">
+      <view class="show-card press-card" wx:for="{{hot}}" wx:key="id" hover-class="press-card-hover">
+        <view class="poster">
+          <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
+        </view>
+        <view class="show-main">
+          <view class="show-name">{{item.name}}</view>
+          <view class="show-meta">
+            <text class="tag tag-brand">猫眼</text>
+            <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
+          </view>
+          <view class="show-sub">
+            <text wx:if="{{item.city}}">{{item.city}}</text>
+            <text wx:if="{{item.city && item.dateRange}}"> · </text>
+            <text wx:if="{{item.dateRange}}">{{item.dateRange}}</text>
+          </view>
+          <view class="show-foot">
+            <text class="show-price" wx:if="{{item.price}}">{{item.price}} 起</text>
+            <view
+              class="btn-watch {{adding === item.id ? 'btn-watch-busy' : ''}}"
+              data-row="{{item}}"
+              bindtap="add"
+              hover-class="press-hover"
+            >{{adding === item.id ? '…' : '盯'}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="stitch-wrap" wx:if="{{hot.length}}">
+      <view class="stitch-tag font-hand">数据来自猫眼 · 每五分钟刷新一次</view>
+    </view>
+  </block>
+
+  <!-- ============ 搜索结果 ============ -->
+  <block wx:if="{{searched && !searching}}">
+    <!-- 搜过没结果 -->
+    <view class="card empty" wx:if="{{!rows.length && !fail}}">
+      <view class="empty-mark"></view>
+      <view class="empty-title">没搜到</view>
+      <view class="empty-sub">换个词试试。</view>
+    </view>
+
+    <view class="hot-list" wx:if="{{rows.length}}">
+      <view class="show-card press-card" wx:for="{{rows}}" wx:key="id" hover-class="press-card-hover">
+        <view class="poster">
+          <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
+        </view>
+        <view class="poster poster-blank" wx:if="{{!item.poster}}"></view>
+        <view class="show-main">
+          <view class="show-name">{{item.name}}</view>
+          <view class="show-meta">
+            <text class="tag tag-brand">{{item.platformLabel}}</text>
+            <text class="tag tag-ok" wx:if="{{item.status}}">{{item.status}}</text>
+            <text class="tag tag-none" wx:if="{{!item.status && item.city}}">{{item.city}}</text>
+          </view>
+          <view class="show-sub">
+            <text wx:if="{{item.dateRange}}">{{item.dateRange}}</text>
+            <text wx:if="{{item.route}}">{{item.route}}</text>
+          </view>
+          <view class="show-foot">
+            <text class="show-price" wx:if="{{item.price}}">{{item.price}} 起</text>
+            <view
+              class="btn-watch {{adding === item.id ? 'btn-watch-busy' : ''}}"
+              data-row="{{item}}"
+              bindtap="add"
+              hover-class="press-hover"
+            >{{adding === item.id ? '…' : '盯'}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
 
   <!-- 搜索历史 -->
-  <view class="card hist" wx:if="{{history.length && !rows.length && !searching}}">
+  <view class="card hist" wx:if="{{history.length && !rows.length && !searching && platforms[platformIndex].key !== 'rail12306'}}">
     <view class="hist-head">
       <text class="hist-title">最近搜过</text>
       <text class="hist-clear press" bindtap="clearHistory" hover-class="press-hover">清空</text>

@@ -1,53 +1,59 @@
 /* ==========================================================================
    全局设计令牌 + 通用组件
    --------------------------------------------------------------------------
-   风格：ins 高级风（第七轮）。用户明确：白色系为主、高级、不要可爱。
-   · 背景 #F7F7FA 淡灰白 + 纯白卡，近黑 #1C1C1E 做主色（主 CTA/选中态）；
-   · 彩色只留给语义：有票绿 / 无票灰 / 异常红 / 提醒琥珀；
-   · 大标题排版 + 克制线性图标，无插画无贴纸（狐狸已按要求移除）；
-   · 平台名一律用本名：大麦 / 猫眼 / 摩天轮 / 票星球 / 12306。
+   风格：纯白极简（第八轮）。参考用户给的两张图 + 喜茶小程序：
+   · 纯白底 #FFFFFF，无色块无阴影堆叠——分区靠 1px 细线和大留白；
+   · 唯一点缀色：钴蓝 #2456DB（参考图按钮蓝），只给主 CTA 和关键交互；
+     粉色全部删除。
+   · 手写体点缀：楷体（Kaiti SC）用于页面标题与装饰字——对应参考图
+     左上角「羽衣甘蓝 鲜榨」的手写感；
+   · 刺绣字点缀：虚线描边胶囊 .stitch-tag，模拟缝线效果；
+   · 英文小注：小号大写 + 大字距（参考图 MUSHROOM BAKERY 的排法）；
+   · 平台名一律本名：大麦 / 猫眼 / 摩天轮 / 票星球 / 12306。
 
    硬规则不变：
    1. 零渐变。骨架屏呼吸脉冲。
-   2. 主色唯一：近黑。彩色只来自语义色。
+   2. 彩色只来自钴蓝 + 语义色（有票绿/无票灰/异常红/提醒琥珀）。
    3. 所有可点元素必须有按压反馈（hover-class）。
    4. 对比度用 tools/check_palette.py 校验（WCAG AA）。
    ========================================================================== */
 page {
-  --bg: #F7F7FA;
+  --bg: #FFFFFF;
+  --bg-soft: #F7F7F8;      /* 输入框/代码块的极浅灰底 */
+
   --card: #FFFFFF;
 
-  --ink: #1C1C1E;
+  --ink: #1A1A1A;
 
-  --brand: #1C1C1E;
-  --brand-deep: #000000;
-  --brand-weak: #F1F1F4;
-  --brand-line: #E2E2E6;
+  --brand: #2456DB;        /* 钴蓝，唯一点缀色 */
+  --brand-deep: #1D47B8;
+  --brand-weak: #EDF1FE;
+  --brand-line: #C9D4F6;
 
-  --ok: #237A45;
-  --ok-weak: #E3F5EA;
-  --none: #6B6B73;
-  --none-weak: #F1F1F4;
-  --bad: #C43C2C;
-  --bad-weak: #FCEBE9;
-  --warn: #9B6E0A;
-  --warn-weak: #FFF7E0;
+  --ok: #1E7A46;
+  --ok-weak: #E6F4EB;
+  --none: #6A6A6F;
+  --none-weak: #F4F4F5;
+  --bad: #BC3B2C;
+  --bad-weak: #FBEAE7;
+  --warn: #96690A;
+  --warn-weak: #FBF3DC;
 
-  --t1: #1C1C1E;
-  --t2: #5A5A60;
-  --t3: #6C6C75;
-  --line: rgba(28, 28, 30, 0.07);
+  --t1: #1A1A1A;
+  --t2: #6E6E73;
+  --t3: #75757A;
+  --line: #ECECEC;
 
-  --r: 22px;
-  --r-sm: 16px;
-  --gut: 10px;
+  --r: 16px;
+  --r-sm: 12px;
+  --gut: 12px;
 
   --on-brand: #FFFFFF;
-  --disabled: #E2E2E6;
-  --bar-idle: #E5E5EA;
+  --disabled: #E5E5E7;
+  --bar-idle: #EDEDEF;
 
-  --shadow: 0 2px 8px rgba(28, 28, 30, 0.05), 0 10px 24px rgba(28, 28, 30, 0.04);
-  --shadow-brand: 0 4px 14px rgba(28, 28, 30, 0.18);
+  --shadow: none;           /* 极简风：不用阴影，分区靠细线 */
+  --shadow-brand: none;
 
   background: var(--bg);
   font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -56,18 +62,50 @@ page {
   letter-spacing: 0.2px;
 }
 
-/* ---------- 卡片 ---------- */
+/* ---------- 手写体点缀 ----------
+   楷体栈：iOS 有 Kaiti SC，安卓退化到 KaiTi/楷体，再退化到衬线。
+   只用在标题和装饰短语上，正文不用——可读性优先。 */
+.font-hand {
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "楷体", "Yuanti SC", serif;
+  font-weight: 400;
+}
+
+/* ---------- 英文小注 ----------
+   参考图 MUSHROOM BAKERY 的排法：小号大写 + 大字距。 */
+.en-note {
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+/* ---------- 刺绣字点缀 ----------
+   虚线描边胶囊 = 缝线。里面配楷体字，就是「绣」在界面上的小标签。 */
+.stitch-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 12px;
+  border: 1.5px dashed #B8B8BC;
+  border-radius: 999px;
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "楷体", serif;
+  font-size: 12px;
+  color: var(--t2);
+  line-height: 18px;
+}
+
+/* ---------- 卡片：极简风用细线代替阴影 ---------- */
 .card {
   background: var(--card);
   border-radius: var(--r);
   margin: var(--gut);
   overflow: hidden;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 .card-pad { padding: 18px 20px; }
 
-/* ---------- inset grouped list（保留，用于设置类页面）---------- */
-.group { margin: var(--gut); background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); }
+/* ---------- inset grouped list（设置类页面）---------- */
+.group { margin: var(--gut); background: var(--card); border-radius: var(--r); border: 1px solid var(--line); }
 .g-row {
   display: flex;
   align-items: center;
@@ -138,42 +176,41 @@ page {
 .btn-primary {
   background: var(--brand);
   color: var(--on-brand);
-  box-shadow: var(--shadow-brand);
 }
-.btn-primary[disabled] { background: var(--disabled); color: var(--on-brand); box-shadow: none; }
+.btn-primary[disabled] { background: var(--disabled); color: var(--on-brand); }
 .btn-ghost {
-  background: var(--brand-weak);
-  color: var(--brand);
+  background: var(--bg-soft);
+  color: var(--t1);
 }
 .btn-line {
   background: transparent;
   color: var(--t2);
-  border: 1px solid var(--brand-line);
+  border: 1px solid var(--line);
 }
 
 /* ---------- 空状态 ----------
-   空状态必须给出下一步动作。装饰用极简线条圆环，不用插画。 */
-.empty { padding: 44px 32px; text-align: center; }
+   空状态必须给出下一步动作。装饰 = 一根简笔横线 + 楷体短语。 */
+.empty { padding: 48px 32px; text-align: center; }
 .empty-mark {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
-  border: 2px solid var(--line);
+  width: 44px;
+  height: 2px;
+  margin: 0 auto 18px;
+  background: var(--line);
   position: relative;
 }
-.empty-mark::before {
+.empty-mark::before,
+.empty-mark::after {
   content: '';
   position: absolute;
-  left: 50%;
-  top: -8px;
-  width: 4px;
-  height: 4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--brand-weak);
-  transform: translateX(-50%);
-  border: 1px solid var(--t3);
+  border: 1.5px solid var(--line);
+  background: var(--card);
 }
+.empty-mark::before { left: -16px; }
+.empty-mark::after { right: -16px; }
 .empty-title { font-size: 15px; font-weight: 500; color: var(--t1); margin-bottom: 7px; }
 .empty-sub { font-size: 13px; color: var(--t3); line-height: 1.8; letter-spacing: 0.2px; }
 
@@ -192,7 +229,7 @@ page {
 .mask {
   position: fixed;
   left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(28, 28, 30, 0.32);
+  background: rgba(26, 26, 26, 0.32);
   z-index: 90;
 }
 .sheet {
@@ -200,7 +237,7 @@ page {
   left: 0; right: 0; bottom: 0;
   z-index: 91;
   background: var(--card);
-  border-radius: 28px 28px 0 0;
+  border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(20px + env(safe-area-inset-bottom));
 }
 .sheet-grab {
@@ -218,36 +255,26 @@ page {
   box-sizing: border-box;
   height: 46px;
   padding: 0 16px;
-  background: var(--bg);
+  background: var(--bg-soft);
   border-radius: var(--r-sm);
   font-size: 15px;
   color: var(--t1);
 }
 .input-pick { line-height: 46px; }
 
-/* ---------- 分区标题 ---------- */
+/* ---------- 分区标题 ----------
+   不用圆点：手写体中文 + 英文小注，参考图的双语排版。 */
 .sec {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 22px 20px 10px;
+  padding: 24px 20px 12px;
 }
 .sec-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "楷体", serif;
+  font-size: 19px;
   color: var(--t1);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  letter-spacing: 0.4px;
-}
-.sec-title::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--brand);
-  flex-shrink: 0;
+  letter-spacing: 1px;
 }
 .sec-more { font-size: 12px; color: var(--t3); letter-spacing: 0.2px; }
 

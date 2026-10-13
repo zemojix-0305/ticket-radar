@@ -12,12 +12,15 @@ const CREDIT_KEY = 'wx_subscribe_credit';
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。
 // 平台辨识靠文字，彩色只留给「有票/无票/异常」三个语义状态。
 // （曾经给三个平台各配了一个低饱和色，反而成了全页最吵的地方。）
+// 平台不给彩色。极简风全页只有一个钴蓝 accent。
+// 平台辨识靠文字；彩色只留给「有票/无票/异常」语义状态。
+// 猫眼放第一位：它是唯一有热门列表的平台，进页面就有内容可逛。
 const PLATFORMS = [
-  { key: 'damai', label: '大麦', linkOnly: true },
   { key: 'maoyan', label: '猫眼' },
   { key: 'moretickets', label: '摩天轮' },
-  { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
   { key: 'rail12306', label: '12306' },
+  { key: 'damai', label: '大麦', linkOnly: true },
+  { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
 ];
 
 Page({
@@ -31,14 +34,28 @@ Page({
     adding: '',
     platforms: PLATFORMS,
     platformIndex: 0,
+    // 热门演出（进页面就有内容逛，不用先搜）
+    hot: [],
+    hotLoading: false,
+    hotFail: '',
     // 12306 用「出发地/目的地/日期」，不是关键词
     from: '',
     to: '',
     date: '',
+    todayStr: '',
+    tomorrowStr: '',
   },
 
   onLoad() {
-    this.setData({ history: wx.getStorageSync(HISTORY_KEY) || [] });
+    const fmt = (off) => new Date(Date.now() + off * 86400000).toISOString().slice(0, 10);
+    this.setData({
+      history: wx.getStorageSync(HISTORY_KEY) || [],
+      todayStr: fmt(0),
+      tomorrowStr: fmt(1),
+      date: fmt(1),
+    });
+    // 进页面就拉热门，让第一屏有东西可逛
+    this.loadHot();
   },
 
   onInput(e) {
@@ -60,7 +77,34 @@ Page({
   onSearch() {
     const p = PLATFORMS[this.data.platformIndex];
     if (p.key === 'rail12306') return this.searchRail();
+    const kw = (this.data.kw || '').trim();
+    if (!kw) {
+      // 搜索框为空 = 回到热门
+      this.setData({ rows: [], searched: false, fail: '' });
+      this.loadHot();
+      return;
+    }
     return this.searchKeyword(p);
+  },
+
+  /** 热门演出：只有猫眼能做（实测空关键词返回在售列表），其他平台给假数据是不诚实 */
+  loadHot() {
+    if (this.data.hotLoading) return;
+    this.setData({ hotLoading: true, hotFail: '' });
+    wx.cloud
+      .callFunction({
+        name: 'radar',
+        data: { action: 'find', keyword: '', platform: 'maoyan', limit: 10 },
+      })
+      .then((res) => {
+        const r = res.result || {};
+        if (!r.ok) throw new Error(r.error || '未知错误');
+        const rows = (r.rows || []).map((row) => this.normalize(row, PLATFORMS[0]));
+        this.setData({ hot: rows, hotLoading: false });
+      })
+      .catch((e) => {
+        this.setData({ hotLoading: false, hotFail: String(e.message || e) });
+      });
   },
 
   searchKeyword(p) {
@@ -137,6 +181,18 @@ Page({
     this.setData({ platformIndex: idx, rows: [], searched: false, fail: '' });
   },
 
+  /** 携程式交换出发地/目的地 */
+  swapStations() {
+    this.setData({ from: this.data.to, to: this.data.from });
+  },
+
+  /** 日期快捷：今天 / 明天 */
+  quickDate(e) {
+    const off = Number(e.currentTarget.dataset.off) || 0;
+    const d = new Date(Date.now() + off * 86400000);
+    this.setData({ date: d.toISOString().slice(0, 10) });
+  },
+
   pushHistory(kw) {
     const h = [kw].concat(this.data.history.filter((x) => x !== kw)).slice(0, 8);
     wx.setStorageSync(HISTORY_KEY, h);
@@ -175,6 +231,7 @@ Page({
 
   clearAll() {
     this.setData({ kw: '', rows: [], searched: false, fail: '' });
+    this.loadHot();
   },
 
   // 点结果卡片 = 建监控。这是最短路径：搜到、看一眼、点了就走。

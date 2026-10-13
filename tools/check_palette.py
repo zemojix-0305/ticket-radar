@@ -7,24 +7,24 @@ from __future__ import annotations
 
 #: 与 miniprogram/miniprogram/app.wxss 里的 page{} 同源，改一处记得改两处。
 #:
-#: 白色灵动风。背景 #F7F7FA + 白卡；主色明亮莓粉 #A23E78；
-#: 语义色：薄荷绿/冷灰/暖红/琥珀。
+#: 纯白极简风（第八轮，参考用户图 + 喜茶）。纯白底 + 细线分区；
+#: 唯一点缀色钴蓝 #2456DB（粉全删）；语义色：绿/灰/红/琥珀。
 PALETTE = {
-    "bg": "#F7F7FA",       # 淡灰白底
-    "card": "#FFFFFF",     # 纯白卡片
-    "brand": "#A23E78",    # 明亮莓粉（主色）
-    "t1": "#1C1C1E",       # 正文
-    "t2": "#5A5A60",       # 次要
-    "t3": "#6C6C75",       # 提示
-    "ok": "#237A45",       # 有票：薄荷绿
-    "none": "#6B6B73",     # 无票：冷灰（与 ok 色相差 ~90°）
-    "bad": "#C43C2C",      # 异常：暖红
-    "warn": "#9B6E0A",     # 提醒：琥珀
-    "ok-weak": "#E3F5EA",  # pastel 浅底
-    "none-weak": "#F1F1F4",
-    "bad-weak": "#FCEBE9",
-    "warn-weak": "#FFF7E0",
-    "brand-weak": "#FBE8F2",
+    "bg": "#FFFFFF",       # 纯白底
+    "card": "#FFFFFF",     # 卡片同为白
+    "brand": "#2456DB",    # 钴蓝（唯一点缀色）
+    "t1": "#1A1A1A",       # 正文
+    "t2": "#6E6E73",       # 次要
+    "t3": "#75757A",       # 提示
+    "ok": "#1E7A46",       # 有票：绿
+    "none": "#6A6A6F",     # 无票：灰（与 ok 色相差大，色弱可辨）
+    "bad": "#BC3B2C",      # 异常：红
+    "warn": "#96690A",     # 提醒：琥珀
+    "ok-weak": "#E6F4EB",  # 浅底
+    "none-weak": "#F4F4F5",
+    "bad-weak": "#FBEAE7",
+    "warn-weak": "#FBF3DC",
+    "brand-weak": "#EDF1FE",
 }
 
 #: (用途, 前景, 背景, 是否大字)。大字阈值 3.0，普通文本 4.5。

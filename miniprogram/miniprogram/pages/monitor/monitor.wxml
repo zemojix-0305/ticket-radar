@@ -1,10 +1,11 @@
 <!-- 监控页：白色灵动风。绣字标题 + 快捷入口 + 圆角任务卡。 -->
 <view class="page">
 
-  <!-- 顶部：ins 风大标题排版，无插画 -->
+  <!-- 顶部：极简排版。手写体标题 + 英文小注 + 大数字计数 -->
   <view class="hero">
     <view class="hero-l">
-      <view class="hero-title">余票监控</view>
+      <view class="hero-title font-hand">正在盯的票</view>
+      <view class="en-note">WATCHING NOW</view>
       <view class="hero-count">
         <text class="num hero-ok">{{okCount}}</text>
         <text class="hero-sep">/</text>
