@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "正在盯的",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F7F7FA",
+  "backgroundTextStyle": "dark",
   "usingComponents": {}
 }

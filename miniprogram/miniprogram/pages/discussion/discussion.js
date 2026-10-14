@@ -132,6 +132,8 @@ Page({
   },
 
   onPullDownRefresh() {
+    // 顺便重读用户信息：昵称可能在「我的」页改过
+    this.loadUser();
     this.loadPosts(true).then(() => wx.stopPullDownRefresh());
   },
 

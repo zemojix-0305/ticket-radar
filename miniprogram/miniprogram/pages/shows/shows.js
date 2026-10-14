@@ -114,6 +114,16 @@ Page({
     }
   },
 
+  // 下拉刷新：搜过就重搜当前条件，没搜过就只刷热门。
+  // 不把用户搜出来的结果清掉——下拉的语义是「重新查一遍」，不是「重置」。
+  onPullDownRefresh() {
+    const p = PLATFORMS[this.data.platformIndex] || PLATFORMS[0];
+    const job = this.data.searched
+      ? (p.key === 'rail12306' ? this.searchRail() : this.searchKeyword(p))
+      : this.loadHot();
+    Promise.resolve(job).then(() => wx.stopPullDownRefresh());
+  },
+
   onInput(e) {
     this.setData({ kw: e.detail.value });
   },
@@ -154,11 +164,11 @@ Page({
     // 12306 是查两站之间余票，没有「热卖榜」
     if (p.key === 'rail12306') {
       this.setData({ hot: [], hotLoading: false, hotFail: '' });
-      return;
+      return Promise.resolve();
     }
-    if (this.data.hotLoading) return;
+    if (this.data.hotLoading) return Promise.resolve();
     this.setData({ hotLoading: true, hotFail: '' });
-    request({ action: 'find', keyword: '', platform: p.key, limit: 10 })
+    return request({ action: 'find', keyword: '', platform: p.key, limit: 10 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -196,12 +206,12 @@ Page({
 
   searchKeyword(p) {
     const kw = (this.data.kw || '').trim();
-    if (!kw) return;
-    if (this.data.searching) return;
+    if (!kw) return Promise.resolve();
+    if (this.data.searching) return Promise.resolve();
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
 
-    request({ action: 'find', keyword: kw, platform: p.key, limit: 20 })
+    return request({ action: 'find', keyword: kw, platform: p.key, limit: 20 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -218,12 +228,12 @@ Page({
     const from = (this.data.from || '').trim();
     const to = (this.data.to || '').trim();
     const date = this.data.date;
-    if (!from || !to) { Toast('填出发地和目的地'); return; }
-    if (!date) { Toast('选乘车日期'); return; }
-    if (this.data.searching) return;
+    if (!from || !to) { Toast('填出发地和目的地'); return Promise.resolve(); }
+    if (!date) { Toast('选乘车日期'); return Promise.resolve(); }
+    if (this.data.searching) return Promise.resolve();
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
-    request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 })
+    return request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');

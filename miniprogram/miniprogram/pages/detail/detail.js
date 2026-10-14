@@ -74,7 +74,7 @@ Page({
       req.to = this.data.railTo;
       req.date = this.data.railDate;
     }
-    request(req)
+    return request(req)
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -254,8 +254,13 @@ Page({
     wx.switchTab({ url: '/pages/mine/mine' });
   },
 
+  // 下拉刷新 = 重新拉一遍详情（场次/票档/巡演分站会跟着平台实时变化）
+  onPullDownRefresh() {
+    Promise.resolve(this.loadDetail()).then(() => wx.stopPullDownRefresh());
+  },
+
   reload() {
-    this.loadDetail();
+    return this.loadDetail();
   },
 
   /** 开始订阅：和演出页同一套建库逻辑，参数名按平台区分 */

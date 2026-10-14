@@ -285,6 +285,31 @@ async function liveChecks() {
         `全部=${all} 勾1场后=${all} filter=${JSON.stringify(full.session_filter)}`, '查 poll 分支 filterItemsBySessions 接线');
     }
   }
+
+  // ---- 详情容错：分享链接直接当 id 传（2026-10-14 加）----
+  // 场景：首页监控卡片 / 「我的-正在盯」跳详情时，本地任务里存的可能是链接而不是
+  // 裸 id（用户在「加监控」弹层里粘的就是链接）。云函数必须自己把 id 抠出来，
+  // 否则用户点卡片看到的是「缺少 platform 或 id」。
+  // 这里只钉「抠出来的 id 对不对」——平台抖动不该让这条变红。
+  const sec = '活体';
+  const URL_ID_CASES = [
+    ['damai', 'https://m.damai.cn/shows/item.html?itemId=1086111708947', '1086111708947'],
+    ['taopiaopiao', 'https://m.taopiaopiao.com/damai/detail/item.html?id=1086111708947', '1086111708947'],
+    ['maoyan', 'https://show.maoyan.com/detail?performanceId=509495', '509495'],
+    ['bilibili', 'https://show.bilibili.com/platform/detail.html?id=1006686', '1006686'],
+    ['piaoxingqiu', 'https://m.piaoxingqiu.com/show/6aaca4dc697ae400017bf647', '6aaca4dc697ae400017bf647'],
+    ['fenwandao', FWD_LINK, decodeURIComponent(FWD_LINK.match(/id=([^&]+)/)[1])],
+  ];
+  for (const [p, url, want] of URL_ID_CASES) {
+    try {
+      const r = await post({ action: 'detail', platform: p, id: url }, 45000);
+      record(sec, `${p}/分享链接抠出id`, String(r.id) === want,
+        `id=${r.id} 期望=${want} ok=${r.ok} err=${String(r.error || '').slice(0, 40)}`,
+        'detailShow 开头的「链接→id」归一化分支被改坏了（或该平台的 extract 规则换了）');
+    } catch (e) {
+      warn(sec, `${p}/分享链接抠出id`, '请求异常 ' + String(e).slice(0, 50), '');
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

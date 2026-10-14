@@ -106,13 +106,14 @@
     <view class="task-card press-card" wx:for="{{filtered}}" wx:key="_id" hover-class="press-card-hover" hover-stay-time="80">
       <view class="task-topline {{item.barClass}}"></view>
       <view class="task-body">
-        <view class="task-top press" bindtap="toggle" data-id="{{item._id}}" hover-class="press-hover">
+        <view class="task-top press" bindtap="openDetail" data-id="{{item._id}}" hover-class="press-hover">
           <image class="task-poster" wx:if="{{item.poster}}" src="{{item.poster}}" mode="aspectFill" lazy-load />
           <view class="task-l">
             <view class="task-name">{{item.name}}</view>
             <view class="task-sub">{{item.platform}}<text wx:if="{{item.sub2}}"> · {{item.sub2}}</text></view>
           </view>
           <text class="tag {{item.headClass}}">{{item.head}}</text>
+          <text class="task-chev">›</text>
         </view>
 
         <view class="err" wx:if="{{!item.ok}}">
@@ -120,10 +121,11 @@
         </view>
 
         <view class="task-foot">
-          <text class="t3 press" bindtap="toggle" data-id="{{item._id}}" hover-class="press-hover">{{item.relTime}}</text>
+          <text class="t3">{{item.relTime}}</text>
           <view class="task-foot-r">
             <text class="link press" bindtap="shareTask" data-id="{{item._id}}" hover-class="press-hover">分享</text>
-            <text class="link press" bindtap="toggle" data-id="{{item._id}}" wx:if="{{item.more}}" hover-class="press-hover">展开 {{item.total}} 项 ›</text>
+            <text class="link press" bindtap="openDetail" data-id="{{item._id}}" hover-class="press-hover">详情 ›</text>
+            <text class="link press" bindtap="toggle" data-id="{{item._id}}" wx:if="{{item.more}}" hover-class="press-hover">{{expanded[item._id] ? '收起' : '展开 ' + item.total + ' 项'}} ›</text>
           </view>
         </view>
 

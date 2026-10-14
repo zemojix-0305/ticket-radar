@@ -66,9 +66,22 @@ const LABEL = {
   moretickets: '摩天轮',
   rail12306: '12306',
   damai: '大麦',
+  taopiaopiao: '淘票票',
   bilibili: 'B站会员购',
   piaoxingqiu: '票星球',
   fenwandao: '纷玩岛',
+};
+
+// 任务参数里哪个字段是这个平台的主 id。加监控弹层存的是 `url`（可能是链接），
+// 搜演出页存的是裸 id —— 详情页两样都收，链接由云函数负责抠 id。
+const ID_KEY = {
+  maoyan: 'performance_id',
+  moretickets: 'tour_id',
+  damai: 'item_id',
+  taopiaopiao: 'item_id',
+  bilibili: 'project_id',
+  piaoxingqiu: 'show_id',
+  fenwandao: 'project_id',
 };
 
 const CREDIT_KEY = 'wx_subscribe_credit';
@@ -155,7 +168,20 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        const list = (r.results || []).map((row) => self.decorate(row.full || row));
+        // 轮询结果里没有 params（那是客户端本地任务的字段）。点卡片要跳详情，
+        // 需要知道这条盯的是哪个 id，所以在这里把本地任务并进状态里。
+        const taskMap = {};
+        for (const t of tasks) taskMap[t._id] = t;
+        const list = (r.results || []).map((row) => {
+          const f = row.full || row;
+          const t = taskMap[f._id] || {};
+          return self.decorate(
+            Object.assign({}, f, {
+              params: t.params || {},
+              adapter: t.adapter || f.platform,
+            }),
+          );
+        });
         const okCount = list.filter((s) => s.ok && s.available > 0).length;
         // 存下一轮基线：只留 ok + items 的 label/available
         const next = {};
@@ -241,6 +267,40 @@ Page({
     const ex = Object.assign({}, this.data.expanded);
     ex[id] = !ex[id];
     this.setData({ expanded: ex });
+  },
+
+  // 点卡片进详情：盯着的这条本身就能点开看场次/票档。
+  // 12306 是站站查询，没有「演出详情」，回查票页并预填站名。
+  openDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    const s = this.data.states.find((x) => x._id === id);
+    if (!s) return;
+
+    if (s.adapter === 'rail12306' || s.platform === '12306') {
+      const p = s.params || {};
+      wx.setStorageSync('shows_prefill_rail', {
+        from: p.from || '', to: p.to || '', date: p.date || '',
+      });
+      wx.switchTab({ url: '/pages/shows/shows' });
+      return;
+    }
+
+    const p = s.params || {};
+    const key = ID_KEY[s.adapter] || '';
+    const raw = (key && p[key]) || p.id || p.url || '';
+    if (!raw) {
+      Toast('这条任务里没存演出 id，跳不了详情');
+      return;
+    }
+    const q = [
+      'platform=' + encodeURIComponent(s.adapter),
+      'id=' + encodeURIComponent(raw),
+      'label=' + encodeURIComponent(LABEL[s.adapter] || s.adapter),
+      'name=' + encodeURIComponent(s.name || ''),
+      'poster=' + encodeURIComponent(s.poster || ''),
+      'date=' + encodeURIComponent(s.sub2 || ''),
+    ];
+    wx.navigateTo({ url: '/pages/detail/detail?' + q.join('&') });
   },
 
   // --- 筛选（全部 / 有票 / 无票）------------------------------------------

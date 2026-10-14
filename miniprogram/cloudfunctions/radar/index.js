@@ -2030,6 +2030,23 @@ async function pollPiaoxingqiu(params) {
 //   B站/票星球出真场次结构；其余平台 poll 是扁平的，包成单一分组。
 // ===========================================================================
 async function detailShow(platform, id, event) {
+  // 容错：id 位置可能被塞了一整条分享链接。
+  // 场景：首页监控卡片 / 「我的-正在盯」跳详情时，本地任务里存的可能是
+  // `params.url`（用户在加监控弹层里粘的链接），而不是裸 id。
+  // 与其让用户点进来说「缺 id」，不如在这里按各平台规则统一抠一次。
+  if (/https?:\/\//i.test(id)) {
+    let bare = '';
+    if (platform === 'damai' || platform === 'taopiaopiao') bare = extractDamaiId(id);
+    else if (platform === 'fenwandao') bare = extractFwdId(id);
+    else if (platform === 'piaoxingqiu') bare = extractPxqId(id);
+    else if (platform === 'bilibili') bare = (id.match(/[?&]id=(\d+)/) || [])[1] || '';
+    else if (platform === 'maoyan') bare = (id.match(/[?&]performanceId=(\d+)/i) || [])[1] || '';
+    else if (platform === 'moretickets') {
+      bare = (id.match(/tour(?:Id)?[=\/]([a-f0-9]{6,})/i) || [])[1] || '';
+    }
+    if (bare) id = bare;
+  }
+
   // 12306：详情 = 单趟车次全席别余票。站名/日期从查询上下文带过来
   // （shows 页跳转时随 URL 传，客户端再随请求传上来）。
   if (platform === 'rail12306') {

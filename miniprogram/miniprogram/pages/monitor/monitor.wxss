@@ -476,3 +476,15 @@
 .dseats .dtier {
   min-width: 68px;
 }
+
+/* 卡片右上角的「可点进详情」提示箭头：不放图标（tab 图标才有狐狸耳），
+   用一枚淡淡的 chevron 表示「这行能进详情」。 */
+.task-chev {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink4, #C7C2D2);
+  margin-top: 2px;
+}
+/* 三个操作链接挤在一行时把间距收一点，避免换行 */
+.task-foot-r { gap: 10px; }

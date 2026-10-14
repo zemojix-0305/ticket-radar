@@ -69,9 +69,18 @@ Page({
     });
   },
 
+  // 下拉刷新：重读额度/活动记录，再问一次平台连通状态。
+  onPullDownRefresh() {
+    this.setData({
+      credit: wx.getStorageSync(CREDIT_KEY) || 0,
+      activity: this.withRel(wx.getStorageSync(ACT_KEY) || []),
+    });
+    Promise.resolve(this.pullStates()).then(() => wx.stopPullDownRefresh());
+  },
+
   pullStates() {
     const self = this;
-      request({ action: 'query' })
+    return request({ action: 'query' })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');

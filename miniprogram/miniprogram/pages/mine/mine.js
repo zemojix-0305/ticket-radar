@@ -206,6 +206,11 @@ Page({
   },
 
   onPullDownRefresh() {
+    // 下拉＝把这一页能变的东西都重读一遍：额度、正在盯的条数、
+    // 展开状态下的我的留言；顺带换一个新的 wx.login code。
+    this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+    this.loadWatched();
+    if (this.data.myPostsOpen) this.loadMyPosts();
     this.refreshCode(() => wx.stopPullDownRefresh());
   },
 

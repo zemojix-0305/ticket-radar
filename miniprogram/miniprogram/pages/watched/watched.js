@@ -24,6 +24,13 @@ Page({
     this.loadWatched();
   },
 
+  // 下拉刷新：本页是本地任务表 + 上一轮快照拼的，重读一次即可。
+  // 想拿最新余票还是回首页下拉（那边会真的去打平台接口）。
+  onPullDownRefresh() {
+    this.loadWatched();
+    wx.stopPullDownRefresh();
+  },
+
   loadWatched() {
     const tasks = loadTasks();
     const states = wx.getStorageSync(LAST_STATES_KEY) || [];

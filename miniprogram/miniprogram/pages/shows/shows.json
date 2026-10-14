@@ -8,5 +8,7 @@
   "navigationBarTitleText": "找演出",
   "navigationBarBackgroundColor": "#F7F7FA",
   "navigationBarTextStyle": "black",
-  "enablePullDownRefresh": false
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F7F7FA",
+  "backgroundTextStyle": "dark"
 }

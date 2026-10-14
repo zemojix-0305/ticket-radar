@@ -6,5 +6,8 @@
     "van-dialog": "/vant/dialog/index"
   },
   "navigationBarBackgroundColor": "#F7F7FA",
-  "navigationBarTitleText": "讨论区"
+  "navigationBarTitleText": "讨论区",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F7F7FA",
+  "backgroundTextStyle": "dark"
 }

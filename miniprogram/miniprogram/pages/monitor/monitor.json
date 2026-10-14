@@ -1,6 +1,9 @@
 {
   "navigationBarBackgroundColor": "#F7F7FA",
   "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F7F7FA",
+  "backgroundTextStyle": "dark",
   "usingComponents": {
     "van-toast": "/vant/toast/index",
     "van-dialog": "/vant/dialog/index"
