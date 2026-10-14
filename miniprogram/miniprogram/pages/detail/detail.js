@@ -1,7 +1,7 @@
 // 演出详情页：云函数 detail action 拉场次×票档，「盯这场」写 radar_tasks。
 import Toast from '../../vant/toast/toast';
-import { request } from '../utils/api';
-import { loadTasks, saveTasks } from '../utils/tasks';
+import { request } from '../../utils/api';
+import { loadTasks, saveTasks } from '../../utils/tasks';
 import Dialog from '../../vant/dialog/dialog';
 
 const CREDIT_KEY = 'radar_credit';

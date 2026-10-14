@@ -1,6 +1,6 @@
 // 监控页：首屏回答三个问题——我在盯几个、现在有没有票、上次什么时候查的。
 import Toast from '../../vant/toast/toast';
-import { request } from '../utils/api';
+import { request } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
 //
 // 两条原则（跟 Python 那边保持一致）：
@@ -473,7 +473,7 @@ Page({
       enabled: true,
     };
     try {
-      const tasks = require('../utils/tasks');
+      const tasks = require('../../utils/tasks');
       const existing = tasks.loadTasks();
       // 避免重复添加
       if (!existing.find(t => t._id === id)) {

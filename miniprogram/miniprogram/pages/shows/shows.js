@@ -11,8 +11,8 @@ const CREDIT_KEY = 'wx_subscribe_credit';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
-import { request } from '../utils/api';
-import { loadTasks, saveTasks } from '../utils/tasks';
+import { request } from '../../utils/api';
+import { loadTasks, saveTasks } from '../../utils/tasks';
 import Dialog from '../../vant/dialog/dialog';
 
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。

@@ -7,7 +7,7 @@
 // 顶部盖一个小夹子/图钉——素材在 images/board/，工具脚本 tools/cut_board_assets.py。
 
 import Toast from '../../vant/toast/toast';
-import { request } from '../utils/api';
+import { request } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
 
 const USER_KEY = 'radar_user_profile';
@@ -213,7 +213,8 @@ Page({
     const idx = Number(e.currentTarget.dataset.index);
     if (idx >= 0 && idx < this.data.posts.length) {
       this.setData({ zoomIdx: idx });
-    }),
+    }
+  },
 
   closeZoom() {
     this.setData({ zoomIdx: -1 });
