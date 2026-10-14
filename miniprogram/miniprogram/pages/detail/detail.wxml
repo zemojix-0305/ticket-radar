@@ -39,6 +39,7 @@
       </view>
       <view class="info-row" wx:if="{{venue}}">场馆 · {{venue}}</view>
       <view class="info-row" wx:if="{{date}}">时间 · {{date}}</view>
+      <view class="info-row" wx:if="{{saleNote}}">{{saleNote}}</view>
       <view class="info-row info-price" wx:if="{{price}}">{{price}}</view>
     </view>
 

@@ -1746,28 +1746,70 @@ async function detailShow(platform, id, event) {
   }
 
   if (platform === 'fenwandao') {
-    const token = (event && event.fwdToken) || '';
-    const infos = await fwdGetPerforms(id, token);
-    let name = '';
-    const sessions = [];
-    for (const info of infos.slice(0, 10)) {
-      const s = (info.performInfo || [])[0] || {};
-      name = (info && info.projectName) || name;
-      const plans = Array.isArray(s.seatPlans) ? s.seatPlans : [];
-      sessions.push({
-        name: s.name || '场次',
-        when: s.startTimeStr || s.name || '',
-        status: '',
-        available: plans.some((p) => p.display === 1),
-        tiers: plans.map((p) => ({
-          name: p.seatPlanName || '票档',
-          price: p.seatPlanPrice != null ? '¥' + p.seatPlanPrice : '',
-          status: p.display === 1 ? '可购' : '不可购',
-          available: p.display === 1,
-        })),
-      });
+    // 容错：detail 也可能被直接塞一整条分享链接
+    const pid = /https?:\/\//i.test(id) ? extractFwdId(id) : id;
+    const token = String((event && event.fwdToken) || '').trim();
+    // 匿名项目级详情（免登录）先拿——名称/海报/城市/场馆/日期/票价区间 + 部分场次
+    let proj = null;
+    try {
+      proj = await fwdGetProjectInfo(pid);
+    } catch (e) {
+      proj = null;
     }
-    return { platform, id, name: name || ('纷玩岛 #' + id), venue: '', sessions };
+
+    if (token) {
+      // 有 token：逐场次逐档最准，再合并到匿名项目级信息上
+      try {
+        const infos = await fwdGetPerforms(pid, token);
+        const tiers = {};
+        for (const info of infos.slice(0, 20)) {
+          const s = (info.performInfo || [])[0] || {};
+          const plans = Array.isArray(s.seatPlans) ? s.seatPlans : [];
+          const list = plans.map((p) => ({
+            name: p.seatPlanName || '票档',
+            price: p.seatPlanPrice != null ? '¥' + p.seatPlanPrice : '',
+            status: p.display === 1 ? '可购' : '不可购',
+            available: p.display === 1,
+          }));
+          if (s.id != null) tiers[String(s.id)] = list;
+          if (s.name) tiers[String(s.name)] = list;
+        }
+        if (proj) {
+          const d = fwdDetailFromProject(pid, proj, tiers);
+          if (d.sessions.length) return d; // 匿名已带回场次，逐档已合并
+        }
+        // 匿名没带回场次（无退票规则的项目）→ 直接用 get_performs 的场次列表
+        const sessions = infos.slice(0, 20).map((info) => {
+          const s = (info.performInfo || [])[0] || {};
+          const plans = Array.isArray(s.seatPlans) ? s.seatPlans : [];
+          return {
+            name: s.name || '场次',
+            when: s.startTimeStr || s.name || '',
+            status: '',
+            available: plans.some((p) => p.display === 1),
+            tiers: plans.map((p) => ({
+              name: p.seatPlanName || '票档',
+              price: p.seatPlanPrice != null ? '¥' + p.seatPlanPrice : '',
+              status: p.display === 1 ? '可购' : '不可购',
+              available: p.display === 1,
+            })),
+          };
+        });
+        if (proj) return Object.assign(fwdDetailFromProject(pid, proj, tiers), { sessions, noTiers: !sessions.some((s) => s.tiers.length) });
+        return {
+          platform,
+          id: pid,
+          name: (infos[0] && infos[0].projectName) || ('纷玩岛 #' + pid),
+          venue: '',
+          sessions,
+        };
+      } catch (e) {
+        // token 失效/风控 → 落回匿名（不整页报错）
+      }
+    }
+
+    if (proj) return fwdDetailFromProject(pid, proj, null);
+    throw fwdTokenError();
   }
 
   // 猫眼详情：有登录 token（myToken）时走 odea 拿真实场次×票档×库存；
@@ -1967,13 +2009,18 @@ async function detailShow(platform, id, event) {
 }
 
 // ===========================================================================
-// 平台：纷玩岛（api.livelab.com.cn——纷玩岛小程序同一数据源）
+// 平台：纷玩岛（api.livelab.com.cn——纷玩岛小程序/H5 同一数据源）
 // ===========================================================================
-// 所有接口都要求带设备级 token（authorization: Bearer JWT，微信小程序下发）。
-// 实测（2026-10）无 token / 过期 token 一律回 code 11004「没有登录」，
-// guest/visitor 登录端点也全被鉴权中间件拦——没有公开匿名通道。
-// 所以 token 走**用户自带**：抓一次纷玩岛小程序的请求，把 authorization 请求头
-// 原文粘到小程序「我的」页存本地，每次请求随 event.fwdToken 传上来。
+// 分两层：
+//  ① 匿名项目级（免登录，2026-10-14 实测打通）：
+//     GET /performance/app/project/h5/get_project_info?project_id=<id>
+//     Referer: https://m.livelab.com.cn/ — 回 code 10000，含项目名/海报/城市/场馆/
+//     起止日期/票价区间(lowPrice~highPrice)，并在 projectServices[].refundRuleList[]
+//     带出部分场次(performId/performName/performStartTime)。id 可为数字 projectId，
+//     也可为分享页那串加密 id。→ 详情页免凭证即可看演出信息。
+//  ② 逐场次×逐票档（get_performs）需账号 token：无 token / 过期一律 code 11004
+//     「没有登录」。所以 token 走**用户自带**：抓一次纷玩岛小程序的请求，把
+//     authorization 请求头原文粘到小程序「我的」页存本地，随 event.fwdToken 传上来。
 // 端点（对照 ThinkerWen/TicketMonitoring 的 Monitor_FWD.py）：
 //   场次+票档: GET /performance/app/project/get_performs?project_id=<id>&v=<ms>&retry=false
 //     → data.performInfos[].performInfo[0]: id/name/seatPlans[{seatPlanId,seatPlanName,display}]
@@ -1999,9 +2046,92 @@ function fwdHeaders(token) {
 }
 
 function fwdTokenError() {
-  // 面向终端用户的话术——服务端凭据怎么配是管理员的事（见 server/config.example.json），
-  // 不把内部细节漏进界面。明确说「开发中」而不是让人以为坏了再等等。
-  return new Error('纷玩岛查询功能开发中：纷玩岛的接口需要登录才能访问，正在想办法，先逛逛别的平台吧');
+  // 只在「匿名项目级详情也拿不到」时才走到这里。话术面向终端用户，短、可执行。
+  return new Error('这场纷玩岛没打开——可能是链接过期或该场要登录才能看。换个链接试试；想按票档盯就在「我的」页填一次纷玩岛凭证');
+}
+
+// 匿名项目级详情（无需任何 token）：
+//   GET /performance/app/project/h5/get_project_info?project_id=<id>
+// 实测（2026-10-14）：不带 authorization 直接回 code 10000。project_id 既接受
+// 数字 projectId，也接受分享页 hppreview 链接里那串加密 id（形如 AKj...=）。
+// 返回项目名/海报/城市/场馆/起止日期/票价区间（lowPrice~highPrice），
+// 并在 projectServices[].refundRuleList[] 里顺带带出部分场次
+// （performId / performName / performStartTime）——这是匿名能拿到的最全一层。
+// 逐场次×逐票档（get_performs）仍需账号 token，故匿名详情会标记 noTiers。
+function fwdAnonHeaders() {
+  return {
+    'User-Agent': FWD_UA,
+    Accept: 'application/json, text/plain, */*',
+    'Accept-Language': 'zh-CN,zh',
+    Referer: 'https://m.livelab.com.cn/',
+    Origin: 'https://m.livelab.com.cn',
+  };
+}
+
+async function fwdGetProjectInfo(projectId) {
+  const j = await getJson(
+    `${FWD_BASE}/performance/app/project/h5/get_project_info?project_id=${encodeURIComponent(projectId)}`,
+    { headers: fwdAnonHeaders(), timeout: 15000 },
+  );
+  if (!j || j.code !== 10000 || !j.data) {
+    throw new Error('纷玩岛返回：' + ((j && j.msg) || ('code=' + (j && j.code))));
+  }
+  return j.data;
+}
+
+/** 把匿名项目级数据拼成统一的 detail 结构（场次来自 refundRuleList，去重保序）；
+ *  tiers 是可选的有 token 场次票档映射（键为 performId 或场次名）。 */
+function fwdDetailFromProject(id, d, tiers) {
+  const seen = {};
+  const sessions = [];
+  const services = Array.isArray(d.projectServices) ? d.projectServices : [];
+  for (const svc of services) {
+    const rules = Array.isArray(svc.refundRuleList) ? svc.refundRuleList : [];
+    for (const rr of rules) {
+      const pid = String(rr.performId || '');
+      const pname = String(rr.performName || '');
+      const key = pid || pname;
+      if (!key || seen[key]) continue;
+      seen[key] = 1;
+      sessions.push({
+        name: pname || '场次',
+        when: String(rr.performStartTime || '').replace('T', ' ').slice(0, 16),
+        status: '',
+        available: true,
+        // 有 token 时按 performId / 场次名双键取逐档票；没有则留空 → 前端提示「要登录」
+        tiers: (tiers && (tiers[pid] || tiers[pname])) || [],
+      });
+    }
+  }
+  const low = d.lowPrice != null ? Number(d.lowPrice) : null;
+  const high = d.highPrice != null ? Number(d.highPrice) : null;
+  let priceRange = '';
+  if (low != null && high != null) priceRange = low === high ? '¥' + low : '¥' + low + '–' + high;
+  else if (low != null) priceRange = '¥' + low + ' 起';
+  const dateRange = d.timeDisplay || [d.projectStartDate, d.projectEndDate].filter(Boolean).join(' 至 ');
+  const venue = (d.venueInfo && (d.venueInfo.name || d.venueInfo.address)) || '';
+  // 预售/开售时间（字段名即语义，原文照搬不加工；只做 2026/10/15 13:00:00 → 10/15 13:00 的缩略）
+  const shortTime = (s) => {
+    const m = String(s || '').match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+    return m ? m[1] + '/' + m[2] + ' ' + m[3] + ':' + m[4] : String(s || '');
+  };
+  const saleNotes = [];
+  if (d.preSaleTime) saleNotes.push('预售 ' + shortTime(d.preSaleTime));
+  if (d.saleStartTime) saleNotes.push('开售 ' + shortTime(d.saleStartTime));
+  return {
+    platform: 'fenwandao',
+    id: String(id),
+    name: d.projectName || d.nameDisplay || '',
+    poster: d.poster || '',
+    city: d.projectCity || '',
+    venue: String(venue).slice(0, 60),
+    dateRange,
+    priceRange,
+    saleNote: saleNotes.join(' · '),
+    sessions,
+    noTiers: !sessions.some((s) => s.tiers.length),
+    anon: true,
+  };
 }
 
 /** 拉 get_performs 并做 code 检查。11004 = token 缺失/过期，给用户能看懂的指引。 */
@@ -2020,9 +2150,18 @@ async function fwdGetPerforms(projectId, token) {
   return (j.data && j.data.performInfos) || [];
 }
 
-/** 从链接/文本里抠纷玩岛项目 id（链接形态不定，抠最长数字串兜底）。 */
+/** 从链接/文本里抠纷玩岛项目 id。
+ *  分享页形如 m.livelab.com.cn/hppreview/pages/concert/detail?id=AKj...=（加密 id，
+ *  接口同样接受）；否则抠最长数字串兜底。 */
 function extractFwdId(text) {
-  const nums = String(text || '').match(/\d{3,}/g) || [];
+  const s = String(text || '');
+  const m = s.match(/[?&]id=([A-Za-z0-9+/=_%-]{10,})/);
+  if (m) {
+    let v = m[1];
+    try { v = decodeURIComponent(v); } catch (e) { /* 原样用 */ }
+    return v;
+  }
+  const nums = s.match(/\d{3,}/g) || [];
   return nums.sort((a, b) => b.length - a.length)[0] || '';
 }
 
@@ -2065,11 +2204,30 @@ async function pollFenwandao(params) {
   return items;
 }
 
-/** 纷玩岛 find：链接/数字 id → 直取详情行；关键词 → 搜分销接口（未公开验证，失败给指引）。 */
+/** 纷玩岛 find：链接/数字 id → 直取详情行（匿名即可）；关键词 → 搜分销接口（未公开验证，失败给指引）。 */
 async function findFenwandao(keyword, limit, token) {
   const raw = String(keyword || '').trim();
-  if (/https?:\/\//i.test(raw) || /^\d{3,}$/.test(raw)) {
+  if (/https?:\/\//i.test(raw) || /[?&]id=[A-Za-z0-9+/=_%-]{10,}/.test(raw) || /^\d{3,}$/.test(raw)) {
     const id = /^\d{3,}$/.test(raw) ? raw : extractFwdId(raw);
+    // 匿名项目级优先（免凭证），拿不到再退回带 token 的 get_performs
+    try {
+      const d = await fwdGetProjectInfo(id);
+      const built = fwdDetailFromProject(id, d, null);
+      return [{
+        performanceId: String(id),
+        projectId: String(id),
+        name: built.name || ('纷玩岛 #' + id),
+        city: built.city,
+        venue: built.venue,
+        dateRange: built.dateRange,
+        price: built.priceRange,
+        status: '',
+        poster: built.poster,
+        _sessions: built.sessions.length,
+      }];
+    } catch (e) {
+      // 落回 token 通道
+    }
     const infos = await fwdGetPerforms(id, token);
     const first = ((infos[0] || {}).performInfo || [])[0] || {};
     const plans = Array.isArray(first.seatPlans) ? first.seatPlans : [];
@@ -2600,6 +2758,10 @@ exports._internals = {
   findPiaoxingqiu: findPiaoxingqiu,
   pollPiaoxingqiu: pollPiaoxingqiu,
   hotPiaoxingqiu: hotPiaoxingqiu,
+  fwdGetProjectInfo: fwdGetProjectInfo,
+  fwdDetailFromProject: fwdDetailFromProject,
+  fwdGetPerforms: fwdGetPerforms,
+  extractFwdId: extractFwdId,
   detailShow: detailShow,
 };
 

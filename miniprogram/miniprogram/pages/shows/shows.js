@@ -28,7 +28,7 @@ const PLATFORMS = [
   { key: 'damai', label: '大麦' },
   { key: 'bilibili', label: 'B站' },
   { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
-  { key: 'fenwandao', label: '纷玩岛' },
+  { key: 'fenwandao', label: '纷玩岛', linkOnly: true },
   { key: 'taopiaopiao', label: '淘票票' },
 ];
 
@@ -53,7 +53,7 @@ const FAQ_LIST = [
   },
   {
     q: '支持哪些平台？',
-    a: '猫眼、摩天轮、大麦、B站会员购、12306 余票、票星球（贴链接）。携程没有公开接口，暂不支持。',
+    a: '猫眼、摩天轮、大麦、B站会员购、12306 余票、票星球（贴链接）、纷玩岛（贴链接看详情）。携程没有公开接口，暂不支持。',
   },
   {
     q: '数据多久刷新？',

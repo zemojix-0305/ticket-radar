@@ -59,9 +59,12 @@
     </view>
   </view>
 
-  <!-- 票星球：粘贴链接模式说明 -->
+  <!-- 贴链接模式说明（票星球 / 纷玩岛） -->
   <view class="link-hint" wx:if="{{platforms[platformIndex].linkOnly}}">
-    这个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里就能盯它的回流票——状态从「无票」翻回「可售」的第一时间推给你。
+    这个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里就能<text wx:if="{{platforms[platformIndex].key === 'fenwandao'}}">看到演出信息</text><text wx:else>盯它的回流票——状态从「无票」翻回「可售」的第一时间推给你</text>。
+  </view>
+  <view class="link-hint" wx:if="{{platforms[platformIndex].key === 'fenwandao'}}">
+    想按具体票档盯票，在「我的」页填一次纷玩岛凭证即可。
   </view>
 
   <!-- 12306：携程式表单 —— 起点终点两大块 + 交换 + 日期 -->

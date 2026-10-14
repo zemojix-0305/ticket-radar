@@ -28,6 +28,8 @@ Page({
     venue: '',
     date: '',
     price: '',
+    // 预售/开售时间（纷玩岛匿名详情带入；形如「预售 10/15 13:00 · 开售 10/16 15:18」）
+    saleNote: '',
     // 12306 查询上下文（shows 页跳转时带上；详情=单趟车次全席别余票必需）
     railFrom: '',
     railTo: '',
@@ -60,7 +62,7 @@ Page({
   },
 
   loadDetail() {
-    this.setData({ loading: true, error: '', degraded: false, degradeMsg: '', noTiers: false, subText: '' });
+    this.setData({ loading: true, error: '', degraded: false, degradeMsg: '', noTiers: false, saleNote: '', subText: '' });
     const req = { action: 'detail', platform: this.data.platform, id: this.data.id };
     // 12306：详情查询要站名×日期上下文（服务端按它重新拉一遍余票）
     if (this.data.platform === 'rail12306') {
@@ -115,6 +117,7 @@ Page({
               city: r.city || this.data.city,
               // 大麦/淘票票匿名通道给的是整场价格区间，信息卡里亮出来
               price: r.priceRange ? '票价区间 ' + r.priceRange : this.data.price,
+              saleNote: r.saleNote || '',
               noTiers: !!r.noTiers,
             },
             rec,
