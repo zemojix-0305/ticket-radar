@@ -1,6 +1,12 @@
 <!-- 讨论区：问题反馈白板 + 留言墙 -->
 <view class="page">
 
+  <!-- 我的留言墙模式横条 -->
+  <view class="mine-wall-bar" wx:if="{{mineWall}}">
+    <view class="mine-wall-t">你的留言墙 · {{posts.length}} 条</view>
+    <view class="mine-wall-back press" bindtap="exitMyWall" hover-class="press-hover">← 看全部留言</view>
+  </view>
+
   <!-- 背景拼贴层：贴纸素材压到 0.06~0.12 透明度，只在留白处透出 -->
   <view class="bg-collage">
     <image class="bg-stk bg-faint bg-love2"   src="/images/board2/origami14.png" mode="aspectFit" />
@@ -166,7 +172,7 @@
 
 <!-- 放大查看某张便签 -->
 <view class="zoom-mask" wx:if="{{zoomIdx >= 0}}" bindtap="closeZoom">
-  <view class="zoom-card" catchtap="">
+  <view class="zoom-card" catchtap="noop">
     <view class="zoom-close press" bindtap="closeZoom" hover-class="press-hover">×</view>
     <view class="zoom-note-wrap" wx:if="{{posts[zoomIdx]}}">
       <image class="zoom-note-bg" src="{{posts[zoomIdx].bg}}" mode="widthFix" />
@@ -184,7 +190,7 @@
         <view class="post-tags" wx:if="{{posts[zoomIdx].tags && posts[zoomIdx].tags.length}}">
           <text class="post-tag" wx:for="{{posts[zoomIdx].tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
         </view>
-        <view class="zoom-del press" bindtap="deleteZoomPost" hover-class="press-hover">删除这条留言</view>
+        <view class="zoom-del press" catchtap="deleteZoomPost" hover-class="press-hover">删除这条留言</view>
       </view>
     </view>
   </view>

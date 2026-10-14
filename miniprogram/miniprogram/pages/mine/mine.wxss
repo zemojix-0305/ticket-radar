@@ -186,3 +186,13 @@
   color: #C0655A;
   padding: 4px 8px;
 }
+
+/* 留言墙入口：我的留言折叠卡里的跳转行 */
+.mypost-wall {
+  padding: 10px 12px;
+  margin: 8px 0;
+  border: 1px dashed var(--brand, #6B4FA8);
+  border-radius: 10px;
+  background: var(--brand-weak, rgba(107, 79, 168, 0.06));
+}
+.mypost-wall-t { font-size: 13px; font-weight: 500; color: var(--brand, #6B4FA8); }

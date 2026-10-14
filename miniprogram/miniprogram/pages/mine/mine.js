@@ -81,6 +81,12 @@ Page({
       .catch(() => {});
   },
 
+  /** 以留言墙的方式看自己的留言：带标志切到讨论区，那边 onShow 接管 */
+  goMyWall() {
+    wx.setStorageSync('radar_mine_wall', 1);
+    wx.switchTab({ url: '/pages/discussion/discussion' });
+  },
+
   fmtTime(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';

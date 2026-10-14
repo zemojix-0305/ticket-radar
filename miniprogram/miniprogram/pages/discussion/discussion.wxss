@@ -458,3 +458,17 @@
   color: var(--t3);
   opacity: 0.7;
 }
+
+/* 我的留言墙模式横条 */
+.mine-wall-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 14px 0;
+  padding: 9px 14px;
+  border: 1px dashed var(--brand, #6B4FA8);
+  border-radius: 12px;
+  background: var(--brand-weak, rgba(107, 79, 168, 0.06));
+}
+.mine-wall-t { font-size: 13px; font-weight: 500; color: var(--brand, #6B4FA8); }
+.mine-wall-back { font-size: 12px; color: var(--ink3, #8A8378); padding: 2px 4px; }

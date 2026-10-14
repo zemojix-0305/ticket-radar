@@ -69,6 +69,21 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
+        // 服务端 SSR 降级成功：演出信息（名称/场馆/日期）来自大麦官方 PC 页，
+        // 只是拿不到场次×票档。照常渲染，盯票区隐藏。
+        if (r.degraded) {
+          this.setData({
+            loading: false,
+            degraded: true,
+            sessions: [],
+            tiers: [],
+            name: r.name || this.data.name,
+            venue: r.venue || this.data.venue,
+            date: r.dateRange || this.data.date,
+            degradeMsg: '场次和票档暂时拿不到（大麦限制），演出信息先看看',
+          });
+          return;
+        }
         // 场次里的票档压平去重（按名字），给「只盯某个价位」的选择条用
         const seen = {};
         const tiers = [];

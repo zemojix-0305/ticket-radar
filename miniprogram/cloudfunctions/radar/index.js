@@ -774,6 +774,60 @@ function damaiFail(ret) {
   return new Error('大麦 mtop：' + ret);
 }
 
+/**
+ * 大麦详情 SSR 降级（2026-10-14 实测）：
+ * PC 详情页 detail.damai.cn/item.htm?id=<id> 匿名稳定可达（33KB SSR HTML），
+ * 标题与 meta description 里有演出全名、日期区间、场馆——
+ * mtop 详情接口被风控拦时用它兜底，详情页演出信息照常渲染，
+ * 只是拿不到场次×票档（那部分只有 Cookie 通道有）。
+ * 返回 { name, venue, dateRange, source: 'ssr' }；页面拉不到时抛错。
+ */
+function damaiDetailSSR(itemId) {
+  return new Promise((resolve, reject) => {
+    const req = require('https').get(
+      'https://detail.damai.cn/item.htm?id=' + encodeURIComponent(itemId),
+      {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          'Accept-Language': 'zh-CN,zh;q=0.9',
+        },
+      },
+      (res) => {
+        let b = '';
+        res.on('data', (c) => (b += c));
+        res.on('end', () => {
+          try {
+            const t = b.match(/<title>([^<]+)<\/title>/);
+            const d = b.match(/name="description" content="([^"]*)"/);
+            if (!t || !t[1]) return reject(new Error('SSR 页面无标题'));
+            // 「XXX【网上订票】- 大麦网」→ 去尾巴拿演出名
+            const name = t[1]
+              .replace(/【网上订票】\s*[-－]\s*大麦网\s*$/, '')
+              .replace(/\s*[-－]\s*大麦网\s*$/, '')
+              .replace(/【网上订票】/g, '')
+              .trim();
+            const desc = d ? d[1] : '';
+            // 描述里挖日期区间与场馆：「将于2026.10.30-11.01在广西体育中心主体育场上演」
+            let dateRange = '';
+            const dm = desc.match(/(\d{4}\.\d{1,2}\.\d{1,2}(?:\s*[-~至]\s*(?:\d{4}\.)?\d{1,2}\.\d{1,2})?)/);
+            if (dm) dateRange = dm[1];
+            let venue = '';
+            const vm = desc.match(/在([^，。、！？]{2,30}?)(?:上演|举办|开演|举行|唱响)/);
+            if (vm) venue = vm[1].trim();
+            if (!name && !dateRange && !venue) return reject(new Error('SSR 页面无可解析信息'));
+            resolve({ name: name || '', venue: venue || '', dateRange: dateRange || '', source: 'ssr' });
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+    );
+    req.setTimeout(12000, () => req.destroy(new Error('SSR 页面超时')));
+    req.on('error', reject);
+  });
+}
+
 async function mtopCall(api, dataObj, v, userCookie, extraQ) {
   let j = await mtopAttempt(api, dataObj, v, undefined, userCookie, extraQ);
   let ret = (j.ret || [])[0] || '';
@@ -1547,6 +1601,32 @@ async function detailShow(platform, id, event) {
     return { platform, id, name: sStatic.showName || '', venue: sStatic.venueName || '', sessions };
   }
 
+  // 大麦详情：优先 mtop（Cookie/风控放行时能拿到场次×票档）；
+  // 被 RGV587 拦时降级到 PC 详情页 SSR 抓取（匿名稳定可达），
+  // 拿演出名/日期区间/场馆，保证详情页信息完整，只是盯不了票。
+  if (platform === 'damai') {
+    try {
+      const items = await pollDamai({ item_id: id, damaiCookie: (event && event.damaiCookie) || '' });
+      const first = items[0] || {};
+      return {
+        platform, id,
+        name: first.label || '',
+        venue: first.place || '',
+        sessions: [{
+          name: first.label || '票档', when: first.when || '', status: first.status || '',
+          available: !!first.available,
+          tiers: items.map((it) => ({
+            name: it.label, price: it.price || '', status: it.status || '', available: !!it.available,
+          })),
+        }],
+      };
+    } catch (e) {
+      const ssr = await damaiDetailSSR(id).catch(() => null);
+      if (!ssr) throw e;
+      return Object.assign({ platform, id, degraded: true, sessions: [] }, ssr);
+    }
+  }
+
   // 其余平台：扁平 poll 包成单一分组
   const fn = PLATFORMS[platform];
   if (!fn) throw new Error('暂不支持平台 ' + platform);
@@ -1605,8 +1685,8 @@ function fwdHeaders(token) {
 
 function fwdTokenError() {
   // 面向终端用户的话术——服务端凭据怎么配是管理员的事（见 server/config.example.json），
-  // 不把内部细节漏进界面
-  return new Error('纷玩岛暂时查不了，稍后再试试吧');
+  // 不把内部细节漏进界面。明确说「开发中」而不是让人以为坏了再等等。
+  return new Error('纷玩岛查询功能开发中：纷玩岛的接口需要登录才能访问，正在想办法，先逛逛别的平台吧');
 }
 
 /** 拉 get_performs 并做 code 检查。11004 = token 缺失/过期，给用户能看懂的指引。 */
@@ -1617,7 +1697,7 @@ async function fwdGetPerforms(projectId, token) {
     { headers: fwdHeaders(token), timeout: 15000 },
   );
   if (j && j.code === 11004) {
-    throw new Error('纷玩岛暂时查不了，稍后再试试吧');
+    throw fwdTokenError();
   }
   if (!j || j.code !== 10000) {
     throw new Error('纷玩岛返回：' + ((j && j.msg) || ('code=' + (j && j.code))));
@@ -1997,7 +2077,7 @@ async function handleAction(event, action, db) {
           // （config.json / 用户端老版本存本地也会随请求带上），终端用户无感。
           const tk = String((event && event.fwdToken) || '').trim();
           if (!tk) {
-            return { ok: false, error: '纷玩岛热门榜整理中，先逛逛别的平台吧' };
+            return { ok: false, error: '纷玩岛热门榜开发中（纷玩岛接口需要登录才能访问），先逛逛别的平台吧' };
           }
           try {
             const rows = await findFenwandao('演唱会', limit, tk);
@@ -2189,6 +2269,7 @@ exports._internals = {
   diffRestock: diffRestock,
   damaiSearch: damaiSearch,
   pollDamai: pollDamai,
+  damaiDetailSSR: damaiDetailSSR,
   mtopCall: mtopCall,
   findBilibili: findBilibili,
   pollBilibili: pollBilibili,

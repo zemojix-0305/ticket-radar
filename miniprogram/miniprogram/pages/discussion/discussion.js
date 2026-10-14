@@ -99,6 +99,7 @@ Page({
     previewBg: stickerBg('note1'),
     stickers: STICKERS,
     zoomIdx: -1,
+    mineWall: false,
     user: { uid: '', nickname: '', avatar: '' },
     hasMore: true,
     offset: 0,
@@ -112,6 +113,22 @@ Page({
 
   onShow() {
     this.loadUser();
+    // 「我的 → 我的留言 → 以留言墙的方式查看」跳进来：只看自己发的留言
+    try {
+      if (wx.getStorageSync('radar_mine_wall')) {
+        wx.removeStorageSync('radar_mine_wall');
+        this.setData({ mineWall: true });
+        wx.setNavigationBarTitle({ title: '我的留言墙' });
+        this.loadPosts(true);
+      }
+    } catch (e) { /* storage 异常不挡正常浏览 */ }
+  },
+
+  /** 退出我的留言墙，回全部留言 */
+  exitMyWall() {
+    this.setData({ mineWall: false });
+    wx.setNavigationBarTitle({ title: '讨论区' });
+    this.loadPosts(true);
   },
 
   onPullDownRefresh() {
@@ -144,6 +161,8 @@ Page({
           );
         }
         if (typeFilter) list = list.filter((p) => p.type === typeFilter);
+        // 我的留言墙模式：只看本机发的（按设备 uid 判定）
+        if (self.data.mineWall) list = list.filter((p) => p.uid && p.uid === deviceUid());
         list = list.map((p) => Object.assign({}, p, {
           rel: relTime(p.createdAt),
           noteIdx: noteIndex(p._id),
@@ -246,24 +265,31 @@ Page({
     this.setData({ zoomIdx: -1 });
   },
 
-  /** 放大层里删除这条留言（发布者可删；本机留言墙=本机即管理端） */
+  /** 放大层里删除这条留言（发布者可删；本机留言墙=本机即管理端）。
+   * 确认框用原生 wx.showModal：vant Dialog 曾有被弹层盖住弹不出来的嫌疑，
+   * 原生弹窗永远在最顶层，杜绝「点了没反应」。 */
   deleteZoomPost() {
     const idx = this.data.zoomIdx;
     const p = this.data.posts[idx];
     if (!p) return;
     const mine = !p.uid || p.uid === deviceUid();
-    Dialog.confirm({
+    wx.showModal({
       title: '删除这条留言',
-      message: mine ? '删了就找不回来了，确定？' : '确定以管理员身份删除这条留言？',
-    })
-      .then(() => {
-        removePost(p._id);
+      content: mine ? '删了就找不回来了，确定？' : '确定以管理员身份删除这条留言？',
+      confirmText: '删除',
+      confirmColor: '#C0655A',
+      success: (res) => {
+        if (!res.confirm) return;
+        const removed = removePost(p._id);
         this.setData({ zoomIdx: -1 });
         this.loadPosts(true);
-        Toast({ message: '已删除', type: 'success' });
-      })
-      .catch(() => {});
+        Toast({ message: removed ? '已删除' : '这条不在本机留言墙里', type: removed ? 'success' : 'text' });
+      },
+    });
   },
+
+  // 空处理器：给需要阻断冒泡的节点挂 catchtap 用（空字符串 catchtap 不可靠）
+  noop() {},
 
   submitPost() {
     const content = (this.data.postContent || '').trim();
