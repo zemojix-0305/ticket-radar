@@ -12,6 +12,7 @@ import { loadTasks, removeTask } from '../../utils/tasks';
 // 只能让用户自己看得见「我还剩几条」，否则推送突然不响会毫无头绪。
 const PLATFORMS = [
   { key: 'damai', label: '大麦', hint: '粘贴大麦分享链接；或去「搜演出」直接搜演出名', ph: '粘贴大麦分享链接' },
+  { key: 'taopiaopiao', label: '淘票票', hint: '粘贴淘票票演出链接（与大麦同一演出编号）；或去「搜演出」', ph: '粘贴淘票票演出链接' },
   { key: 'bilibili', label: 'B站会员购', hint: '粘贴会员购演出链接；或去「搜演出」直接搜', ph: '粘贴会员购演出链接' },
   { key: 'maoyan', label: '猫眼', hint: '演出的 performance_id，在猫眼演出页地址栏里', ph: '例：509862' },
   { key: 'moretickets', label: '摩天轮', hint: '巡演的 tour_id，在摩天轮演出页地址栏里', ph: '例：67357b7a…' },

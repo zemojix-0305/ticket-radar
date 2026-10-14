@@ -49,54 +49,42 @@
       <view class="empty-btn press" bindtap="reload" hover-class="press-hover">再试一次</view>
     </view>
 
-    <!-- 场次与票档 -->
-    <view class="sec" wx:if="{{!degraded}}">
-      <view class="sec-title title-strong">场次与票档</view>
-    </view>
-
-    <!-- 票根列表：场次间用打孔线分隔 -->
-    <view class="card ticket" wx:if="{{!degraded}}">
-      <view class="sess" wx:for="{{sessions}}" wx:key="name" wx:for-item="s" wx:for-index="si">
-        <view class="sess-head">
-          <view class="sess-name">{{s.name}}</view>
-          <text class="tag {{s.available ? 'tag-ok' : 'tag-none'}}">{{s.status || (s.available ? '可购' : '不可购')}}</text>
-        </view>
-        <view class="tier" wx:for="{{s.tiers}}" wx:key="name" wx:for-item="t">
-          <view class="tier-dot {{t.available ? 'on' : ''}}"></view>
-          <view class="tier-name">{{t.name}}</view>
-          <view class="tier-price" wx:if="{{t.price}}">{{t.price}}</view>
-          <text class="tag {{t.available ? 'tag-ok' : 'tag-none'}}">{{t.status}}</text>
-        </view>
-        <view class="sess-empty" wx:if="{{!s.tiers.length}}">这个场次的票档还没拉到，先「盯这场」，有动静会告诉你。</view>
+    <!-- 场次 × 票档：多选网格（对齐竞品「演出详情」交互） -->
+    <block wx:if="{{!degraded && sessions.length}}">
+      <view class="sec">
+        <view class="sec-title title-strong">选场次和票价</view>
+        <view class="sec-sub">勾要盯的场次与价位；价格一个都不勾＝整场任何价位回流都提醒</view>
       </view>
-    </view>
-
-    <view class="sec-more" wx:if="{{!tiers.length}}">盯整场 = 任意票档从无到有就提醒你</view>
-    <!-- 猫眼诚实说明：匿名只有项目级库存，按价位盯需要登录凭证（指引见 config 样例） -->
-    <view class="sec-more" wx:if="{{platform === 'maoyan' && !tiers.length}}">猫眼的票档库存需要登录后才能看到，当前只能盯整场</view>
-
-    <!-- 只盯某个价位：票档粒度 ≥2 才有意义（只有一个档=没得选，摆出来纯属误导） -->
-    <view class="tierpick" wx:if="{{tiers.length > 1}}">
-      <view class="tierpick-title">只盯某个价位（可选）</view>
-      <view class="tierpick-chips">
-        <view
-          class="tier-chip {{tierSel === t.name ? 'on' : ''}}"
-          wx:for="{{tiers}}"
-          wx:key="name"
-          wx:for-item="t"
-          data-name="{{t.name}}"
-          bindtap="onPickTier"
-          hover-class="press-hover"
-        >{{t.name}}<text wx:if="{{t.price}}"> {{t.price}}</text></view>
+      <view class="card picker">
+        <view class="sess2" wx:for="{{sessions}}" wx:key="name" wx:for-item="s" wx:for-index="si">
+          <view class="sess2-head" data-si="{{si}}" bindtap="toggleSession" hover-class="press-hover">
+            <view class="sess2-box {{s.selected ? 'on' : ''}}">{{s.selected ? '✓' : ''}}</view>
+            <view class="sess2-name">{{s.name}}</view>
+          </view>
+          <view class="sess2-tags" wx:if="{{s.tiers.length}}">
+            <view
+              class="ptier {{t.selected ? 'on' : ''}} {{t.available ? '' : 'off'}}"
+              wx:for="{{s.tiers}}"
+              wx:key="name"
+              wx:for-item="t"
+              data-si="{{si}}"
+              data-name="{{t.name}}"
+              bindtap="toggleTier"
+              hover-class="{{t.available ? 'press-hover' : 'none-hover'}}"
+            >{{t.name}}</view>
+          </view>
+          <view class="sess2-empty" wx:else>票档明细拿不到（要登录该平台），这场按整场盯</view>
+        </view>
       </view>
-      <view class="tierpick-hint">{{tierSel ? '只盯「' + tierSel + '」，再点一下取消' : '不选 = 盯整场，任何票档回流都提醒'}}</view>
-    </view>
+    </block>
+    <view class="sec-more" wx:if="{{!degraded && !sessions.length}}">这个演出暂时没拿到场次——先「盯整场」，有动静会告诉你</view>
+    <view class="sec-more" wx:if="{{noTiers}}">票档明细要登录该平台后可见，现在按场次盯整场</view>
   </block>
 
   <!-- 底部操作栏：降级模式下盯不了票，不显示 -->
   <view class="actionbar" wx:if="{{!loading && !error && !degraded}}">
     <view class="action-btn press {{adding ? 'busy' : ''}}" bindtap="addMonitor" hover-class="press-hover">
-      {{adding ? '安排上了…' : '盯这场演出'}}
+      {{adding ? '安排上了…' : subText}}
     </view>
   </view>
 

@@ -1,4 +1,5 @@
-// 演出详情页：云函数 detail action 拉场次×票档，「盯这场」写 radar_tasks。
+// 演出详情页：云函数 detail action 拉场次×票档，
+// 「选场次和票价」多选网格 → 底部「开始订阅（共订阅 N 场 M 个价格）」→ 写 radar_tasks。
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
 import { loadTasks, saveTasks } from '../../utils/tasks';
@@ -12,10 +13,11 @@ Page({
   data: {
     loading: true,
     error: '',
-    // 降级模式：详情接口被风控拦住时，用跳转带过来的搜索信息渲染基础详情，
-    // 场次/票档/盯票不可用
+    // 降级模式：详情接口被风控拦住时，用跳转带过来的搜索信息渲染基础详情
     degraded: false,
     degradeMsg: '',
+    // 有场次但拿不到票档明细（平台要登录）——按整场盯
+    noTiers: false,
     adding: false,
     platform: '',
     id: '',
@@ -30,11 +32,12 @@ Page({
     railFrom: '',
     railTo: '',
     railDate: '',
+    // 场次×票档选择网格：每场一个勾选框，档位一格一个可多选的价位按钮
     sessions: [],
-    // 票档扁平列表（去重），供「只盯这个价位」选择；空 = 该演出没票档粒度
-    tiers: [],
-    // 选中的价位关键字；空字符串 = 盯整场
-    tierSel: '',
+    subCount: 0,
+    priceCount: 0,
+    selTiers: [],
+    subText: '盯这场演出',
   },
 
   onLoad(q) {
@@ -57,7 +60,7 @@ Page({
   },
 
   loadDetail() {
-    this.setData({ loading: true, error: '', degraded: false, degradeMsg: '', tierSel: '' });
+    this.setData({ loading: true, error: '', degraded: false, degradeMsg: '', noTiers: false, subText: '' });
     const req = { action: 'detail', platform: this.data.platform, id: this.data.id };
     // 12306：详情查询要站名×日期上下文（服务端按它重新拉一遍余票）
     if (this.data.platform === 'rail12306') {
@@ -69,49 +72,63 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        // 服务端 SSR 降级成功：演出信息（名称/场馆/日期）来自大麦官方 PC 页，
-        // 只是拿不到场次×票档。照常渲染，盯票区隐藏。
+        // 服务端降级成功：演出信息（名称/场馆/日期）拿到了，只是没有场次×票档
         if (r.degraded) {
           this.setData({
             loading: false,
             degraded: true,
             sessions: [],
-            tiers: [],
+            selTiers: [],
             name: r.name || this.data.name,
             venue: r.venue || this.data.venue,
             date: r.dateRange || this.data.date,
-            degradeMsg: '场次和票档暂时拿不到（大麦限制），演出信息先看看',
+            poster: r.poster || this.data.poster,
+            degradeMsg: r.degradeMsg || '场次和票档暂时拿不到，演出信息先看看',
           });
           return;
         }
-        // 场次里的票档压平去重（按名字），给「只盯某个价位」的选择条用
-        const seen = {};
-        const tiers = [];
-        for (const s of r.sessions || []) {
-          for (const t of s.tiers || []) {
-            const key = t.name || '';
-            if (!key || seen[key]) continue;
-            seen[key] = true;
-            tiers.push({ name: key, price: t.price || '' });
-          }
-        }
-        this.setData({
-          loading: false,
-          sessions: r.sessions || [],
-          tiers,
-          name: r.name || this.data.name,
-          venue: r.venue || this.data.venue,
-        });
+        // 场次×票档：默认全选可用项（对齐竞品「共订阅 N 场 M 个价格」）
+        const sessions = (r.sessions || []).map((s) => ({
+          name: s.name || '场次',
+          when: s.when || '',
+          performId: s.performId || '',
+          available: !!s.available,
+          selected: true,
+          tiers: (s.tiers || []).map((t) => ({
+            name: t.name || '票档',
+            price: t.price || '',
+            status: t.status || '',
+            available: t.available !== false,
+            selected: t.available !== false,
+          })),
+        }));
+        const rec = this.recount(sessions);
+        this.setData(
+          Object.assign(
+            {
+              loading: false,
+              sessions,
+              name: r.name || this.data.name,
+              venue: r.venue || this.data.venue,
+              poster: r.poster || this.data.poster,
+              date: r.dateRange || this.data.date,
+              city: r.city || this.data.city,
+              // 大麦/淘票票匿名通道给的是整场价格区间，信息卡里亮出来
+              price: r.priceRange ? '票价区间 ' + r.priceRange : this.data.price,
+              noTiers: !!r.noTiers,
+            },
+            rec,
+          ),
+        );
       })
       .catch((e) => {
-        // 大麦风控拦详情接口时（RGV587），别整页报错——搜索结果点进来时
-        // 名称/城市/场馆/价格/海报都随 URL 带上了，用这些降级渲染，
-        // 只是拿不到场次×票档，盯不了票。其余平台保持原样报错。
-        if (this.data.platform === 'damai' && this.data.name) {
+        // 大麦风控拦详情接口时别整页报错——搜索结果点进来时名称/城市/场馆/价格/海报
+        // 都随 URL 带上了，用这些降级渲染，只是拿不到场次×票档。
+        if (this.data.name) {
           this.setData({
             loading: false,
             degraded: true,
-            degradeMsg: '场次和票档暂时拿不到（大麦太挤了），稍后再来',
+            degradeMsg: '场次和票档暂时拿不到，稍后再来',
           });
           return;
         }
@@ -119,17 +136,63 @@ Page({
       });
   },
 
-  /** 选/取消一个价位。选中后只盯这个价位；再点一下取消回「盯整场」。 */
-  onPickTier(e) {
-    const name = e.currentTarget.dataset.name || '';
-    this.setData({ tierSel: this.data.tierSel === name ? '' : name });
+  /** 重算「共订阅 N 场 M 个价格」，并把选中价位折算成轮询用的关键字（数字）。 */
+  recount(sessions) {
+    const tierKeys = [];
+    let sCount = 0;
+    for (const s of sessions) {
+      const tiers = s.tiers || [];
+      const sel = tiers.filter((t) => t.available && t.selected);
+      if (s.selected && (!tiers.length || sel.length)) sCount++;
+      for (const t of sel) {
+        // 轮询按 label/status/price 关键字过滤，用法与平台无关：优先用价格数字
+        const key = String(t.price || '').replace(/[^0-9]/g, '') || t.name;
+        if (tierKeys.indexOf(key) < 0) tierKeys.push(key);
+      }
+    }
+    const m = tierKeys.length;
+    return {
+      subCount: sCount,
+      priceCount: m,
+      selTiers: tierKeys,
+      subText: sessions.length
+        ? m
+          ? '开始订阅（共订阅 ' + sCount + ' 场 ' + m + ' 个价格）'
+          : '开始订阅（共订阅 ' + sCount + ' 场 · 整场）'
+        : '盯这场演出',
+    };
   },
+
+  toggleSession(e) {
+    const si = Number(e.currentTarget.dataset.si);
+    const sessions = this.data.sessions.slice();
+    if (!sessions[si]) return;
+    sessions[si] = Object.assign({}, sessions[si], { selected: !sessions[si].selected });
+    this.setData(Object.assign({ sessions }, this.recount(sessions)));
+  },
+
+  /** 点价位：可多选；不可用的档位（灰的）点了没反应。 */
+  toggleTier(e) {
+    const si = Number(e.currentTarget.dataset.si);
+    const name = e.currentTarget.dataset.name || '';
+    const sessions = this.data.sessions.slice();
+    const s = sessions[si];
+    if (!s) return;
+    sessions[si] = Object.assign({}, s, {
+      tiers: s.tiers.map((t) =>
+        t.name === name && t.available ? Object.assign({}, t, { selected: !t.selected }) : t,
+      ),
+    });
+    this.setData(Object.assign({ sessions }, this.recount(sessions)));
+  },
+
+  noop() {},
 
   reload() {
     this.loadDetail();
   },
 
-  /** 盯这场：和演出页同一套建库逻辑，参数名按平台区分 */
+  /** 开始订阅：和演出页同一套建库逻辑，参数名按平台区分 */
   addMonitor() {
     const credit = wx.getStorageSync(CREDIT_KEY) || 0;
     if (credit <= 0) {
@@ -146,7 +209,7 @@ Page({
     let params = {};
     if (p === 'moretickets') params = { tour_id: this.data.id };
     else if (p === 'maoyan') params = { performance_id: this.data.id };
-    else if (p === 'damai') params = { item_id: this.data.id };
+    else if (p === 'damai' || p === 'taopiaopiao') params = { item_id: this.data.id };
     else if (p === 'bilibili') params = { project_id: this.data.id };
     else if (p === 'piaoxingqiu') params = { show_id: this.data.id };
     else if (p === 'fenwandao') params = { project_id: this.data.id };
@@ -156,21 +219,37 @@ Page({
         return;
       }
       params = { from: this.data.railFrom, to: this.data.railTo, date: this.data.railDate };
-      // 选了席别就只盯这个席别（12306 的"价位"就是席别）
-      if (this.data.tierSel) params.seat_types = [this.data.tierSel];
-    }
-    else {
+      // 12306 的「价位」就是席别：勾了几个席别就只盯这几档
+      if (this.data.selTiers.length) params.seat_types = this.data.selTiers.slice();
+    } else {
       Toast('这个平台暂不能直接盯');
       return;
     }
-    // 选了价位就只盯这个价位（服务端 poll 会按关键字过滤 items）
-    if (this.data.tierSel && p !== 'rail12306') params.price_label = this.data.tierSel;
+    // 勾了的价位 → 只盯这些价位（服务端 poll 按关键字过滤 items）
+    if (p !== 'rail12306' && this.data.selTiers.length) {
+      params.price_labels = this.data.selTiers.slice();
+    }
+    // 勾了的场次名（服务端记录用；轮询按价位过滤）
+    const selSessions = this.data.sessions.filter((s) => s.selected).map((s) => s.name);
+    if (selSessions.length && selSessions.length < this.data.sessions.length) {
+      params.sessions = selSessions;
+    }
     let docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
     // 12306 同一车次不同日期是两个任务，docId 要带上日期防串
     if (p === 'rail12306') docId += '-' + String(this.data.railDate || '').replace(/[^0-9]/g, '');
     this.setData({ adding: true });
     try {
-      saveTasks([...loadTasks(), { _id: docId, adapter: p, name: this.data.name || ('#' + this.data.id), params, enabled: true, poster: this.data.poster || '' }]);
+      saveTasks([
+        ...loadTasks(),
+        {
+          _id: docId,
+          adapter: p,
+          name: this.data.name || '#' + this.data.id,
+          params,
+          enabled: true,
+          poster: this.data.poster || '',
+        },
+      ]);
       Toast({ type: 'success', message: '已开始盯' });
       this.setData({ adding: false });
       setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);

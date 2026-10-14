@@ -851,6 +851,187 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// ---------------------------------------------------------------------------
+// 大麦官方 H5 详情通道（2026-10-14 实测：匿名可用，不用 Cookie）
+//
+// 之前一直用 mtop.damai.item.detail.getdetail，被 RGV587 风控钉死。
+// 实测官方 H5/小程序走的是 **mtop.alibaba.damai.detail.getdetail v1.2**：
+//   · 与搜索接口相反，它**必须带 c 参数**（_m_h5_tk 令牌）参与签名，
+//     不带/带错立刻 RGV587；
+//   · **必须带 x-tap: wx 头**——带对了才路由到正确后端；
+//   · 首包服务器会下发 _m_h5_tk（Set-Cookie），拿它重签一次即 SUCCESS。
+// 返回 detailViewComponentMap.item：演出名/海报/时间/城市/价格区间 +
+// performBases（场次列表）。票档级 subpage 接口仍被风控（见 damaiSessionTiers）。
+// ---------------------------------------------------------------------------
+let dmH5Tk = ''; // _m_h5_tk 的值（形如 <token>_<ts>），进程级复用
+let dmH5Cookie = ''; // 完整 Cookie 头
+
+function dmTokenOf(cookieStr) {
+  const m = /(?:^|;\s*)_m_h5_tk=([^;]+)/.exec(String(cookieStr || ''));
+  return m ? m[1].split('_')[0] : '0';
+}
+
+async function mtopH5(api, v, dataObj, extraQ, userCookie) {
+  const data = JSON.stringify(dataObj || {});
+  let c = dmH5Tk;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const t = Date.now().toString();
+    const token = c ? String(c).split('_')[0] : '0';
+    const cc = c || '0_' + t;
+    const sign = crypto.createHash('md5').update(`${token}&${t}&${MTOP_APPKEY}&${data}`).digest('hex');
+    let ex = '';
+    for (const k of Object.keys(extraQ || {})) {
+      ex += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(extraQ[k]);
+    }
+    const url =
+      `${MTOP_BASE}/${api}/${v}/?jsv=2.4.12&appKey=${MTOP_APPKEY}&t=${t}&sign=${sign}` +
+      `&c=${encodeURIComponent(cc)}&api=${api}&v=${v}&type=json&dataType=json&env=m` +
+      `&data=${encodeURIComponent(data)}${ex}`;
+    const headers = {
+      'User-Agent': MTOP_UA,
+      Referer: 'https://servicewechat.com/wx938b41d0d7e8def0/350/page-frame.html',
+      Accept: 'application/json',
+      'content-type': 'application/x-www-form-urlencoded',
+      'x-tap': 'wx',
+    };
+    const cks = [];
+    if (dmH5Cookie) cks.push(dmH5Cookie);
+    if (userCookie) cks.push(String(userCookie).replace(/^Cookie:\s*/i, '').trim());
+    if (cks.length) headers.Cookie = cks.join('; ');
+    const r = await request(url, { headers, timeout: 15000 });
+    const sc = r.headers['set-cookie'];
+    if (sc) {
+      dmH5Cookie = sc.map((x) => x.split(';')[0]).join('; ');
+      const m = /(?:^|;\s*)_m_h5_tk=([^;]+)/.exec(dmH5Cookie);
+      if (m) dmH5Tk = m[1];
+    }
+    let j;
+    try {
+      j = JSON.parse(r.body);
+    } catch (e) {
+      throw new Error('大麦返回非 JSON：' + r.body.slice(0, 100));
+    }
+    const ret = (j.ret || []).join('|');
+    if (/SUCCESS/.test(ret)) return j;
+    const nc = j.c || (j.data && j.data.c) || dmH5Tk;
+    if (nc && nc !== cc) {
+      c = nc;
+      continue;
+    }
+    throw damaiFail(ret);
+  }
+  throw new Error('大麦详情连续失败');
+}
+
+/** 在任意嵌套 JSON 里找第一个非空字符串字段（场馆名等散落在组件树里）。 */
+function deepStr(o, key) {
+  if (o == null) return '';
+  if (Array.isArray(o)) {
+    for (const v of o) {
+      const r = deepStr(v, key);
+      if (r) return r;
+    }
+    return '';
+  }
+  if (typeof o === 'object') {
+    if (typeof o[key] === 'string' && o[key]) return o[key];
+    for (const k of Object.keys(o)) {
+      const r = deepStr(o[k], key);
+      if (r) return r;
+    }
+  }
+  return '';
+}
+
+/** 大麦官方 H5 详情（匿名）。返回 {name,poster,dateRange,city,venue,priceRange,sessions}。 */
+async function damaiDetailV12(itemId, userCookie) {
+  const j = await mtopH5(
+    'mtop.alibaba.damai.detail.getdetail',
+    '1.2',
+    { itemId: String(itemId), dmChannel: 'damai@weixin_weapp' },
+    { H5Request: 'true', valueType: 'string' },
+    userCookie,
+  );
+  const raw = j && j.data && j.data.result;
+  if (!raw) throw new Error('大麦详情返回为空');
+  const res = JSON.parse(raw);
+  const itemWrap = (res.detailViewComponentMap && res.detailViewComponentMap.item) || {};
+  const base = (itemWrap.staticData && itemWrap.staticData.itemBase) || {};
+  const it = itemWrap.item || {};
+  const sessions = [];
+  for (const b of (it.performBases || []).slice(0, 12)) {
+    for (const p of b.performs || []) {
+      const tiers = [];
+      for (const sk of p.skuList || p.priceList || []) {
+        tiers.push({
+          name: stripTags(sk.priceName || sk.name || sk.skuName || '票档'),
+          price: stripTags(
+            sk.priceStr || sk.formattedPriceStr || (sk.price != null ? '¥' + sk.price : ''),
+          ),
+          status: '',
+          available: !(sk.skuSalable === false || sk.skuSalable === 'false'),
+        });
+      }
+      sessions.push({
+        name: stripTags(p.performName || '场次'),
+        when: stripTags(p.performName || ''),
+        performId: p.performId || '',
+        status: '',
+        available: false,
+        tiers,
+      });
+    }
+  }
+  return {
+    name: stripTags(base.itemName || ''),
+    poster: stripTags(base.itemPic || ''),
+    dateRange: stripTags(base.showTime || ''),
+    city: stripTags(base.cityName || ''),
+    venue: stripTags(deepStr(res, 'venueName') || deepStr(res, 'venue') || ''),
+    priceRange: stripTags(it.priceRange || ''),
+    sessions,
+    source: 'h5',
+  };
+}
+
+/** 单场次票档（subpage，需 Cookie 通道；匿名被 RGV587 时抛错，调用方降级）。 */
+async function damaiSessionTiers(itemId, performId, userCookie) {
+  const j = await mtopH5(
+    'mtop.alibaba.detail.subpage.getdetail',
+    '2.0',
+    {
+      itemId: String(itemId),
+      bizCode: 'ali.china.damai',
+      scenario: 'itemsku',
+      exParams: JSON.stringify({ dataType: 2, dataId: String(performId) }),
+      platform: '8',
+      comboChannel: '2',
+      dmChannel: 'damai@damaih5_h5',
+    },
+    {
+      v: '2.0',
+      H5Request: 'true',
+      type: 'originaljson',
+      timeout: '10000',
+      valueType: 'original',
+      forceAntiCreep: 'true',
+      AntiCreep: 'true',
+      useH5: 'true',
+    },
+    userCookie,
+  );
+  const raw = j && j.data && j.data.result;
+  if (!raw) return [];
+  const res = JSON.parse(raw);
+  const skus = (res.perform && res.perform.skuList) || res.skuList || [];
+  return skus.map((sk) => ({
+    name: stripTags(sk.priceName || sk.name || '票档'),
+    price: stripTags(sk.priceStr || (sk.price != null ? '¥' + sk.price : '')),
+    status: '',
+    available: !(sk.skuSalable === false || sk.skuSalable === 'false'),
+  }));
+}
+
 /** 把 mtop 的失败 ret 翻译成用户能看懂、我们知道怎么办的话。 */
 /** 把 mtop 的失败 ret 翻译成用户能看懂的话。管理员怎么配 Cookie 是运维的事
  * （server/config.example.json 里写了），不漏进用户界面。 */
@@ -1714,25 +1895,43 @@ async function detailShow(platform, id, event) {
     return { platform, id, name: sStatic.showName || '', venue: sStatic.venueName || '', sessions };
   }
 
-  // 大麦详情：优先 mtop（Cookie/风控放行时能拿到场次×票档）；
-  // 被 RGV587 拦时降级到 PC 详情页 SSR 抓取（匿名稳定可达），
-  // 拿演出名/日期区间/场馆，保证详情页信息完整，只是盯不了票。
-  if (platform === 'damai') {
+  // 大麦 / 淘票票详情（2026-10-14 重做）：走官方 H5 匿名通道
+  // mtop.alibaba.damai.detail.getdetail（不再依赖 Cookie），拿演出名/海报/
+  // 时间/城市/价格区间 + 场次列表；票档级 subpage 仍被风控拦时保留场次、
+  // 标记 noTiers（详情页照常渲染场次，只是按价位盯需要 Cookie）。
+  // 淘票票的演出就是 m.taopiaopiao.com/damai/detail/item.html?itemId=X——
+  // 与大麦同一 itemId 命名空间，共用同一条通道。
+  if (platform === 'damai' || platform === 'taopiaopiao') {
+    const cookie = (event && event.damaiCookie) || '';
     try {
-      const items = await pollDamai({ item_id: id, damaiCookie: (event && event.damaiCookie) || '' });
-      const first = items[0] || {};
-      return {
-        platform, id,
-        name: first.label || '',
-        venue: first.place || '',
-        sessions: [{
-          name: first.label || '票档', when: first.when || '', status: first.status || '',
-          available: !!first.available,
-          tiers: items.map((it) => ({
-            name: it.label, price: it.price || '', status: it.status || '', available: !!it.available,
-          })),
-        }],
-      };
+      const d = await damaiDetailV12(id, cookie);
+      // 票档级 subpage 接口被风控更狠（匿名必 RGV587）——只试一枪，
+      // 失败即止，避免详情页白白多等好几个超时。
+      if (d.sessions.length && !d.sessions.some((s) => s.tiers.length)) {
+        let failed = false;
+        for (const s of d.sessions) {
+          if (failed) break;
+          try {
+            const tiers = await damaiSessionTiers(id, s.performId || s.name, cookie);
+            if (tiers.length) s.tiers = tiers;
+          } catch (e) {
+            failed = true;
+          }
+        }
+      }
+      if (!d.sessions.length) {
+        const ssr = await damaiDetailSSR(id).catch(() => null);
+        if (ssr) {
+          d.venue = d.venue || ssr.venue;
+          d.dateRange = d.dateRange || ssr.dateRange;
+        }
+        return Object.assign(
+          { platform, id, degraded: true, degradeMsg: '场次和票档暂时拿不到，演出信息先看看' },
+          d,
+        );
+      }
+      if (!d.sessions.some((s) => s.tiers.length)) d.noTiers = true;
+      return Object.assign({ platform, id }, d);
     } catch (e) {
       const ssr = await damaiDetailSSR(id).catch(() => null);
       if (!ssr) throw e;
@@ -1746,7 +1945,7 @@ async function detailShow(platform, id, event) {
   const paramKey =
     platform === 'moretickets' ? 'tour_id'
     : platform === 'maoyan' ? 'performance_id'
-    : platform === 'damai' ? 'item_id'
+    : (platform === 'damai' || platform === 'taopiaopiao') ? 'item_id'
     : 'id';
   const fnParams = { [paramKey]: id };
   // 注意：不把 event.myToken 传给 generic 分支——有 token 的情形在前面 maoyan
@@ -1925,6 +2124,7 @@ const PLATFORMS = {
   moretickets: pollMoretickets,
   rail12306: pollRail,
   damai: pollDamai,
+  taopiaopiao: pollDamai,
   bilibili: pollBilibili,
   piaoxingqiu: pollPiaoxingqiu,
   fenwandao: pollFenwandao,
@@ -2389,6 +2589,9 @@ exports._internals = {
   damaiSearch: damaiSearch,
   pollDamai: pollDamai,
   damaiDetailSSR: damaiDetailSSR,
+  damaiDetailV12: damaiDetailV12,
+  damaiSessionTiers: damaiSessionTiers,
+  mtopH5: mtopH5,
   getJson: getJson,
   maoyanHeaders: maoyanHeaders,
   mtopCall: mtopCall,

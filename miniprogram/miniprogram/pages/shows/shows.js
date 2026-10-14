@@ -29,6 +29,7 @@ const PLATFORMS = [
   { key: 'bilibili', label: 'B站' },
   { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
   { key: 'fenwandao', label: '纷玩岛' },
+  { key: 'taopiaopiao', label: '淘票票' },
 ];
 
 // 使用教程 / 常见问题（第十五轮）：新用户第一屏就能看懂怎么用。
