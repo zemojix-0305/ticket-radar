@@ -4,7 +4,9 @@ import { request } from '../../utils/api';
 import { loadTasks, saveTasks } from '../../utils/tasks';
 import Dialog from '../../vant/dialog/dialog';
 
-const CREDIT_KEY = 'radar_credit';
+// 注意：额度 key 全项目统一是 wx_subscribe_credit（mine/monitor/history/inbox 同款），
+// 之前这里写成 radar_credit 导致详情页永远读 0、明明有额度还弹"去领额度"。
+const CREDIT_KEY = 'wx_subscribe_credit';
 
 Page({
   data: {
@@ -21,6 +23,10 @@ Page({
     date: '',
     price: '',
     sessions: [],
+    // 票档扁平列表（去重），供「只盯这个价位」选择；空 = 该演出没票档粒度
+    tiers: [],
+    // 选中的价位关键字；空字符串 = 盯整场
+    tierSel: '',
   },
 
   onLoad(q) {
@@ -40,14 +46,26 @@ Page({
   },
 
   loadDetail() {
-    this.setData({ loading: true, error: '' });
-request({ action: 'detail', platform: this.data.platform, id: this.data.id })
+    this.setData({ loading: true, error: '', tierSel: '' });
+    request({ action: 'detail', platform: this.data.platform, id: this.data.id })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
+        // 场次里的票档压平去重（按名字），给「只盯某个价位」的选择条用
+        const seen = {};
+        const tiers = [];
+        for (const s of r.sessions || []) {
+          for (const t of s.tiers || []) {
+            const key = t.name || '';
+            if (!key || seen[key]) continue;
+            seen[key] = true;
+            tiers.push({ name: key, price: t.price || '' });
+          }
+        }
         this.setData({
           loading: false,
           sessions: r.sessions || [],
+          tiers,
           name: r.name || this.data.name,
           venue: r.venue || this.data.venue,
         });
@@ -55,6 +73,12 @@ request({ action: 'detail', platform: this.data.platform, id: this.data.id })
       .catch((e) => {
         this.setData({ loading: false, error: String(e.message || e) });
       });
+  },
+
+  /** 选/取消一个价位。选中后只盯这个价位；再点一下取消回「盯整场」。 */
+  onPickTier(e) {
+    const name = e.currentTarget.dataset.name || '';
+    this.setData({ tierSel: this.data.tierSel === name ? '' : name });
   },
 
   reload() {
@@ -81,10 +105,13 @@ request({ action: 'detail', platform: this.data.platform, id: this.data.id })
     else if (p === 'damai') params = { item_id: this.data.id };
     else if (p === 'bilibili') params = { project_id: this.data.id };
     else if (p === 'piaoxingqiu') params = { show_id: this.data.id };
+    else if (p === 'fenwandao') params = { project_id: this.data.id };
     else {
       Toast('这个平台暂不能直接盯');
       return;
     }
+    // 选了价位就只盯这个价位（服务端 poll 会按关键字过滤 items）
+    if (this.data.tierSel) params.price_label = this.data.tierSel;
     const docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
     this.setData({ adding: true });
     try {

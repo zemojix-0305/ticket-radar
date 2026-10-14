@@ -99,6 +99,54 @@
     </view>
   </view>
 
+  <!-- 纷玩岛 Token：用户自带（纷玩岛全接口要求设备 token，无匿名通道） -->
+  <view class="card bind">
+    <view class="bind-head" bindtap="toggleFwd" hover-class="press-hover">
+      <view class="t1">纷玩岛 Token {{fwdSaved ? '· 已配置' : ''}}</view>
+      <text class="bind-arrow {{fwdOpen ? 'bind-arrow-open' : ''}}">▾</text>
+    </view>
+
+    <view wx:if="{{fwdOpen}}">
+      <view class="t3" style="margin-bottom: 10px;">用抓包工具看纷玩岛小程序任意请求的 authorization 请求头，整行粘进来：</view>
+      <textarea
+        class="fwd-input"
+        value="{{fwdToken}}"
+        placeholder="Bearer eyJhbGciOi..."
+        placeholder-class="fwd-ph"
+        maxlength="-1"
+        auto-height
+        bindinput="onFwdInput"
+      ></textarea>
+      <view class="acts">
+        <view class="btn btn-ghost" bindtap="saveFwdToken" hover-class="press-hover">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 大麦 Cookie（可选）：大麦 mtop 风控（RGV587）拦匿名请求时，登录态最稳 -->
+  <view class="card bind">
+    <view class="bind-head" bindtap="toggleDm" hover-class="press-hover">
+      <view class="t1">大麦 Cookie {{dmSaved ? '· 已配置' : ''}}</view>
+      <text class="bind-arrow {{dmOpen ? 'bind-arrow-open' : ''}}">▾</text>
+    </view>
+
+    <view wx:if="{{dmOpen}}">
+      <view class="t3" style="margin-bottom: 10px;">电脑浏览器登录大麦 → F12 → Network → 随便一个请求 → 复制 Cookie 请求头整行粘进来（遇到「风控验证」提示时配这个就能过）：</view>
+      <textarea
+        class="fwd-input"
+        value="{{dmCookie}}"
+        placeholder="csg=...; t=...; cookie2=...; ..."
+        placeholder-class="fwd-ph"
+        maxlength="-1"
+        auto-height
+        bindinput="onDmInput"
+      ></textarea>
+      <view class="acts">
+        <view class="btn btn-ghost" bindtap="saveDmCookie" hover-class="press-hover">{{dmCookie ? '保存' : '清空'}}</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 支持作者：默认字体 + 朴素排版（对齐用户给的参考截图） -->
   <view class="card support">
     <view class="support-main">

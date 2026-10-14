@@ -11,16 +11,20 @@
         wx:for="{{watched}}"
         wx:key="_id"
         wx:for-item="it"
+        wx:for-index="wi"
+        data-index="{{wi}}"
+        bindtap="openWatched"
+        hover-class="press-hover"
       >
         <view class="w-main">
-          <view class="w-name">{{it.name}}</view>
+          <view class="w-name">{{it.name}}<text class="w-tier" wx:if="{{it.params.price_label}}"> · 只盯{{it.params.price_label}}</text></view>
           <view class="w-sub">{{it.platform}}<text wx:if="{{it.rel}}"> · {{it.rel}}</text></view>
         </view>
         <view class="w-status w-{{it.status}}">{{it.statusText}}</view>
         <view
           class="w-del press"
           data-id="{{it._id}}"
-          bindtap="removeWatched"
+          catchtap="removeWatched"
           hover-class="press-hover"
         >移除</view>
       </view>

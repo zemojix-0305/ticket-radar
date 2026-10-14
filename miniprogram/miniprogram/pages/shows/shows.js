@@ -28,6 +28,7 @@ const PLATFORMS = [
   { key: 'damai', label: '大麦' },
   { key: 'bilibili', label: 'B站' },
   { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
+  { key: 'fenwandao', label: '纷玩岛' },
 ];
 
 // 使用教程 / 常见问题（第十五轮）：新用户第一屏就能看懂怎么用。
@@ -95,6 +96,21 @@ Page({
     });
     // 进页面就拉热门，让第一屏有东西可逛
     this.loadHot();
+  },
+
+  onShow() {
+    // 从「正在盯」页点 12306 任务跳过来：切到 12306 tab、预填站名并直接查
+    const pre = wx.getStorageSync('shows_prefill_rail');
+    if (pre && (pre.from || pre.to)) {
+      wx.removeStorageSync('shows_prefill_rail');
+      this.setData({
+        platformIndex: 0,
+        from: pre.from || '',
+        to: pre.to || '',
+        date: pre.date || this.data.date,
+      });
+      this.searchRail();
+    }
   },
 
   onInput(e) {

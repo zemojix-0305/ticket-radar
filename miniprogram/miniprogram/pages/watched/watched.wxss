@@ -34,3 +34,7 @@
   color: var(--ink3);
   padding: 6px 4px;
 }
+
+/* 条目可点进详情 */
+.watched-item { cursor: pointer; }
+.w-tier { font-size: 12px; color: var(--accent); }

@@ -65,7 +65,24 @@
       </view>
     </view>
 
-    <view class="sec-more">盯整场 = 任意票档从无到有就提醒你</view>
+    <view class="sec-more" wx:if="{{!tiers.length}}">盯整场 = 任意票档从无到有就提醒你</view>
+
+    <!-- 只盯某个价位：有票档粒度时出现，选了就只盯这个价位，再点一下取消 -->
+    <view class="tierpick" wx:if="{{tiers.length}}">
+      <view class="tierpick-title">只盯某个价位（可选）</view>
+      <view class="tierpick-chips">
+        <view
+          class="tier-chip {{tierSel === t.name ? 'on' : ''}}"
+          wx:for="{{tiers}}"
+          wx:key="name"
+          wx:for-item="t"
+          data-name="{{t.name}}"
+          bindtap="onPickTier"
+          hover-class="press-hover"
+        >{{t.name}}<text wx:if="{{t.price}}"> {{t.price}}</text></view>
+      </view>
+      <view class="tierpick-hint">{{tierSel ? '只盯「' + tierSel + '」，再点一下取消' : '不选 = 盯整场，任何票档回流都提醒'}}</view>
+    </view>
   </block>
 
   <!-- 底部操作栏 -->

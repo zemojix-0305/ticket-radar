@@ -23,13 +23,29 @@ function base() {
  * 为了和业务代码最小改动对接，这里直接透传 res.data（即服务端 JSON body）
  * 作为 result 字段。
  */
+// 纷玩岛 token 存本地（「我的」页填写）。全局随每个请求带上，服务端
+// 只在纷玩岛相关的 find/detail/poll 里用它，别的平台无视这个字段。
+const FWD_TOKEN_KEY = 'radar_fwd_token';
+// 大麦 Cookie（可选）：登录大麦网页版后粘 Cookie 进来，过 mtop 风控最稳。
+// 同样全局随请求带上，服务端只在大麦相关调用里用。
+const DM_COOKIE_KEY = 'radar_dm_cookie';
+
 function request(params) {
   return new Promise((resolve, reject) => {
+    const payload = Object.assign({}, params);
+    if (!payload.fwdToken) {
+      const t = wx.getStorageSync(FWD_TOKEN_KEY);
+      if (t) payload.fwdToken = t;
+    }
+    if (!payload.damaiCookie) {
+      const ck = wx.getStorageSync(DM_COOKIE_KEY);
+      if (ck) payload.damaiCookie = ck;
+    }
     wx.request({
       url: base() + '/api',
       method: 'POST',
       header: { 'Content-Type': 'application/json' },
-      data: params,
+      data: payload,
       timeout: 25000,
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -46,4 +62,4 @@ function request(params) {
   });
 }
 
-module.exports = { request, base };
+module.exports = { request, base, FWD_TOKEN_KEY, DM_COOKIE_KEY };

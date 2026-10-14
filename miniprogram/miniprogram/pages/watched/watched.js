@@ -51,6 +51,9 @@ Page({
         _id: t._id,
         name: t.name || '监控',
         platform: PLATFORM_LABEL[t.adapter] || t.adapter,
+        adapter: t.adapter || '',
+        params: t.params || {},
+        poster: t.poster || '',
         status,
         statusText,
         offline,
@@ -60,6 +63,36 @@ Page({
     // 下架的沉底，别的按原顺序
     watched.sort((a, b) => (a.offline === b.offline ? 0 : a.offline ? 1 : -1));
     this.setData({ watched });
+  },
+
+  /** 点条目 → 跳到对应详情。演出类进 detail 页；12306 回查票页并预填站名。 */
+  openWatched(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    const it = this.data.watched[idx];
+    if (!it) return;
+    if (it.adapter === 'rail12306') {
+      const p = it.params || {};
+      // 查票页是 tab 页不能带参，先存预填再 switchTab
+      wx.setStorageSync('shows_prefill_rail', {
+        from: p.from || '',
+        to: p.to || '',
+        date: p.date || '',
+      });
+      wx.switchTab({ url: '/pages/shows/shows' });
+      return;
+    }
+    const pid = it.params.project_id || it.params.performance_id || it.params.tour_id
+      || it.params.item_id || it.params.show_id || '';
+    if (!pid) {
+      Toast({ message: '这条任务缺 id，跳不了详情', type: 'none' });
+      return;
+    }
+    const q =
+      'platform=' + it.adapter +
+      '&id=' + pid +
+      '&name=' + encodeURIComponent(it.name || '') +
+      '&poster=' + encodeURIComponent(it.poster || '');
+    wx.navigateTo({ url: '/pages/detail/detail?' + q });
   },
 
   removeWatched(e) {
