@@ -799,6 +799,20 @@ async function mtopCall(api, dataObj, v, userCookie, extraQ) {
 }
 
 /** 大麦关键词搜索 → 与 findMaoyan 同构的行结构。 */
+/** 大麦接口的名称字段常带官方营销高亮 HTML（如 <span class="c4">林忆莲</span>），
+ * 直接展示就是一坨标签乱码——统一剥掉，顺带还原几个常见实体。 */
+function stripTags(s) {
+  return String(s || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 async function damaiSearch(keyword, limit, userCookie) {
   const kw = String(keyword || '').trim();
   if (!kw) throw new Error('搜索词不能为空');
@@ -812,14 +826,18 @@ async function damaiSearch(keyword, limit, userCookie) {
   return rows.map((p) => ({
     performanceId: String(p.id),
     itemId: String(p.id),
-    name: p.name || p.ipName || ('大麦 #' + p.id),
-    city: p.cityName || '',
-    venue: p.venueName || '',
-    dateRange: p.showTime || '',
-    price: p.priceLow ? '¥' + p.priceLow + ' 起' : '',
-    // itemSaleStatus 官方映射无公开文档：1 实测为在售；其余透传数字不猜
-    status: p.itemSaleStatus === 1 ? '在售' : (p.itemSaleStatus != null ? '状态' + p.itemSaleStatus : ''),
-    poster: p.posterUrl || (Array.isArray(p.videos) && p.videos[0] && p.videos[0].picUrl) || '',
+    name: stripTags(p.name || p.ipName) || ('大麦 #' + p.id),
+    city: stripTags(p.cityName),
+    venue: stripTags(p.venueName),
+    dateRange: stripTags(p.showTime),
+    // 官方价格字段优先用拼好文案的 priceStr / formattedPriceStr，没有再拼区间
+    price: stripTags(p.priceStr || p.formattedPriceStr) ||
+      (p.priceLow != null ? '¥' + p.priceLow + ' 起' : ''),
+    // itemSaleStatus 官方映射无公开文档：1 实测为在售；0/其他不猜数字，直接留空
+    status: p.itemSaleStatus === 1 ? '在售' : '',
+    // 海报字段实测是 verticalPic（posterUrl 在搜索接口里不存在）
+    poster: p.verticalPic || p.posterUrl ||
+      (Array.isArray(p.videos) && p.videos[0] && p.videos[0].picUrl) || '',
   }));
 }
 
@@ -922,6 +940,7 @@ async function pollDamai(params) {
 
   const items = [];
   for (const s of sessions.slice(0, 10)) {
+    s.performName = stripTags(s.performName) || '场次';
     let skus = [];
     try {
       skus = await dmGetSkus(itemId, s.performId, userCookie);
@@ -940,7 +959,7 @@ async function pollDamai(params) {
     if (skus.length) {
       for (const k of skus) {
         items.push({
-          label: s.performName + ' · ' + k.priceName,
+          label: s.performName + ' · ' + (stripTags(k.priceName) || '票档'),
           place: '',
           when: s.performName,
           status: k.onSale ? '可购' : '不可购',
@@ -1586,9 +1605,9 @@ function fwdHeaders(token) {
 }
 
 function fwdTokenError() {
-  return new Error(
-    '纷玩岛需要登录凭据才能查询——服务端尚未配置（管理员在 server/config.json 填 fwdToken 即可），用户侧无需任何操作'
-  );
+  // 面向终端用户的话术——服务端凭据怎么配是管理员的事（见 server/config.example.json），
+  // 不把内部细节漏进界面
+  return new Error('纷玩岛暂时查不了，稍后再试试吧');
 }
 
 /** 拉 get_performs 并做 code 检查。11004 = token 缺失/过期，给用户能看懂的指引。 */
@@ -1599,7 +1618,7 @@ async function fwdGetPerforms(projectId, token) {
     { headers: fwdHeaders(token), timeout: 15000 },
   );
   if (j && j.code === 11004) {
-    throw new Error('纷玩岛凭据过期或无效（11004）——管理员更新 server/config.json 里的 fwdToken 即可，用户侧无需操作');
+    throw new Error('纷玩岛暂时查不了，稍后再试试吧');
   }
   if (!j || j.code !== 10000) {
     throw new Error('纷玩岛返回：' + ((j && j.msg) || ('code=' + (j && j.code))));
@@ -1979,7 +1998,7 @@ async function handleAction(event, action, db) {
           // （config.json / 用户端老版本存本地也会随请求带上），终端用户无感。
           const tk = String((event && event.fwdToken) || '').trim();
           if (!tk) {
-            return { ok: false, error: '纷玩岛热门榜还没准备好——服务端尚未配置纷玩岛凭据，稍后再试' };
+            return { ok: false, error: '纷玩岛热门榜整理中，先逛逛别的平台吧' };
           }
           try {
             const rows = await findFenwandao('演唱会', limit, tk);
