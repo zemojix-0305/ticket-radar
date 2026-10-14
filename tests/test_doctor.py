@@ -244,10 +244,11 @@ def test_doctor_command_runs_and_reports(monkeypatch, tmp_path):
             from radar.models import SeatAvailability, Snapshot, TrainState
 
             return Snapshot(
+                task_id=task.id,
                 platform="fake",
                 captured_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
                 trains={"X1": TrainState(train_code="X1", from_station="A", to_station="B",
-                                        seats={"二等座": SeatAvailability(seat_type="二等座", count=3, available=3)})},
+                                        seats={"二等座": SeatAvailability(seat_type="二等座", raw="有", count=3, available=True)})},
             )
 
         async def doctor(self, client):
@@ -261,13 +262,23 @@ def test_doctor_command_runs_and_reports(monkeypatch, tmp_path):
         "    adapter: fake\n"
         "    enabled: true\n"
         "    interval_seconds: 60\n"
-        "    display_name: 假任务\n"
+        "    name: 假任务\n"
         "    params: {}\n"
         "notify: []\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(cli_mod, "create_adapter", lambda n, c=None: FakeAdapter(), raising=False)
+    # doctor 内部是 `from .adapters import create_adapter` 的**局部导入**，
+    # 所以只能 patch radar.adapters 上的属性——patch 到 cli_mod 会被局部导入盖掉，
+    # 假适配器根本不会生效（这条测试就是这么过期掉的）。
+    # 另外只对 "fake" 生效：全都换成假适配器的话，纷玩岛那行就会走「正常」分支，
+    # 于是「接不了的平台要显示成不支持」这一条永远测不到。
+    from radar.adapters import create_adapter as _real_create_adapter
+
+    def _create(name, creds=None):
+        return FakeAdapter() if name == "fake" else _real_create_adapter(name, creds)
+
+    monkeypatch.setattr("radar.adapters.create_adapter", _create, raising=False)
     monkeypatch.setattr(
         "radar.adapters.list_adapters", lambda: ["fake", "fenwandao"], raising=False
     )

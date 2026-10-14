@@ -16,7 +16,7 @@ from collections.abc import Collection, Iterable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .models import Change, Snapshot
+from .models import Change, EventKind, Snapshot
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS snapshots (
@@ -197,6 +197,37 @@ class Store:
         )
         row = cur.fetchone()
         return {"snapshots": int(row["snapshots"]), "changes": int(row["changes"])}
+
+    # -- 回流规律（自有数据，越跑越值钱）------------------------------------
+
+    def restock_hours(self, task_id: str, *, days: int = 30) -> dict[int, int]:
+        """按**本地小时**统计该任务近 N 天的回流（appeared）次数。
+
+        这是整个项目里唯一「平台给不了、只能自己盯出来」的数据：
+        退票、锁座释放、分批放库存都有各自的时间习惯（比如整点放票、
+        开演前 24 小时集中退票）。盯得越久，这张分布图越准——
+        竞品就算拿到了同样的接口，也补不齐这段时间。
+        """
+        since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        cur = self._conn.execute(
+            "SELECT detected_at FROM changes WHERE task_id = ? AND kind = ? AND detected_at >= ?",
+            (task_id, EventKind.APPEARED.value, since),
+        )
+        out: dict[int, int] = {}
+        for row in cur:
+            try:
+                t = datetime.fromisoformat(row["detected_at"])
+            except (TypeError, ValueError):
+                continue
+            if t.tzinfo is None:
+                t = t.replace(tzinfo=timezone.utc)
+            h = t.astimezone().hour
+            out[h] = out.get(h, 0) + 1
+        return out
+
+    def restock_total(self, task_id: str, *, days: int = 30) -> int:
+        """近 N 天回流总次数。"""
+        return sum(self.restock_hours(task_id, days=days).values())
 
     def latest_snapshot_id(self) -> int:
         """全表最大快照 id，当作看板缓存的版本号用。

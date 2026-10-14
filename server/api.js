@@ -30,16 +30,52 @@ const path = require('path');
 const fs = require('fs');
 
 // ---------------------------------------------------------------------------
+// 读取仓库根目录的 .env
+// ---------------------------------------------------------------------------
+// 为什么必须读：Python 侧（radar/）走 python-dotenv 读 .env，所以「凭据都填在
+// .env 里」是这台机器上的既有约定。Node 这层原来只认 process.env 与
+// server/config.json，于是出现过「.env 里 DAMAI_COOKIE 填得好好的，小程序
+// 点进大麦详情却只有标题、没有场次票档」——配置填了但根本没送达服务层。
+// 这条坑查起来极费时间（日志里什么都正常），所以这里显式补上。
+// 优先级：真实环境变量 > .env > server/config.json。不做 ${VAR} 插值。
+function readDotEnv() {
+  const out = {};
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const s = line.trim();
+      if (!s || s.startsWith('#')) continue;
+      const i = s.indexOf('=');
+      if (i <= 0) continue;
+      const k = s.slice(0, i).trim();
+      let v = s.slice(i + 1).trim();
+      if (
+        (v.startsWith('"') && v.endsWith('"')) ||
+        (v.startsWith("'") && v.endsWith("'"))
+      ) {
+        v = v.slice(1, -1);
+      }
+      if (k && v) out[k] = v;
+    }
+  } catch (e) {
+    /* 没有 .env 不是错误：全匿名也能跑 */
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // 服务端自持凭据（面向大众上架：终端用户不填任何 cookie/token）
-//   本地：server/config.json（已 gitignore，不进仓库）
-//   云端：环境变量 DAMAI_COOKIE / FWD_TOKEN 优先
+//   本地：.env（首选）或 server/config.json（已 gitignore，不进仓库）
+//   云端：环境变量 DAMAI_COOKIE / FWD_TOKEN / MY_TOKEN 优先
 // 注入点在下面 handler 里：客户端没带才注入，客户端显式传的优先（调试用）。
 // ---------------------------------------------------------------------------
 function loadSrvConfig() {
   const cfg = {};
-  if (process.env.DAMAI_COOKIE) cfg.damaiCookie = process.env.DAMAI_COOKIE;
-  if (process.env.FWD_TOKEN) cfg.fwdToken = process.env.FWD_TOKEN;
-  if (process.env.MY_TOKEN) cfg.myToken = process.env.MY_TOKEN;
+  const dotenv = readDotEnv();
+  const env = (k) => process.env[k] || dotenv[k] || '';
+  if (env('DAMAI_COOKIE')) cfg.damaiCookie = env('DAMAI_COOKIE');
+  if (env('FWD_TOKEN')) cfg.fwdToken = env('FWD_TOKEN');
+  if (env('MY_TOKEN')) cfg.myToken = env('MY_TOKEN');
   try {
     const local = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
     for (const k of ['damaiCookie', 'fwdToken', 'myToken']) {
@@ -168,6 +204,14 @@ if (require.main === module) {
   const server = http.createServer(apiHandler);
   server.listen(port, () => {
     console.log('[ticket-radar] stateless api listening on http://127.0.0.1:' + port + '/api');
+    // 只报「有没有」，不报值。没有这行，凭据没送达时排查全靠猜。
+    const mark = (v) => (v ? '✓' : '✗');
+    console.log(
+      '[ticket-radar] credentials: damaiCookie=' + mark(SRV_CONFIG.damaiCookie) +
+      ' fwdToken=' + mark(SRV_CONFIG.fwdToken) +
+      ' myToken=' + mark(SRV_CONFIG.myToken) +
+      '  (来源：环境变量 / .env / server/config.json)',
+    );
     console.log('[ticket-radar] try: curl -X POST http://127.0.0.1:' + port + "/api -H 'Content-Type: application/json' -d '{\"action\":\"find\",\"platform\":\"maoyan\",\"keyword\":\"\",\"limit\":3}'");
   });
 }

@@ -18,8 +18,10 @@ global.cloud = {
   database: () => ({ collection: () => ({ where: () => ({ get: async () => ({ data: [] }) }) }) }),
 };
 
-const { pollMaoyan, pollRail, pollMoretickets, parseSeat, errorKind } =
-  require('./index.js')._internals;
+const {
+  pollMaoyan, pollRail, pollMoretickets, parseSeat, errorKind,
+  filterItemsByTiers, wantedTiers,
+} = require('./index.js')._internals;
 
 let pass = 0;
 let fail = 0;
@@ -53,8 +55,35 @@ check('乱码 = 跳过而不是瞎猜', parseSeat('二等座', '?????') === null
 check('错误分档：HTML 风控页', errorKind(new Error('返回了 HTML——通常是风控拦截页')) === 'blocked');
 check('错误分档：平台自己报错', errorKind(new Error('statusCode=12123')) === 'platform');
 
+// --- 纯函数：价位多选过滤（不联网，必须永远对）----------------------------
+// 这段决定「用户勾了 399，是不是真的只盯 399」。踩过两个坑，都留在这儿当警钟：
+//   ① 前端发的是数组 price_labels，服务端读的单数 price_label → 多选静默失效
+//      （用户勾了三个价位，实际一个都没过滤，看起来「多选没用」）；
+//   ② 子串匹配把 399 当成 1399 的一部分 → 勾 399 看台，1399 内场放票也推醒你。
+console.log('\n[2] 价位多选过滤');
+const FIX = [
+  { label: '看台 399', price: '399' },
+  { label: '看台 1399', price: '1399' },
+  { label: '内场 1699', price: '1699' },
+  { label: 'VIP 699', price: '699' },
+];
+check('多选 = 并集（399 + 1699）', (() => {
+  const out = filterItemsByTiers(FIX, { price_labels: ['399', '1699'] });
+  return out.length === 2 && out[0].price === '399' && out[1].price === '1699';
+})());
+check('数字整体相等：399 不该命中 1399',
+  filterItemsByTiers(FIX, { price_labels: ['399'] }).length === 1);
+check('旧字段（单数 price_label）仍兼容',
+  filterItemsByTiers(FIX, { price_label: '699' }).length === 1);
+check('非数字关键字走子串（看台 → 2 条）',
+  filterItemsByTiers(FIX, { price_labels: ['看台'] }).length === 2);
+check('一个价位都不勾 = 整场（不过滤）',
+  filterItemsByTiers(FIX, {}).length === FIX.length);
+check('price_labels 优先于 price_label',
+  wantedTiers({ price_labels: ['1'], price_label: '2' }).join(',') === '1');
+
 // --- 猫眼（真实接口）------------------------------------------------------
-console.log('\n[2] 猫眼 509862（汪苏泷·阜阳斑马音乐节）');
+console.log('\n[3] 猫眼 509862（汪苏泷·阜阳斑马音乐节）');
 pollMaoyan({ performance_id: "509862" })
   .then((items) => {
     check('抓到数据', items.length > 0, items.length + ' 条');

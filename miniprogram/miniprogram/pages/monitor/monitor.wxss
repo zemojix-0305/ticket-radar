@@ -392,3 +392,87 @@
   opacity: 0.85;
   pointer-events: none;
 }
+
+/* ---- 建任务第二步：场次 × 价位 多选（与详情页同一套视觉语言） ---- */
+.dg {
+  max-height: 46vh;
+  overflow-y: auto;
+  margin: 6px 0 4px;
+}
+.dsess {
+  border-bottom: 1px dashed #ECE7F3;
+  padding: 10px 0 4px;
+}
+.dsess:last-child { border-bottom: none; }
+.dsess-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 0 8px;
+}
+.dsess-box {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1.5px solid #B9AED8;
+  background: #fff;
+  color: #fff;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
+.dsess-box.on {
+  background: var(--brand, #6B4FA8);
+  border-color: var(--brand, #6B4FA8);
+}
+.dsess-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink, #2A2620);
+}
+.dsess-when {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink3, #8A8378);
+}
+.dsess-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 10px 28px;
+}
+.dtier {
+  min-width: 58px;
+  padding: 7px 11px;
+  border: 1px solid #CFC6E4;
+  border-radius: 8px;
+  background: #fff;
+  color: #4A3F63;
+  font-size: 13px;
+  text-align: center;
+}
+.dtier.on {
+  border-color: var(--brand, #6B4FA8);
+  color: var(--brand, #6B4FA8);
+  background: var(--brand-weak, rgba(107, 79, 168, 0.08));
+  font-weight: 500;
+}
+/* 不可用的档位：灰按钮、按不下去 */
+.dtier.off {
+  color: #B8B2C4;
+  border-color: #E6E2EE;
+  background: #F6F5F9;
+}
+.none-hover { opacity: 1; }
+
+/* 12306 席别多选：扁平网格 */
+.dseats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+.dseats .dtier {
+  min-width: 68px;
+}

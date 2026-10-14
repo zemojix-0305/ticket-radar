@@ -25,7 +25,7 @@ import random
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -49,6 +49,21 @@ BASE_BACKOFF_SECONDS = 30
 #: 不设限的话一次通知就可能向平台打出几十个请求——那就从「低频只读」
 #: 变成了本项目明确拒绝的高频行为。宁可少显示几个价格。
 MAX_PRICE_LOOKUPS = 10
+
+#: 「活跃间隔」：观察到变化之后的几轮用这个间隔（压到合规下限 60 秒，不越线）。
+#: 放票和退票往往是**连着几批**来的：22:00 放了一批，22:03 可能还有一批。
+#: 刚动过的那一刻是最值得盯紧的，等下一个 5 分钟大概率就错过了。
+ACTIVE_INTERVAL_SECONDS = 60
+#: 出现变化后，接下来这么多轮保持活跃间隔（之后逐轮衰减回任务自己的间隔）。
+ACTIVE_CYCLES = 5
+
+#: 同一档位（场次/车次 + 席别 + 变更类型）在这段时间内只推一次。
+#: 平台库存有抖动（缓存不一致、锁座释放又收回），不设冷却就会出现
+#: 「20:01 有票 → 20:06 无票 → 20:11 有票」连推三条同一件事的效果。
+NOTIFY_COOLDOWN_SECONDS = 1800
+#: 单个任务每小时推送上限。订阅额度是「点一次允许换一条」，
+#: 被刷屏烧光之后，真正难得的那次回流反而发不出去——保护额度就是保护机会。
+MAX_NOTIFY_PER_HOUR = 6
 
 _KIND_LABEL = {
     EventKind.APPEARED: "余票出现",
@@ -324,8 +339,41 @@ _KIND_RANK: dict[EventKind, int] = {
 }
 
 
-def format_message(task: TaskConfig, changes: Sequence[Change], snapshot: Snapshot) -> Message:
-    """把变更列表渲染成通知正文（Markdown，兼容微信/钉钉/Telegram/邮件）。"""
+#: 少于这个样本数就不下结论。3 次回流就说「有规律」是编故事。
+MIN_INSIGHT_SAMPLES = 5
+
+
+def format_restock_insight(hours: dict[int, int]) -> str:
+    """把「回流按小时分布」渲染成一行规律提示；样本不够返回空字符串。
+
+    这是全项目里唯一的自有数据：平台不会告诉你「这个演出爱在几点放票」，
+    只能靠自己一轮一轮盯出来。也正因为它需要**时间**才能长出来，
+    竞品就算拿到同样的接口也补不齐这 30 天的观测窗口。
+    """
+    total = sum(hours.values())
+    if total < MIN_INSIGHT_SAMPLES:
+        return ""
+    top = sorted(hours.items(), key=lambda kv: (-kv[1], kv[0]))[:2]
+    peak_h, peak_n = top[0]
+    seg = f"最多在 {peak_h}:00–{peak_h + 1}:00（{peak_n} 次）"
+    if len(top) > 1 and top[1][1] >= max(2, round(peak_n * 0.6)):
+        h2, n2 = top[1]
+        seg += f"，其次 {h2}:00–{h2 + 1}:00（{n2} 次）"
+    return f"近 30 天这个演出回流 {total} 次，{seg}——这个时段可以多留意。"
+
+
+def format_message(
+    task: TaskConfig,
+    changes: Sequence[Change],
+    snapshot: Snapshot,
+    *,
+    insight: str = "",
+) -> Message:
+    """把变更列表渲染成通知正文（Markdown，兼容微信/钉钉/Telegram/邮件）。
+
+    ``insight`` 是可选的一行「规律提示」（如这个演出历史上爱在几点回流），
+    由 :func:`format_restock_insight` 生成，附在正文末尾。
+    """
     by_train: dict[str, list[Change]] = {}
     for c in changes:
         by_train.setdefault(c.train_code, []).append(c)
@@ -382,6 +430,9 @@ def format_message(task: TaskConfig, changes: Sequence[Change], snapshot: Snapsh
 
     lines.append(f"任务：{task.display_name}")
     lines.append(f"检测时间：{datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}")
+    if insight:
+        lines.append("")
+        lines.append(insight)
     if task.link:
         lines.append("")
         lines.append(f"[前往官方渠道自行下单]({task.link})")
@@ -472,8 +523,43 @@ class Monitor:
                 "consecutive_errors": 0,  # 连续失败次数（成功一次清零）
                 "auth_alerted": False,  # 已就「登录失效」发过提醒（恢复后清零）
                 "broken_alerted": False,  # 已就「解析疑似失效」发过提醒
+                # 推送去重/限流用（进程内即可：它是限流器，重启后放宽没坏处）
+                "notify_seen": {},  # 档位键 -> 上次推送时间（冷却用）
+                "notify_times": [],  # 最近一小时的成功推送时刻（限流用）
             },
         )
+
+    def _allow_notify(self, task: TaskConfig, change: Change) -> bool:
+        """这条变更现在该不该推。纯判断，不改状态（推成功后才 :meth:`_mark_notified`）。
+
+        两道闸：
+        1. **同档位冷却**——平台库存会抖动，不设冷却会把同一件事推三遍；
+        2. **每小时上限**——订阅额度是「点一次允许换一条」，被刷屏烧光之后，
+           真正难得的那次回流反而发不出去。
+        """
+        st = self._stat(task.id)
+        now = datetime.now(timezone.utc)
+        key = f"{change.train_code}|{change.seat_type}|{change.kind.value}"
+        last = st["notify_seen"].get(key)
+        if last is not None and (now - last).total_seconds() < NOTIFY_COOLDOWN_SECONDS:
+            return False
+        cutoff = now - timedelta(hours=1)
+        recent = [t for t in st["notify_times"] if t > cutoff]
+        return len(recent) < MAX_NOTIFY_PER_HOUR
+
+    def _mark_notified(self, task: TaskConfig, changes: Sequence[Change]) -> None:
+        """记录「这几条已经推成功了」，供 :meth:`_allow_notify` 做冷却与限流。
+
+        只在**真的推送成功之后**调用。推失败就不记——下一轮还能再试一次，
+        而不是因为一次网络抖动把这个机会永久吞掉。
+        """
+        st = self._stat(task.id)
+        now = datetime.now(timezone.utc)
+        for c in changes:
+            st["notify_seen"][f"{c.train_code}|{c.seat_type}|{c.kind.value}"] = now
+        cutoff = now - timedelta(hours=1)
+        st["notify_times"] = [t for t in st["notify_times"] if t > cutoff]
+        st["notify_times"].extend([now] * len(changes))
 
     def record_failure(self, task_id: str, exc: BaseException) -> tuple[str, str, str]:
         """把一次失败记进健康统计，返回 (日志标签, kind, 给用户提示)。
@@ -646,11 +732,27 @@ class Monitor:
         #      只要有一条进了推送，其余没进的也全被标上。
         # `radar history` 的「已推送 ✓」列就是这个字段，标错等于说谎。
         notified: set[Change] = set()
+        fresh: list[Change] = []
 
         if filtered and notify:
+            # 「准」：推送前先过两道闸（同档位冷却 + 每小时上限）。
+            # 挡下来的不算推送成功，所以 notified 只标真正发出去的那批——
+            # `radar history` 的「已推送 ✓」列才不会说谎。
+            fresh = [c for c in filtered if self._allow_notify(task, c)]
+
+            if len(fresh) < len(filtered):
+                log.info(
+                    "[%s] %d 条变更被去重/限流挡下（同档位 %d 秒冷却、每小时最多 %d 条）",
+                    task.id,
+                    len(filtered) - len(fresh),
+                    NOTIFY_COOLDOWN_SECONDS,
+                    MAX_NOTIFY_PER_HOUR,
+                )
+
+        if filtered and notify and fresh:
             # 票价按车次单独查，所以只在真要发通知时补这一次。
             # 补不到也不影响余票提醒——enrich_prices 的契约就是不抛异常。
-            codes = {c.train_code for c in filtered}
+            codes = {c.train_code for c in fresh}
             if len(codes) > MAX_PRICE_LOOKUPS:
                 log.info(
                     "[%s] %d 趟车同时命中，超过补价上限，只补前 %d 趟（余票提醒不受影响）",
@@ -664,11 +766,20 @@ class Monitor:
             except Exception as exc:
                 log.debug("[%s] 补查票价失败（不影响余票提醒）：%s", task.id, exc)
 
-            message = format_message(task, filtered, snapshot)
+            # 顺手附一条「这个演出历史上爱在几点回流」。
+            # 纯自有数据（平台给不了），只在我们真发消息时才查库，不占轮询开销。
+            insight = ""
+            try:
+                insight = format_restock_insight(self.store.restock_hours(task.id))
+            except Exception as exc:  # 统计查不到不能拖累提醒本身
+                log.debug("[%s] 回流规律查询失败（不影响提醒）：%s", task.id, exc)
+
+            message = format_message(task, fresh, snapshot, insight=insight)
             try:
                 await self.hub.send(message)
                 stat["notified"] += 1
-                notified = set(filtered)
+                notified = set(fresh)
+                self._mark_notified(task, fresh)
             except Exception as exc:  # 推送失败不能影响监控本身
                 log.warning("[%s] 推送失败：%s", task.id, exc)
 
@@ -683,8 +794,11 @@ class Monitor:
         *,
         notify: bool = True,
         retries: int | None = None,
-    ) -> None:
+    ) -> list[Change] | None:
         """带指数退避的单轮轮询。抓取失败不放弃任务，只是拉长间隔。
+
+        返回本轮命中的变更（失败或放弃时返回 ``None``）。返回值只被
+        :meth:`_loop` 用来决定「下一轮要不要压到活跃间隔」，别的调用方可以忽略。
 
         :param retries: 最多重试几次。``None`` = 一直重试（常驻监控要的就是这个）；
             ``0`` = 失败就算了，不重试。
@@ -700,8 +814,7 @@ class Monitor:
         attempt = 0
         while True:
             try:
-                await self.poll_once(task, notify=notify)
-                return
+                return await self.poll_once(task, notify=notify)
             except asyncio.CancelledError:
                 raise
             except AdapterError as err:
@@ -773,11 +886,34 @@ class Monitor:
             raise
 
     async def _loop(self, task: TaskConfig, *, notify: bool) -> None:
-        """单任务的常驻循环。间隔里加入抖动，避免多任务同刻并发。"""
+        """单任务的常驻循环。间隔里加入抖动，避免多任务同刻并发。
+
+        间隔是**观察驱动**的，不是固定值：
+        上一轮出现过变化 → 接下来 ``ACTIVE_CYCLES`` 轮压到 ``ACTIVE_INTERVAL_SECONDS``
+        （合规下限 60 秒）；一直平静 → 回到任务自己的 ``interval_seconds``。
+
+        刻意**只加速、不减速**。把平静期的间隔拉长能省请求，但代价是「可能漏看」——
+        而本项目的定位是低频只读聚合，宁可多花几次请求，也不为了省而错过窗口。
+        """
+        hot = 0
         while True:
-            await self._poll_with_backoff(task, notify=notify)
-            delay = task.interval_seconds + random.uniform(0, task.jitter_seconds)
-            log.debug("[%s] 下一轮 %.0fs 后", task.id, delay)
+            changes = await self._poll_with_backoff(task, notify=notify)
+            if changes:
+                hot = ACTIVE_CYCLES
+            else:
+                hot = max(0, hot - 1)
+
+            if hot > 0:
+                delay = ACTIVE_INTERVAL_SECONDS + random.uniform(0, task.jitter_seconds)
+                log.debug(
+                    "[%s] 刚有变化，接下来 %d 轮保持活跃间隔（约 %.0fs 后）",
+                    task.id,
+                    hot,
+                    delay,
+                )
+            else:
+                delay = task.interval_seconds + random.uniform(0, task.jitter_seconds)
+                log.debug("[%s] 下一轮 %.0fs 后", task.id, delay)
             await asyncio.sleep(delay)
 
 

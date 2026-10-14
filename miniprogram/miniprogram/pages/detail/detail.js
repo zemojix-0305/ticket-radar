@@ -74,37 +74,34 @@ Page({
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        // 服务端降级成功：演出信息（名称/场馆/日期）拿到了，只是没有场次×票档
+        // 场次×票档：默认全选可用项（对齐竞品「共订阅 N 场 M 个价格」）
+        const sessions = this.mapSessions(r.sessions);
+        const rec = this.recount(sessions);
+        // 服务端降级：只有基础信息、没有场次票档（大麦风控 / 平台要登录）。
+        // 关键点：**降级不等于死路**——一条都拿不到时也得能按整场盯，
+        // 否则用户点进来看到「没有数据」又退不出去，等于白跑一趟。
         if (r.degraded) {
-          this.setData({
-            loading: false,
-            degraded: true,
-            sessions: [],
-            selTiers: [],
-            name: r.name || this.data.name,
-            venue: r.venue || this.data.venue,
-            date: r.dateRange || this.data.date,
-            poster: r.poster || this.data.poster,
-            degradeMsg: r.degradeMsg || '场次和票档暂时拿不到，演出信息先看看',
-          });
+          this.setData(
+            Object.assign(
+              {
+                loading: false,
+                degraded: true,
+                sessions,
+                name: r.name || this.data.name,
+                venue: r.venue || this.data.venue,
+                date: r.dateRange || this.data.date,
+                poster: r.poster || this.data.poster,
+                city: r.city || this.data.city,
+                price: r.priceRange ? '票价区间 ' + r.priceRange : this.data.price,
+                degradeMsg:
+                  r.degradeMsg || '场次和票档暂时拿不到，先按整场盯——有动静会提醒你',
+              },
+              rec,
+              sessions.length ? {} : { subText: '盯整场（有动静就提醒）' },
+            ),
+          );
           return;
         }
-        // 场次×票档：默认全选可用项（对齐竞品「共订阅 N 场 M 个价格」）
-        const sessions = (r.sessions || []).map((s) => ({
-          name: s.name || '场次',
-          when: s.when || '',
-          performId: s.performId || '',
-          available: !!s.available,
-          selected: true,
-          tiers: (s.tiers || []).map((t) => ({
-            name: t.name || '票档',
-            price: t.price || '',
-            status: t.status || '',
-            available: t.available !== false,
-            selected: t.available !== false,
-          })),
-        }));
-        const rec = this.recount(sessions);
         this.setData(
           Object.assign(
             {
@@ -137,6 +134,24 @@ Page({
         }
         this.setData({ loading: false, error: String(e.message || e) });
       });
+  },
+
+  /** 服务端 sessions → 页面态。默认全选可用项（不可用的档位灰掉、不参与轮询）。 */
+  mapSessions(raw) {
+    return (raw || []).map((s) => ({
+      name: s.name || '场次',
+      when: s.when || '',
+      performId: s.performId || '',
+      available: !!s.available,
+      selected: true,
+      tiers: (s.tiers || []).map((t) => ({
+        name: t.name || '票档',
+        price: t.price || '',
+        status: t.status || '',
+        available: t.available !== false,
+        selected: t.available !== false,
+      })),
+    }));
   },
 
   /** 重算「共订阅 N 场 M 个价格」，并把选中价位折算成轮询用的关键字（数字）。 */

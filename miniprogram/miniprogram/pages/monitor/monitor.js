@@ -17,8 +17,13 @@ const PLATFORMS = [
   { key: 'maoyan', label: '猫眼', hint: '演出的 performance_id，在猫眼演出页地址栏里', ph: '例：509862' },
   { key: 'moretickets', label: '摩天轮', hint: '巡演的 tour_id，在摩天轮演出页地址栏里', ph: '例：67357b7a…' },
   { key: 'piaoxingqiu', label: '票星球', hint: '粘贴票星球分享链接；或去「搜演出」直接搜演出名', ph: '粘贴票星球演出链接' },
+  { key: 'fenwandao', label: '纷玩岛', hint: '粘贴纷玩岛分享链接（能看信息；按票档盯要先去「我的」填凭证）', ph: '粘贴纷玩岛分享链接' },
   { key: 'rail12306', label: '12306', hint: '填两个站名，中间空格隔开就行', ph: '广州南 长沙南' },
 ];
+
+// 12306 的「价位」就是席别。默认勾二等座——和服务端 pollRail 的兜底一致，
+// 不改既有行为；用户想盯别的席别自己增减。
+const RAIL_SEATS = ['二等座', '一等座', '商务座', '特等座', '无座', '硬座', '硬卧', '软卧', '动卧', '高级软卧'];
 
 const BANNER_CLOSED_KEY = 'home_banner_closed';
 const FAQ_KEY = 'home_faq_open';
@@ -101,6 +106,14 @@ Page({
     faqList: FAQ_LIST,
     usageOpen: false,
     filter: 'all',
+    // 建任务第二步：勾场次与价位（不勾＝整场任何价位回流都提醒）
+    step: 1,
+    dsessions: [],
+    dLoading: false,
+    dNote: '',
+    dSub: '',
+    dTiers: [],
+    dSeats: [],
   },
 
   onLoad() {
@@ -365,7 +378,7 @@ Page({
   },
 
   // --- 添加任务 ---------------------------------------------------------
-  openAdd() { this.setData({ showAdd: true }); },
+  openAdd() { this.setData({ showAdd: true, step: 1, dsessions: [], dSeats: [], dNote: '', dSub: '', dLoading: false }); },
 
   // 跳「我的」页：领订阅额度
   goMine() {
@@ -463,7 +476,7 @@ Page({
     wx.switchTab({ url: '/pages/mine/mine' });
   },
 
-  closeAdd() { this.setData({ showAdd: false }); },
+  closeAdd() { this.setData({ showAdd: false, step: 1, dsessions: [], dSeats: [], dNote: '', dSub: '', dLoading: false }); },
   onPlatform(e) { this.setData({ platformIndex: Number(e.detail.value) }); },
   onInput(e) {
     const k = e.currentTarget.dataset.k;
@@ -471,33 +484,192 @@ Page({
   },
   onDate(e) { this.setData({ 'form.date': e.detail.value }); },
 
+  /** 按平台拼轮询参数。返回 null 表示参数不全（已提示）。 */
+  buildParams(p, f) {
+    const v = String(f.id || '').trim();
+    if (p.key === 'maoyan') return { performance_id: v };
+    if (p.key === 'moretickets') {
+      const o = { tour_id: v };
+      if (f.city) o.city = f.city;
+      return o;
+    }
+    if (['damai', 'taopiaopiao', 'piaoxingqiu', 'fenwandao'].indexOf(p.key) >= 0) {
+      // 这些平台的输入既可能是分享链接、也可能是裸 id；统一按「url」传，
+      // 云函数侧各适配器自己抠 id（findFenwandao / 大麦 / 票星球都支持）。
+      return { url: v };
+    }
+    if (p.key === 'bilibili') {
+      return /^\d{5,}$/.test(v) ? { project_id: v } : { url: v };
+    }
+    // 12306：填两个站名 + 日期
+    const seg = v.split(/\s*[-到>]\s*|\s+/).filter(Boolean);
+    if (seg.length < 2) { Toast('要填两个站名'); return null; }
+    if (!f.date) { Toast('12306 要选乘车日期'); return null; }
+    return { from: seg[0], to: seg[1], date: f.date };
+  },
+
+  /** 输入既可能是链接也可能是 id：裸 id 直接当 id 用，链接先走一次 find 解析。 */
+  resolveId(p, raw, extra) {
+    const v = String(raw || '').trim();
+    if (p.key !== 'rail12306' && /^[0-9A-Za-z_-]{4,}$/.test(v)) return Promise.resolve(v);
+    const ev = { action: 'find', keyword: v, platform: p.key, limit: 3 };
+    if (extra) Object.assign(ev, extra);
+    return request(ev).then((res) => {
+      const r = (res && res.result) || {};
+      if (!r.ok) throw new Error(r.error || '没找到这个演出');
+      const row = (r.rows || [])[0];
+      if (!row) throw new Error('没找到这个演出，检查链接或 id');
+      return String(row.performanceId || row.projectId || row.id || '');
+    });
+  },
+
+  /** 第一步：校验 → 取这场的场次×票档 → 有票档就走第二步勾选；没有就直接建，不假装能选。 */
   submitAdd() {
     const self = this;
     const p = PLATFORMS[this.data.platformIndex];
     const f = this.data.form;
     if (!f.id || !f.id.trim()) return Toast('先把上面那栏填了');
 
-    let params = {};
-    if (p.key === 'maoyan') {
-      params = { performance_id: f.id.trim() };
-    } else if (p.key === 'moretickets') {
-      params = { tour_id: f.id.trim() };
-      if (f.city) params.city = f.city;
-    } else if (p.key === 'damai' || p.key === 'piaoxingqiu') {
-      // 大麦/票星球：粘贴的就是分享链接，云函数自己抠 id
-      params = { url: f.id.trim() };
-    } else if (p.key === 'bilibili') {
-      // 会员购：纯数字直接当 project_id；带链接就整段传，云函数抠 id=xxx
-      const v = f.id.trim();
-      params = /^\d{5,}$/.test(v) ? { project_id: v } : { url: v };
-    } else {
-      const seg = f.id.trim().split(/\s*[-到>]\s*|\s+/).filter(Boolean);
-      if (seg.length < 2) return Toast('要填两个站名');
-      if (!f.date) return Toast('12306 要选乘车日期');
-      params = { from: seg[0], to: seg[1], date: f.date };
+    const params = this.buildParams(p, f);
+    if (!params) return;
+
+    // 12306 盯的是整条线路（不知道具体车次），「价位」＝席别，走一张扁平多选表。
+    if (p.key === 'rail12306') {
+      this._pending = { params, p, rail: true };
+      this.setData({
+        step: 2,
+        dSeats: RAIL_SEATS.map((n) => ({ name: n, selected: n === '二等座' })),
+      });
+      this.recountD([]);
+      return;
     }
 
-    const id = p.key + '-' + f.id.replace(/[^0-9a-zA-Z]/g, '').slice(-12);
+    this.setData({ dLoading: true, dNote: '' });
+    this.resolveId(p, f.id)
+      .then((id) => request({ action: 'detail', platform: p.key, id }))
+      .then((res) => {
+        const r = (res && res.result) || {};
+        if (!r.ok) throw new Error(r.error || '取场次失败');
+        const sessions = (r.sessions || []).map((s) => ({
+          name: s.name || '场次',
+          when: s.when || '',
+          selected: true,
+          tiers: (s.tiers || []).map((t) => ({
+            name: t.name || '票档',
+            price: t.price || '',
+            status: t.status || '',
+            available: t.available !== false,
+            selected: t.available !== false,
+          })),
+        }));
+        if (!sessions.some((s) => s.tiers.length)) {
+          // 没有票档粒度（平台要登录 / 该场没挂票档）→ 直接建，别让用户白点
+          self.setData({ dLoading: false });
+          self.createTask(params, p, r.noTiers ? '这个平台拿不到票档明细，按整场盯' : '');
+          return;
+        }
+        self._pending = { params, p };
+        self.setData({ dLoading: false, step: 2, dsessions: sessions });
+        self.recountD(sessions);
+      })
+      .catch((e) => {
+        // 详情拿不到别把用户卡死：按整场建，并如实说明为什么
+        self.setData({ dLoading: false });
+        self.createTask(params, p, '没取到场次明细（' + String(e.message || e) + '），先按整场盯');
+      });
+  },
+
+  /** 重算第二步文案。价位 key 用价格数字（与详情页一致）；12306 用席别名。 */
+  recountD(sessions) {
+    const pend = this._pending || {};
+    if (pend.rail) {
+      const seats = (this.data.dSeats || []).filter((s) => s.selected).map((s) => s.name);
+      this.setData({
+        dTiers: seats,
+        dSub: seats.length ? '开始盯（' + seats.length + ' 个席别）' : '开始盯（所有席别）',
+      });
+      return;
+    }
+    const keys = [];
+    let sCount = 0;
+    for (const s of sessions) {
+      const tiers = s.tiers || [];
+      const sel = tiers.filter((t) => t.available && t.selected);
+      if (s.selected && (!tiers.length || sel.length)) sCount++;
+      for (const t of sel) {
+        const key = String(t.price || '').replace(/[^0-9]/g, '') || t.name;
+        if (keys.indexOf(key) < 0) keys.push(key);
+      }
+    }
+    this.setData({
+      dTiers: keys,
+      dSub: '开始盯（共 ' + sCount + ' 场 ' + (keys.length ? keys.length + ' 个价格' : '· 整场') + '）',
+    });
+  },
+
+  toggleDSeat(e) {
+    const name = e.currentTarget.dataset.name || '';
+    const seats = (this.data.dSeats || []).map((s) =>
+      s.name === name ? Object.assign({}, s, { selected: !s.selected }) : s,
+    );
+    this.setData({ dSeats: seats });
+    this.recountD([]);
+  },
+
+  toggleDSession(e) {
+    const si = Number(e.currentTarget.dataset.si);
+    const sessions = this.data.dsessions.slice();
+    if (!sessions[si]) return;
+    sessions[si] = Object.assign({}, sessions[si], { selected: !sessions[si].selected });
+    this.setData({ dsessions: sessions });
+    this.recountD(sessions);
+  },
+
+  /** 点价位：可多选；灰的（不可用）点了没反应。 */
+  toggleDTier(e) {
+    const si = Number(e.currentTarget.dataset.si);
+    const name = e.currentTarget.dataset.name || '';
+    const sessions = this.data.dsessions.slice();
+    const s = sessions[si];
+    if (!s) return;
+    sessions[si] = Object.assign({}, s, {
+      tiers: s.tiers.map((t) =>
+        t.name === name && t.available ? Object.assign({}, t, { selected: !t.selected }) : t,
+      ),
+    });
+    this.setData({ dsessions: sessions });
+    this.recountD(sessions);
+  },
+
+  noop() {},
+
+  backStep() {
+    this.setData({ step: 1, dsessions: [], dSeats: [], dNote: '', dSub: '' });
+  },
+
+  /** 第二步确认：把勾选的价位/席别/场次写进任务参数，轮询按它过滤。 */
+  confirmAdd() {
+    const pend = this._pending;
+    if (!pend) return this.backStep();
+    const params = Object.assign({}, pend.params);
+    const tiers = this.data.dTiers || [];
+    if (pend.rail) {
+      // 12306：席别就是它的「价位」。不勾＝所有席别（服务端 pollRail 的语义）
+      if (tiers.length) params.seat_types = tiers.slice();
+      return this.createTask(params, pend.p);
+    }
+    if (tiers.length) params.price_labels = tiers.slice();
+    const all = this.data.dsessions || [];
+    const sel = all.filter((s) => s.selected).map((s) => s.name);
+    if (sel.length && sel.length < all.length) params.sessions = sel;
+    this.createTask(params, pend.p);
+  },
+
+  /** 落任务：写本地任务表，随后刷一轮看结果。 */
+  createTask(params, p, note) {
+    const self = this;
+    const f = this.data.form;
+    const id = p.key + '-' + String(f.id).replace(/[^0-9a-zA-Z]/g, '').slice(-12);
     const task = {
       _id: id,
       adapter: p.key,
@@ -510,12 +682,21 @@ Page({
     try {
       const tasks = require('../../utils/tasks');
       const existing = tasks.loadTasks();
-      // 避免重复添加
-      if (!existing.find(t => t._id === id)) {
-        tasks.saveTasks([...existing, task]);
-      }
-      Toast('已开始盯，稍等出结果');
-      self.setData({ showAdd: false, form: { name: '', id: '', city: '', date: '' } });
+      const idx = existing.findIndex((t) => t._id === id);
+      if (idx >= 0) existing[idx] = task;
+      else existing.push(task);
+      tasks.saveTasks(existing);
+      if (note) Toast(note);
+      self.setData({
+        showAdd: false,
+        step: 1,
+        dsessions: [],
+        dSeats: [],
+        dNote: '',
+        dSub: '',
+        form: { name: '', id: '', city: '', date: '' },
+      });
+      self._pending = null;
       setTimeout(() => self.refresh(), 2500);
     } catch (e) {
       Dialog.alert({ title: '添加失败', message: String(e.message || e) });

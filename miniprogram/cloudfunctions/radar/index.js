@@ -2326,6 +2326,39 @@ function errorKind(e) {
  * 对比上一轮和这一轮的场次余票，返回回流的场次名列表。
  * 上轮抓取失败（prev.ok=false）时不判定——拿失败数据当基线会漏报/误报。
  */
+/** 从任务参数里取「要盯的价位/席别」关键字列表。
+ *  price_labels（多选，当前）> price_label（旧单数）> seat_types（12306 席别）。 */
+function wantedTiers(params) {
+  const raw =
+    (params && (params.price_labels || params.price_label || params.seat_types)) || [];
+  return (Array.isArray(raw) ? raw : [raw])
+    .map((s) => String(s == null ? '' : s).trim())
+    .filter(Boolean);
+}
+
+/** 单个条目是否命中某个关键字。
+ *  数字关键字必须**按数字整体相等**匹配——否则 399 会命中 1399、699 会命中 1699，
+ *  用户「只想盯 399 看台」却被 1399 内场放票推醒（实测踩到，2026-10）。
+ *  非数字关键字（如 12306 的「二等座」、票星球的「看台」）才走子串匹配。 */
+function tierHit(it, w) {
+  if (/^\d+$/.test(w)) {
+    const nums = String(it.price || '').match(/\d+/g) || [];
+    if (nums.length) return nums.indexOf(w) >= 0;
+    // 没给价格字段才退化到整行找数字
+    const all = (String(it.label || '') + ' ' + String(it.status || '')).match(/\d+/g) || [];
+    return all.indexOf(w) >= 0;
+  }
+  return [it.label, it.status, it.price].some((s) => String(s || '').indexOf(w) >= 0);
+}
+
+/** 只保留命中至少一个关键字的条目。
+ *  多选语义：勾了几个价位，几个都盯——**并集**，不是「同时命中」。 */
+function filterItemsByTiers(items, params) {
+  const wanted = wantedTiers(params);
+  if (!wanted.length) return items || [];
+  return (items || []).filter((it) => wanted.some((w) => tierHit(it, w)));
+}
+
 function diffRestock(prev, next) {
   if (!prev || !prev.ok || !next || !next.ok) return [];
   const before = {};
@@ -2439,18 +2472,14 @@ async function handleAction(event, action, db) {
             }
             rec.items = await fn(fnParams);
             rec.ok = true;
-            // 价位级监控（第二十七轮）：建任务时选了「只盯某个价位」的话，
-            // 按 label/status/price 里包含该关键字过滤。平台给的 items 粒度
-            // 不一：B站/纷玩岛本来就是票档级，12306 的座位类型写在 status 里，
-            // 都能被关键字罩住；过滤后为空说明这个价位当前不在票档列表里。
-            const tierWanted = String((task.params && task.params.price_label) || '').trim();
-            if (tierWanted) {
-              rec.items = rec.items.filter((it) =>
-                [it.label, it.status, it.price].some(
-                  (s) => String(s || '').indexOf(tierWanted) >= 0
-                )
-              );
-              rec.tier_filter = tierWanted;
+            // 价位级监控：建任务时勾了价位就只盯这几档（**多选**，并集）。
+            // 关键字命中 label/status/price 任一即算该档，因为平台给的 items 粒度
+            // 不一：B站/纷玩岛/票星球本来就是票档级，12306 把席别写在 status 里，
+            // 大麦/猫眼是整场价格区间——都能被关键字罩住。
+            const wanted = wantedTiers(task.params);
+            if (wanted.length) {
+              rec.items = filterItemsByTiers(rec.items, task.params);
+              rec.tier_filter = wanted;
             }
             rec.available = rec.items.filter((i) => i.available).length;
           } catch (e) {
@@ -2743,6 +2772,8 @@ exports._internals = {
   resolveStationCode: resolveStationCode,
   errorKind: errorKind,
   diffRestock: diffRestock,
+  wantedTiers: wantedTiers,
+  filterItemsByTiers: filterItemsByTiers,
   damaiSearch: damaiSearch,
   pollDamai: pollDamai,
   damaiDetailSSR: damaiDetailSSR,

@@ -710,9 +710,18 @@ def test_price_lookups_are_capped_on_mass_release(tmp_path, monkeypatch):
     picked = adapter.enriched[0]
     assert len(picked) == MAX_PRICE_LOOKUPS, "补价请求数必须被上限卡住"
     assert set(picked) <= {f"G{i}" for i in range(1, MAX_PRICE_LOOKUPS + 16)}
-    # 提醒本身不能因为补价被截而缩水——25 趟车都该出现在推送里
+    # 提醒本身不能因为补价被截而缩水——25 趟车都该被算进**结论**里。
+    # 注意明细列表另有 MAX_MESSAGE_TRAINS 上限（一次放票几十趟车全列出来，
+    # 手机上只会看到一屏车次号、看不到结论），那是**另一条**有意的上限，
+    # 与补价上限无关；所以这里断言结论行 + 被隐藏条数，而不是明细行数。
+    from radar.engine import MAX_MESSAGE_TRAINS
+
     assert len(capture.sent) == 1
-    assert capture.sent[0].body.count("二等座") == MAX_PRICE_LOOKUPS + 15
+    body = capture.sent[0].body
+    total = MAX_PRICE_LOOKUPS + 15
+    assert f"**{total} 个车次有变化**" in body, "结论行必须体现全部车次"
+    assert body.count("（余票出现）") == MAX_MESSAGE_TRAINS, "明细行数受显示上限约束"
+    assert f"还有 {total - MAX_MESSAGE_TRAINS} 个车次" in body, "被隐藏的条数要如实说明"
 
 
 # --- 发车时间窗必须挡在 diff 里，而不是渲染时 -------------------------------
@@ -1329,3 +1338,76 @@ def test_format_message_keeps_all_details_when_few():
     body = format_message(task, changes, curr).body
     assert "G1" in body and "G2" in body
     assert "radar status" not in body, "只有 2 个变化时不该提示「还有更多」"
+
+
+# --- 回流规律提示（自有数据，2026-10-14）------------------------------------
+
+
+def test_restock_insight_needs_enough_samples():
+    """样本不够就不下结论——3 次回流就说「有规律」是编故事。"""
+    from radar.engine import MIN_INSIGHT_SAMPLES, format_restock_insight
+
+    assert format_restock_insight({}) == ""
+    assert format_restock_insight({20: MIN_INSIGHT_SAMPLES - 1}) == ""
+
+    line = format_restock_insight({20: 4, 21: 3, 9: 1})
+    assert f"{4 + 3 + 1} 次" in line
+    assert "20:00–21:00" in line and "4 次" in line
+    assert "21:00–22:00" in line, "第二高峰够接近时也要给出"
+
+
+def test_restock_insight_skips_weak_second_peak():
+    """第二高峰占比太低就不提——提了反而误导用户去守那个时段。"""
+    from radar.engine import format_restock_insight
+
+    line = format_restock_insight({20: 9, 3: 1})
+    assert "20:00–21:00" in line
+    assert "3:00–4:00" not in line
+
+
+# --- 推送去重 / 限流（2026-10-14）------------------------------------------
+
+
+def _appeared_change(code: str) -> Change:
+    return Change(
+        task_id="t1",
+        platform="rail12306",
+        kind=EventKind.APPEARED,
+        train_code=code,
+        seat_type="二等座",
+        before=0,
+        after=5,
+        detected_at=dt.datetime.now(dt.timezone.utc),
+    )
+
+
+def test_notify_cooldown_and_hourly_cap(tmp_path):
+    """同档位冷却 + 每小时上限：都是为了让「难得的那次回流」发得出去。
+
+    平台库存会抖动，不设冷却就会出现「20:01 有票 → 20:06 无票 → 20:11 有票」
+    连推三条同一件事；而订阅额度是「点一次允许换一条」，被刷屏烧光之后，
+    真正值得叫醒用户的那一次反而发不出去。
+    """
+    from radar.engine import MAX_NOTIFY_PER_HOUR
+
+    store = Store(tmp_path / "radar.db")
+    try:
+        monitor = Monitor(AppConfig(), store)
+        task = TaskConfig(id="t1", adapter="rail12306", params={})
+
+        assert monitor._allow_notify(task, _appeared_change("G1")) is True, "首次放行"
+
+        monitor._mark_notified(task, [_appeared_change("G1")])
+        assert monitor._allow_notify(task, _appeared_change("G1")) is False, "冷却期内不再放行"
+        assert monitor._allow_notify(task, _appeared_change("G2")) is True, "不同档位互不影响"
+
+        for i in range(MAX_NOTIFY_PER_HOUR * 3):
+            c = _appeared_change(f"X{i}")
+            if monitor._allow_notify(task, c):
+                monitor._mark_notified(task, [c])
+        st = monitor._stat("t1")
+        assert len(st["notify_times"]) <= MAX_NOTIFY_PER_HOUR, "每小时上限必须兜住"
+        # 顶到上限后新的档位也被挡
+        assert monitor._allow_notify(task, _appeared_change("BRAND-NEW")) is False
+    finally:
+        store.close()

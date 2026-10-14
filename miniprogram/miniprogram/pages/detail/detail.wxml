@@ -43,15 +43,15 @@
       <view class="info-row info-price" wx:if="{{price}}">{{price}}</view>
     </view>
 
-    <!-- 降级提示：详情接口被风控拦住，只展示基础信息 -->
+    <!-- 降级提示：详情接口被风控拦住，只展示能拿到的部分 -->
     <view class="card empty" wx:if="{{degraded}}">
-      <view class="empty-title">场次和票档暂时拿不到</view>
+      <view class="empty-title">{{sessions.length ? '票档明细暂时拿不到' : '场次和票档暂时拿不到'}}</view>
       <view class="empty-sub">{{degradeMsg}}</view>
       <view class="empty-btn press" bindtap="reload" hover-class="press-hover">再试一次</view>
     </view>
 
     <!-- 场次 × 票档：多选网格（对齐竞品「演出详情」交互） -->
-    <block wx:if="{{!degraded && sessions.length}}">
+    <block wx:if="{{sessions.length}}">
       <view class="sec">
         <view class="sec-title title-strong">选场次和票价</view>
         <view class="sec-sub">勾要盯的场次与价位；价格一个都不勾＝整场任何价位回流都提醒</view>
@@ -82,8 +82,8 @@
     <view class="sec-more" wx:if="{{noTiers}}">票档明细要登录该平台后可见，现在按场次盯整场</view>
   </block>
 
-  <!-- 底部操作栏：降级模式下盯不了票，不显示 -->
-  <view class="actionbar" wx:if="{{!loading && !error && !degraded}}">
+  <!-- 底部操作栏：降级时也能盯整场——点进来只有标题又没有出路，最劝退 -->
+  <view class="actionbar" wx:if="{{!loading && !error}}">
     <view class="action-btn press {{adding ? 'busy' : ''}}" bindtap="addMonitor" hover-class="press-hover">
       {{adding ? '安排上了…' : subText}}
     </view>

@@ -146,3 +146,62 @@ def test_store_creates_parent_directory(tmp_path: Path):
         assert nested.exists()
     finally:
         s.close()
+
+
+# --- 回流规律：自有数据（2026-10-14）----------------------------------------
+
+
+def _appeared(task_id: str, when: dt.datetime, code: str = "G1") -> Change:
+    return Change(
+        task_id=task_id,
+        platform="rail12306",
+        kind=EventKind.APPEARED,
+        train_code=code,
+        seat_type="二等座",
+        before=0,
+        after=5,
+        detected_at=when,
+    )
+
+
+def test_restock_hours_counts_appeared_by_local_hour(store: Store):
+    """回流时刻统计只认 appeared（回流），sold_out 不算。"""
+    base = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    ten = base.replace(hour=10, minute=5, second=0, microsecond=0)
+    store.record_changes(
+        [
+            _appeared("t1", ten),
+            _appeared("t1", ten + dt.timedelta(minutes=30), code="G2"),
+            _appeared("t1", ten + dt.timedelta(hours=3), code="G3"),
+            # 不相关的类型不该被算进来
+            Change(
+                task_id="t1",
+                platform="rail12306",
+                kind=EventKind.SOLD_OUT,
+                train_code="G9",
+                seat_type="二等座",
+                before=5,
+                after=0,
+                detected_at=ten,
+            ),
+            # 别的任务不该串进来
+            _appeared("t2", ten),
+        ]
+    )
+
+    hours = store.restock_hours("t1")
+
+    assert sum(hours.values()) == 3
+    ten_h = ten.astimezone().hour
+    assert hours[ten_h] == 2
+    assert store.restock_total("t1") == 3
+    assert store.restock_total("t2") == 1
+
+
+def test_restock_hours_respects_window(store: Store):
+    """超出时间窗的老数据不算——否则「近 30 天」就成了谎话。"""
+    old = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=90)
+    store.record_changes([_appeared("t1", old)])
+
+    assert store.restock_total("t1", days=30) == 0
+    assert store.restock_total("t1", days=365) == 1

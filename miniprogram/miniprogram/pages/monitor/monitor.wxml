@@ -172,41 +172,99 @@
 <view class="mask" wx:if="{{showAdd}}" bindtap="closeAdd"></view>
 <view class="sheet" wx:if="{{showAdd}}">
   <view class="sheet-grab"></view>
-  <view class="sheet-title">加一个监控</view>
+  <view class="sheet-title">{{step === 2 ? '选要盯的场次和票价' : '加一个监控'}}</view>
 
-  <view class="field">
-    <view class="field-lbl">平台</view>
-    <picker mode="selector" range="{{platforms}}" range-key="label" bindchange="onPlatform">
-      <view class="input-pick">{{platforms[platformIndex].label}} ▾</view>
-    </picker>
-  </view>
-  <view class="sheet-sub">{{platforms[platformIndex].hint}}</view>
+  <block wx:if="{{step === 1}}">
+    <view class="field">
+      <view class="field-lbl">平台</view>
+      <picker mode="selector" range="{{platforms}}" range-key="label" bindchange="onPlatform">
+        <view class="input-pick">{{platforms[platformIndex].label}} ▾</view>
+      </picker>
+    </view>
+    <view class="sheet-sub">{{platforms[platformIndex].hint}}</view>
 
-  <view class="field">
-    <view class="field-lbl">{{platforms[platformIndex].key === 'rail12306' ? '线路（例：广州南 长沙南）' : 'ID'}}</view>
-    <input class="input" placeholder="{{platforms[platformIndex].ph}}" value="{{form.id}}" data-k="id" bindinput="onInput" />
-  </view>
+    <view class="field">
+      <view class="field-lbl">{{platforms[platformIndex].key === 'rail12306' ? '线路（例：广州南 长沙南）' : 'ID'}}</view>
+      <input class="input" placeholder="{{platforms[platformIndex].ph}}" value="{{form.id}}" data-k="id" bindinput="onInput" />
+    </view>
 
-  <view class="field">
-    <view class="field-lbl">备注名（可留空）</view>
-    <input class="input" placeholder="留空就自动生成" value="{{form.name}}" data-k="name" bindinput="onInput" />
-  </view>
+    <view class="field">
+      <view class="field-lbl">备注名（可留空）</view>
+      <input class="input" placeholder="留空就自动生成" value="{{form.name}}" data-k="name" bindinput="onInput" />
+    </view>
 
-  <view class="field" wx:if="{{platforms[platformIndex].key === 'moretickets'}}">
-    <view class="field-lbl">城市（可留空）</view>
-    <input class="input" placeholder="例：广州" value="{{form.city}}" data-k="city" bindinput="onInput" />
-  </view>
+    <view class="field" wx:if="{{platforms[platformIndex].key === 'moretickets'}}">
+      <view class="field-lbl">城市（可留空）</view>
+      <input class="input" placeholder="例：广州" value="{{form.city}}" data-k="city" bindinput="onInput" />
+    </view>
 
-  <view class="field" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
-    <view class="field-lbl">乘车日期</view>
-    <picker mode="date" value="{{form.date}}" bindchange="onDate">
-      <view class="input-pick">{{form.date || '点这里选'}}</view>
-    </picker>
-  </view>
+    <view class="field" wx:if="{{platforms[platformIndex].key === 'rail12306'}}">
+      <view class="field-lbl">乘车日期</view>
+      <picker mode="date" value="{{form.date}}" bindchange="onDate">
+        <view class="input-pick">{{form.date || '点这里选'}}</view>
+      </picker>
+    </view>
+  </block>
+
+  <!-- 第二步：场次 × 价位 多选（勾要盯的；不勾价位＝整场任何价位回流都提醒） -->
+  <block wx:else>
+    <!-- 12306：「价位」＝席别，一张扁平多选表 -->
+    <block wx:if="{{dSeats.length}}">
+      <view class="sheet-sub">勾要盯的席别；只盯勾上的（默认二等座）</view>
+      <view class="dseats">
+        <view
+          class="dtier {{s.selected ? 'on' : ''}}"
+          wx:for="{{dSeats}}"
+          wx:key="name"
+          wx:for-item="s"
+          data-name="{{s.name}}"
+          bindtap="toggleDSeat"
+          hover-class="press-hover"
+        >{{s.name}}</view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="sheet-sub">勾要盯的场次与价位；价格一个都不勾＝整场任何价位回流都提醒</view>
+      <view class="dg">
+        <view class="dsess" wx:for="{{dsessions}}" wx:key="name" wx:for-item="s" wx:for-index="si">
+          <view class="dsess-head" data-si="{{si}}" bindtap="toggleDSession" hover-class="press-hover">
+            <view class="dsess-box {{s.selected ? 'on' : ''}}">{{s.selected ? '✓' : ''}}</view>
+            <view class="dsess-name">{{s.name}}</view>
+            <view class="dsess-when" wx:if="{{s.when}}">{{s.when}}</view>
+          </view>
+          <view class="dsess-tags" wx:if="{{s.tiers.length}}">
+            <view
+              class="dtier {{t.selected ? 'on' : ''}} {{t.available ? '' : 'off'}}"
+              wx:for="{{s.tiers}}"
+              wx:key="name"
+              wx:for-item="t"
+              data-si="{{si}}"
+              data-name="{{t.name}}"
+              bindtap="toggleDTier"
+              hover-class="{{t.available ? 'press-hover' : 'none-hover'}}"
+            >{{t.name}}</view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </block>
 
   <view class="acts">
-    <button class="btn btn-ghost press" bindtap="closeAdd" hover-class="press-hover">取消</button>
-    <button class="btn btn-primary press" bindtap="submitAdd" hover-class="press-hover">开始盯</button>
+    <button wx:if="{{step === 2}}" class="btn btn-ghost press" bindtap="backStep" hover-class="press-hover">返回</button>
+    <button wx:else class="btn btn-ghost press" bindtap="closeAdd" hover-class="press-hover">取消</button>
+    <button
+      wx:if="{{step === 2}}"
+      class="btn btn-primary press"
+      bindtap="confirmAdd"
+      hover-class="press-hover"
+    >{{dSub || '开始盯'}}</button>
+    <button
+      wx:else
+      class="btn btn-primary press"
+      bindtap="submitAdd"
+      hover-class="press-hover"
+    >{{dLoading ? '取场次…' : '下一步'}}</button>
   </view>
 </view>
 
