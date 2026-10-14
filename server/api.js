@@ -32,8 +32,10 @@ const path = require('path');
 // mock 云运行时全局对象（必须在 require index.js 之前挂到 global）
 // ---------------------------------------------------------------------------
 const emptyCollection = () => ({
-  where: () => ({ limit: () => ({ get: async () => ({ data: [] }) }) }),
-  limit: () => ({ get: async () => ({ data: [] }) }),  // query action 直接调 .limit()
+  // 链式查询统一走 emptyQuery（where/orderBy/limit 任意组合）
+  where: () => emptyQuery(),
+  orderBy: () => emptyQuery(),
+  limit: () => emptyQuery(),
   doc: () => ({
     get: async () => ({ data: null }),      // 不存在 → null（首次无基线）
     set: async () => ({ _id: 'noop' }),     // 无状态模式：不落库
@@ -41,7 +43,19 @@ const emptyCollection = () => ({
   }),
   add: async () => ({ _id: 'noop' }),
   get: async () => ({ data: [] }),
+  count: async () => ({ total: 0 }),
 });
+
+const emptyQuery = () => {
+  const q = {
+    where: () => q,
+    orderBy: () => q,
+    limit: () => q,
+    skip: () => q,
+    get: async () => ({ data: [] }),
+  };
+  return q;
+};
 
 // 内存级 KV 存储：替代云存储缓存（如 12306 站名表，fetchStationMap 用）
 const memKV = {};

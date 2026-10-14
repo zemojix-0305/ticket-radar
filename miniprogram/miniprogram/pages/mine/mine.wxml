@@ -66,37 +66,13 @@
     <text class="quota-msg" wx:if="{{authMsg}}">{{authMsg}}</text>
   </view>
 
-  <!-- 正在盯：本地任务表 + monitor 页最近一轮快照拼装，不发请求 -->
-  <view class="card watched">
-    <view class="watched-head">
-      <view class="t1">正在盯</view>
-      <text class="t3" wx:if="{{watched.length}}">{{watched.length}} 个任务</text>
+  <!-- 正在盯：入口按钮，点进独立页看列表 -->
+  <view class="card watched-entry" bindtap="goWatched" hover-class="press-hover">
+    <view class="watched-entry-main">
+      <view class="t1">正在盯的</view>
+      <view class="t3">{{watchedCount ? '正在盯 ' + watchedCount + ' 个演出/车次' : '还没在盯任何场次'}}</view>
     </view>
-
-    <view wx:if="{{!watched.length}}" class="watched-empty">
-      <text class="t3">还没有在盯的演出或车票，去「搜演出」挑一个吧</text>
-    </view>
-
-    <view wx:else class="watched-list">
-      <view
-        class="watched-item {{it.offline ? 'watched-off' : ''}}"
-        wx:for="{{watched}}"
-        wx:key="_id"
-        wx:for-item="it"
-      >
-        <view class="w-main">
-          <view class="w-name">{{it.name}}</view>
-          <view class="w-sub">{{it.platform}}<text wx:if="{{it.rel}}"> · {{it.rel}}</text></view>
-        </view>
-        <view class="w-status w-{{it.status}}">{{it.statusText}}</view>
-        <view
-          class="w-del press"
-          data-id="{{it._id}}"
-          bindtap="removeWatched"
-          hover-class="press-hover"
-        >移除</view>
-      </view>
-    </view>
+    <text class="watched-entry-arrow">›</text>
   </view>
 
   <!-- 微信绑定 -->
@@ -127,7 +103,7 @@
   <view class="card support">
     <view class="support-main">
       <view class="support-t">支持作者</view>
-      <view class="support-d">项目开源在 GitHub，欢迎去点个 Star</view>
+      <view class="support-d">感谢大家点 star，谢谢支持！</view>
     </view>
     <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ Star</view>
   </view>

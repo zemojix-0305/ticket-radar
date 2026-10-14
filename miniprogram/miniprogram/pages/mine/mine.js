@@ -14,17 +14,7 @@ const USER_KEY = 'radar_user_profile';
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
-import { loadTasks, removeTask } from '../../utils/tasks';
-
-// monitor 页每轮轮询后把结果快照存这里，「我的」页直接读，不再重复请求
-const LAST_STATES_KEY = 'radar_last_states';
-const PREV_KEY = 'radar_prev_states';
-
-const PLATFORM_LABEL = {
-  damai: '大麦', bilibili: 'B站会员购', maoyan: '猫眼',
-  moretickets: '摩天轮', piaoxingqiu: '票星球', rail12306: '12306',
-  fenwandao: '纷玩岛',
-};
+import { loadTasks } from '../../utils/tasks';
 
 function makeUid() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -46,7 +36,7 @@ Page({
     bindOpen: false,
     user: { uid: '', nickname: '', avatar: '' },
     editingName: false,
-    watched: [],
+    watchedCount: 0,
   },
 
   onLoad() {
@@ -118,69 +108,15 @@ Page({
     this.loadWatched();
   },
 
-  // --- 正在盯 -------------------------------------------------------------
-  // 任务表在本地 storage，最近一轮状态是 monitor 页轮询后存的快照——
-  // 这里只做拼装展示，不发任何请求，切到这个 tab 永远是即时渲染。
+  // --- 正在盯：入口按钮跳独立页 -------------------------------------------
+  // 只统计个数 + 跳转，列表逻辑在 pages/watched/watched
   loadWatched() {
     const tasks = loadTasks();
-    const states = wx.getStorageSync(LAST_STATES_KEY) || [];
-    const smap = {};
-    for (const s of states) smap[s._id] = s;
-    const watched = tasks.map((t) => {
-      const s = smap[t._id];
-      let status = 'wait';
-      let statusText = '还没查过';
-      let offline = false;
-      if (s) {
-        if (s.ok) {
-          status = s.available > 0 ? 'ok' : 'none';
-          statusText = s.available > 0 ? '有票 ' + s.available : '无票';
-        } else if (/404|不存在|已下架|下线/.test(String(s.error || ''))) {
-          status = 'off';
-          statusText = '已下架';
-          offline = true;
-        } else {
-          status = 'bad';
-          statusText = '抓取失败';
-        }
-      }
-      return {
-        _id: t._id,
-        name: t.name || '监控',
-        platform: PLATFORM_LABEL[t.adapter] || t.adapter,
-        status,
-        statusText,
-        offline,
-        rel: (s && s.relTime) || '',
-      };
-    });
-    // 下架的沉底，别的按原顺序
-    watched.sort((a, b) => (a.offline === b.offline ? 0 : a.offline ? 1 : -1));
-    this.setData({ watched });
+    this.setData({ watchedCount: tasks.length });
   },
 
-  removeWatched(e) {
-    const id = e.currentTarget.dataset.id;
-    const item = (this.data.watched || []).find((x) => x._id === id);
-    wx.showModal({
-      title: '移除监控',
-      content: '不再盯「' + ((item && item.name) || id) + '」？',
-      confirmText: '移除',
-      success: (res) => {
-        if (!res.confirm) return;
-        removeTask(id);
-        // 快照同步清掉，避免残留旧状态
-        const prev = wx.getStorageSync(PREV_KEY) || {};
-        delete prev[id];
-        wx.setStorageSync(PREV_KEY, prev);
-        wx.setStorageSync(
-          LAST_STATES_KEY,
-          (wx.getStorageSync(LAST_STATES_KEY) || []).filter((s) => s._id !== id)
-        );
-        Toast({ type: 'success', message: '已移除' });
-        this.loadWatched();
-      },
-    });
+  goWatched() {
+    wx.navigateTo({ url: '/pages/watched/watched' });
   },
 
   toggleBind() {

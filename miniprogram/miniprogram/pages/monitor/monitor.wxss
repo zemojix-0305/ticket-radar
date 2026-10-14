@@ -380,3 +380,15 @@
   transform: rotate(-8deg);
   opacity: 0.9;
 }
+
+/* ---------- hero 千纸鹤（用户点名要回来的那只） ---------- */
+.hero-crane {
+  position: absolute;
+  top: 6px;
+  right: 116px;
+  width: 50px;
+  height: 50px;
+  transform: rotate(-10deg);
+  opacity: 0.85;
+  pointer-events: none;
+}

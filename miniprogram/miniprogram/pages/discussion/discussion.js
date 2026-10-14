@@ -7,8 +7,10 @@
 // 顶部盖一个小夹子/图钉——素材在 images/board/，工具脚本 tools/cut_board_assets.py。
 
 import Toast from '../../vant/toast/toast';
-import { request } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
+// 免费架构（第二十六轮）：帖子存本地 storage，不再走服务端
+// （云库已 no-op，listPosts/createPost 拿到的永远是空表）
+import { loadPosts as readLocalPosts, addPost } from '../../utils/posts';
 
 const USER_KEY = 'radar_user_profile';
 const POSTS_DB = 'radar_posts';
@@ -109,20 +111,26 @@ Page({
   },
 
   loadPosts(reset) {
-    if (this.data.loading) return Promise.resolve();
     const self = this;
-    const offset = reset ? 0 : this.data.offset;
-    const kw = (this.data.kw || '').trim();
-    // tab 筛选：0=全部，1/2/3 对应帖子上的 type 标签。云函数不过滤，前端筛。
+    const kw = (this.data.kw || '').trim().toLowerCase();
+    // tab 筛选：0=全部，1/2/3 对应帖子上的 type 标签
     const typeMap = ['', '问题反馈', '建议留言', '求助求助'];
     const typeFilter = this.data.currentTab ? typeMap[this.data.currentTab] : '';
 
     self.setData({ loading: true, fail: '' });
-    request({ action: 'listPosts', keyword: kw, offset, limit: PAGE_SIZE })
-      .then((res) => {
-        const r = res.result || {};
-        if (!r.ok) throw new Error(r.error || '未知错误');
-        let list = (r.posts || []).map((p) => Object.assign({}, p, {
+    // 本地帖子按时间倒序读出，关键词 + 类型在前端过滤
+    Promise.resolve()
+      .then(() => {
+        let list = (readLocalPosts() || []).slice();
+        if (kw) {
+          list = list.filter((p) =>
+            ((p.content || '') + ' ' + (p.tags || []).join(' ') + ' ' + (p.nickname || ''))
+              .toLowerCase()
+              .indexOf(kw) >= 0
+          );
+        }
+        if (typeFilter) list = list.filter((p) => p.type === typeFilter);
+        list = list.map((p) => Object.assign({}, p, {
           rel: relTime(p.createdAt),
           noteIdx: noteIndex(p._id),
           clipIdx: clipIndex(p._id),
@@ -132,13 +140,11 @@ Page({
           // 微旋转 -1.2°~1.2°：让便签墙不至于太机械
           rot: ((stableHash(p._id + 'r') % 25) - 12) / 10,
         }));
-        if (typeFilter) list = list.filter((p) => p.type === typeFilter);
         const posts = reset ? list : self.data.posts.concat(list);
         self.setData({
           posts,
           loading: false,
-          offset: offset + (r.posts || []).length,
-          hasMore: (r.posts || []).length >= PAGE_SIZE,
+          hasMore: false,   // 本地全量读，没有分页
           searching: false,
         });
       })
@@ -208,6 +214,12 @@ Page({
     this.setData({ postSticker: key, previewBg: stickerBg(key) });
   },
 
+  // 发帖弹层里的类型三选一（问题反馈/建议留言/求助求助）
+  onType(e) {
+    const t = Number(e.currentTarget.dataset.type);
+    this.setData({ postType: isNaN(t) ? 0 : t });
+  },
+
   // 点便签 → 放大查看
   onNoteTap(e) {
     const idx = Number(e.currentTarget.dataset.index);
@@ -233,24 +245,25 @@ Page({
       .slice(0, 3);
     const typeLabels = ['', '问题反馈', '建议留言', '求助求助'];
 
-request({
-          action: 'createPost',
-          content,
-          tags,
-          type: typeLabels[this.data.postType],
-          sticker: this.data.postSticker,
-          nickname: u.nickname || '匿名狐友',
-          avatar: u.avatar || '',
-        })
-      .then((res) => {
-        const r = res.result || {};
-        if (!r.ok) throw new Error(r.error || '发布失败');
-        Toast({ message: '已发布', type: 'success' });
-        this.setData({ showPost: false, postContent: '', postTags: '', postType: 0 });
-        this.loadPosts(true);
-      })
-      .catch((e) => {
-        Dialog.alert({ title: '发布失败', message: String(e.message || e) });
-      });
+    const post = {
+      _id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
+      content,
+      tags,
+      type: typeLabels[this.data.postType] || '',
+      sticker: this.data.postSticker,
+      nickname: u.nickname || '匿名狐友',
+      avatar: u.avatar || '',
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      replies: 0,
+    };
+    try {
+      addPost(post);
+      Toast({ message: '已发布', type: 'success' });
+      this.setData({ showPost: false, postContent: '', postTags: '', postType: 0 });
+      this.loadPosts(true);
+    } catch (e) {
+      Dialog.alert({ title: '发布失败', message: String((e && e.message) || e) });
+    }
   },
 });

@@ -6,7 +6,8 @@
     "pages/detail/detail",
     "pages/history/history",
     "pages/discussion/discussion",
-    "pages/mine/mine"
+    "pages/mine/mine",
+    "pages/watched/watched"
   ],
   "window": {
     "backgroundTextStyle": "dark",

@@ -12,6 +12,7 @@
 
   <!-- 顶部 hero -->
   <view class="hero">
+    <image class="hero-crane" src="/images/board2/collage15.png" mode="aspectFit" />
     <view class="hero-l">
       <view class="hero-title-row">
         <view class="hero-title title-strong">正在盯的票</view>

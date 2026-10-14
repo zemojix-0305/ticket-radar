@@ -1,0 +1,30 @@
+<!-- 正在盯：本地任务表 + monitor 页最近一轮快照拼装，不发请求 -->
+<view class="page">
+  <view class="list">
+    <view wx:if="{{!watched.length}}" class="empty">
+      <text class="t3">还没有在盯的演出或车票，去「搜演出」挑一个吧</text>
+    </view>
+
+    <view wx:else class="watched-list">
+      <view
+        class="watched-item {{it.offline ? 'watched-off' : ''}}"
+        wx:for="{{watched}}"
+        wx:key="_id"
+        wx:for-item="it"
+      >
+        <view class="w-main">
+          <view class="w-name">{{it.name}}</view>
+          <view class="w-sub">{{it.platform}}<text wx:if="{{it.rel}}"> · {{it.rel}}</text></view>
+        </view>
+        <view class="w-status w-{{it.status}}">{{it.statusText}}</view>
+        <view
+          class="w-del press"
+          data-id="{{it._id}}"
+          bindtap="removeWatched"
+          hover-class="press-hover"
+        >移除</view>
+      </view>
+    </view>
+  </view>
+  <view class="safe"></view>
+</view>
