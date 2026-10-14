@@ -2223,7 +2223,6 @@ async function findFenwandao(keyword, limit, token) {
         price: built.priceRange,
         status: '',
         poster: built.poster,
-        _sessions: built.sessions.length,
       }];
     } catch (e) {
       // 落回 token 通道
