@@ -41,10 +41,38 @@
       <view class="info-row" wx:if="{{date}}">时间 · {{date}}</view>
       <view class="info-row" wx:if="{{saleNote}}">{{saleNote}}</view>
       <view class="info-row info-price" wx:if="{{price}}">{{price}}</view>
+      <!-- 票档价格标签：只展示不勾选（猫眼匿名能读档位，逐档库存要凭证）。
+           别做成可点按钮——点了不能按它过滤就是骗人。 -->
+      <view class="tierline" wx:if="{{priceTiers.length}}">
+        <text class="tierline-tag" wx:for="{{priceTiers}}" wx:key="*this">{{item}}</text>
+      </view>
     </view>
 
+    <!-- 巡演分站：大麦/淘票票的巡回总条目本身没有场次，分站才是能盯的
+         （真实 itemId，点了进那一站的详情）——不让用户点进来看到一片空白 -->
+    <block wx:if="{{stops.length}}">
+      <view class="sec">
+        <view class="sec-title title-strong">巡演分站</view>
+        <view class="sec-sub">这是巡回总条目；点一站进去看它的场次和票价</view>
+      </view>
+      <view class="card picker">
+        <view
+          class="stop"
+          wx:for="{{stops}}"
+          wx:key="itemId"
+          data-stop="{{item}}"
+          bindtap="openStop"
+          hover-class="press-hover"
+        >
+          <view class="stop-name">{{item.name}}</view>
+          <view class="stop-when">{{item.when}}</view>
+          <view class="stop-go">进入</view>
+        </view>
+      </view>
+    </block>
+
     <!-- 降级提示：详情接口被风控拦住，只展示能拿到的部分 -->
-    <view class="card empty" wx:if="{{degraded}}">
+    <view class="card empty" wx:if="{{degraded && !stops.length}}">
       <view class="empty-title">{{sessions.length ? '票档明细暂时拿不到' : '场次和票档暂时拿不到'}}</view>
       <view class="empty-sub">{{degradeMsg}}</view>
       <view class="empty-btn press" bindtap="reload" hover-class="press-hover">再试一次</view>
@@ -79,6 +107,13 @@
       </view>
     </block>
     <view class="sec-more" wx:if="{{!degraded && !sessions.length}}">{{noTiers ? '这个平台的票档明细要登录后可见——先「盯整场」，有动静就提醒你' : '这个演出暂时没拿到场次——先「盯整场」，有动静会告诉你'}}</view>
+
+    <!-- 要按票档/逐档库存盯 = 平台要凭证。给一条明确的出路，别让用户干瞪眼 -->
+    <view class="card empty" wx:if="{{!loading && noTiers && !stops.length}}">
+      <view class="empty-title">想按票价档盯？</view>
+      <view class="empty-sub">这个平台的逐档库存只对登录用户开放。去「我的」页填一次凭证，回来就能勾价位；不填也能按整场盯。</view>
+      <view class="empty-btn press" bindtap="gotoMine" hover-class="press-hover">去填凭证</view>
+    </view>
   </block>
 
   <!-- 底部操作栏：降级时也能盯整场——点进来只有标题又没有出路，最劝退 -->

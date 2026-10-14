@@ -121,7 +121,7 @@ const EXPECT = [
   { platform: 'bilibili', find: 'ok', detail: 'ok' },
   { platform: 'piaoxingqiu', find: 'ok', detail: 'ok', wantRealTiers: true },
   { platform: 'damai', find: 'ok', flakyFind: true, detailId: '1086111708947', detail: 'ok-or-degraded' },
-  // 淘票票与大麦同一套 itemId/通道：关键词搜索匿名被 RGV587（预期 WARN），id 直查匿名可用
+  // 淘票票与大麦同一套 itemId/通道；flakyFind：关键词搜索有滑块风控，限频归 WARN
   { platform: 'taopiaopiao', find: 'ok', flakyFind: true, detailId: '1086111708947', detail: 'ok-or-degraded' },
   { platform: 'fenwandao', find: 'ok', findKw: FWD_LINK, detailId: decodeURIComponent(FWD_LINK.match(/id=([^&]+)/)[1]), detail: 'ok' },
   { platform: 'rail12306', find: 'ok', findKw: '广州南 长沙南', findDate: '2026-10-20', detail: 'ok', rail: true },
@@ -175,17 +175,36 @@ async function liveChecks() {
   }
   record('活体', '本地服务可达', !!pong, '', '');
 
-  // 大麦/淘票票空关键词（热卖榜）：匿名被 RGV587 → 必须回可行动指引，
-  // 且绝不能再落到 12306 的报错文案（曾经淘票票 tab 显示的就是 12306 那段话）
+  // 大麦/淘票票热卖榜 + 关键词搜索：2026-10-14 打通匿名通道（新版 H5 的
+  // CMS 分类页 + search.search 带 H5Request 开关）。
+  //   · 热卖榜（CMS 分类通道）对匿名宽容 → 硬断言必须有行。
+  //   · 关键词搜索（search.search）有滑块风控 FAIL_SYS_USER_VALIDATE/RGV587，
+  //     密集测试会按 IP 冷却 → 被限频归 WARN（平台限频不是代码问题）。
+  // 反例防线：绝不能再落到 12306 的站站查询报错文案（淘票票 tab 曾显示它）。
   for (const p of ['damai', 'taopiaopiao']) {
     try {
-      const r = await post({ action: 'find', platform: p, keyword: '', limit: 3 });
-      const err = String(r.error || '');
-      const guided = r.ok === false && /凭证|Cookie|链接/.test(err);
-      record('活体', `${p}/热卖榜给可行动指引`, guided,
-        `ok=${r.ok} err=${err.slice(0, 50)}`, '空关键词分支必须自己兜住 RGV587，不能透传排长队或落到 12306 文案');
+      const h = await post({ action: 'find', platform: p, keyword: '', limit: 3 });
+      const hrows = h.rows || [];
+      record('活体', `${p}/热卖榜返回真实行`, h.ok === true && hrows.length > 0,
+        `ok=${h.ok} rows=${hrows.length} err=${String(h.error || '').slice(0, 40)}`,
+        '大麦 CMS 分类通道可能被网关改了；抓包 m.damai.cn/shows/category.html 核对');
+      record('活体', `${p}/热卖榜未落到12306文案`, !/两站之间|出发地/.test(String(h.error || '')), '', '');
+
+      const s = await post({ action: 'find', platform: p, keyword: '周杰伦', limit: 3 });
+      const srows = s.rows || [];
+      if (s.ok === true && srows.length > 0) {
+        record('活体', `${p}/关键词搜索返回真实行`, true, `rows=${srows.length}`, '');
+      } else if (s.ok === false && /风控|RGV587|USER_VALIDATE|挤爆|排起了长队/.test(String(s.error || ''))) {
+        warn('活体', `${p}/关键词搜索`, '匿名搜索触发滑块风控（IP 冷却中）',
+          '密集测试触发的平台限频，等几分钟重跑即绿；或在「我的」页填大麦 Cookie 后更稳');
+      } else {
+        record('活体', `${p}/关键词搜索返回真实行`, false,
+          `ok=${s.ok} rows=${srows.length} err=${String(s.error || '').slice(0, 50)}`,
+          '可能是搜索关键词无结果（换「音乐节」验证），或匿名通道被改了');
+      }
+      record('活体', `${p}/关键词搜索未落到12306文案`, !/两站之间|出发地/.test(String(s.error || '')), '', '');
     } catch (e) {
-      warn('活体', `${p}/热卖榜给可行动指引`, '请求异常 ' + String(e).slice(0, 60), '');
+      warn('活体', `${p}/大麦通道`, '请求异常 ' + String(e).slice(0, 60), '');
     }
   }
 

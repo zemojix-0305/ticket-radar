@@ -349,6 +349,42 @@ async function maoyanShows(id) {
   });
 }
 
+/**
+ * 猫眼「票价档位」——**匿名可用**（2026-10-14 实测，本轮新发现）。
+ *   GET {MAOYAN_BASE}/ajax/performance/<id>/tickets?sellChannel=7
+ *   → data[] = [{ ticketClassId, ticketPrice, hasInventory, showIds, rgb }]
+ *
+ * 为什么重要：此前注释里写「档位只有 odea 登录通道有」是**只查了 shows 接口
+ * 的 ticketClassIds（匿名全空）就下的结论**。单独打 /tickets 匿名是通的——
+ * 票价档位（480/680/980/1180）能如实拿到，所以详情页不该再只说一个
+ * 「价格区间」，能把真实档位摆出来。
+ *
+ * 红线：`hasInventory` 匿名**恒为 false**（已用「在售中」的演出交叉验证：
+ * 9.9 起的脱口秀 280 条档位、115 起的特展 594 条，全是 false），所以它
+ * **不是**真库存信号——不能拿它标「售罄」，只能用来列价格档位。
+ * 逐档库存仍要用户填猫眼凭证（odea 通道）。
+ * 返回按价格去重后的数组：[{price:'480', name:'¥480'}]，保序。
+ */
+async function maoyanTickets(id) {
+  const data = await getJson(`${MAOYAN_BASE}/ajax/performance/${id}/tickets?sellChannel=7`, {
+    headers: maoyanHeaders(),
+  });
+  if (data.code !== 200) throw new Error('猫眼票档失败：code=' + data.code + ' msg=' + data.msg);
+  const list = Array.isArray(data.data) ? data.data : [];
+  const seen = {};
+  const out = [];
+  for (const t of list) {
+    const price = t && t.ticketPrice != null ? String(t.ticketPrice).replace(/\.0+$/, '') : '';
+    if (!price || seen[price]) continue;
+    seen[price] = 1;
+    out.push({ price, name: '¥' + price });
+  }
+  // 价格升序：档位列表按从低到高读着顺（平台返回顺序是 showId 序，不是价格序）
+  out.sort((a, b) => Number(a.price) - Number(b.price));
+  return out;
+}
+
+
 // ===========================================================================
 // 平台：摩天轮（公开接口，POST + JSON）
 // ===========================================================================
@@ -825,6 +861,14 @@ function extractDamaiId(text) {
 //     因为它调的是详情 API，搜索/详情两条路的路由行为不同）。
 //   · 疯狂连发会触发 RGV587 滑块风控（本机 IP 连跪时要冷却几十分钟），
 //     所以这里内置退避重试 + 友好报错，不在网关上硬刚。
+//
+// 2026-10-14 第二轮修正（**推翻上面「搜索要 Cookie」的结论**）：
+//   用真实浏览器抓 m.damai.cn/shows/*（新版 H5，show-h5-next）的网络，发现
+//   搜索/分类页走的是 mtop.damai.cn 的**另一套请求形态**——同一 API 名，
+//   只要带 `H5Request=true & forceAntiCreep=true & AntiCreep=true` 且
+//   payload 里补 `platform/comboChannel/dmChannel`，匿名零 Cookie 就能通。
+//   见 mtopH5Get / damaiSearch / damaiHot。上面那段「不带 H5Request 的搜索
+//   被 RGV587」只对**旧请求形态**成立。
 
 const MTOP_APPKEY = '12574478';
 const MTOP_BASE = 'https://mtop.damai.cn/h5';
@@ -1020,6 +1064,20 @@ async function damaiDetailV12(itemId, userCookie) {
       });
     }
   }
+  // 巡演分站（匿名可读，本轮新解析）：父项目（如「许嵩 南宁站」的巡回总条目）
+  // performBases 是空的，但 staticData.tourProjects 里带着各分站的 itemId/城市/档期。
+  // 详情页据此渲染「巡演分站」列表让用户点进去——否则点进来一片空白，
+  // 用户以为坏了（本轮反馈的原话：「点进去都是空白」）。
+  const stops = [];
+  for (const t of ((itemWrap.staticData && itemWrap.staticData.tourProjects) || []).slice(0, 20)) {
+    const sid = String(t.itemId || '');
+    if (!sid) continue;
+    stops.push({
+      itemId: sid,
+      name: stripTags(t.cityName) || stripTags(t.name) || ('大麦 #' + sid),
+      when: stripTags(t.showTime),
+    });
+  }
   return {
     name: stripTags(base.itemName || ''),
     poster: stripTags(base.itemPic || ''),
@@ -1028,6 +1086,7 @@ async function damaiDetailV12(itemId, userCookie) {
     venue: stripTags(deepStr(res, 'venueName') || deepStr(res, 'venue') || ''),
     priceRange: stripTags(it.priceRange || ''),
     sessions,
+    stops,
     source: 'h5',
   };
 }
@@ -1176,15 +1235,38 @@ function stripTags(s) {
     .trim();
 }
 
-async function damaiSearch(keyword, limit, userCookie) {
+/**
+ * 大麦关键词搜索（2026-10-14 重大修正：**匿名可用**）。
+ *
+ * 上一轮把它判死是**用错了请求形态**：旧实现走 mtopCall（jsv=2.7.2 +
+ * type=originaljson + 不带 H5Request），网关直接 RGV587 硬拦。实测官方
+ * 新版 H5 搜索页（m.damai.cn/shows/search.html）走的是同一 API，但带
+ * `H5Request=true & type=originaljson & valueType=original & ignTbpass=true
+ * & forceAntiCreep=true & AntiCreep=true`，且 payload 里多了
+ * `platform/comboChannel/dmChannel` —— 匿名零 Cookie 稳定返回真实结果。
+ * 与 CMS 分类通道共用一支令牌（mtopH5Get）。仍不能做：下单。
+ */
+async function damaiSearch(keyword, limit, cityId, userCookie) {
   const kw = String(keyword || '').trim();
   if (!kw) throw new Error('搜索词不能为空');
-  const data = await mtopCall('mtop.damai.wireless.search.search', {
-    cityId: 0, longitude: 0, latitude: 0,
-    pageIndex: 1, pageSize: Math.min(Number(limit) || 20, 50),
-    keyword: kw, sourceType: 11, returnItemOption: 4,
-    distanceCityId: '852', option: 434,
-  }, '1.0', userCookie);
+  const j = await mtopH5Get(
+    'mtop.damai.wireless.search.search',
+    '1.0',
+    {
+      cityId: 0, longitude: 0, latitude: 0,
+      pageIndex: 1, pageSize: Math.min(Number(limit) || 20, 50),
+      keyword: kw, sourceType: 11, returnItemOption: 4,
+      distanceCityId: String(cityId || '852'), option: 434,
+      platform: DM_CMS_PLATFORM, comboChannel: DM_CMS_COMBO, dmChannel: DM_CMS_CHANNEL,
+    },
+    {
+      type: 'originaljson',
+      valueType: 'original',
+      referer: 'https://m.damai.cn/shows/search.html',
+      userCookie,
+    },
+  );
+  const data = (j && j.data) || {};
   const rows = Array.isArray(data.projectInfo) ? data.projectInfo : [];
   return rows.map((p) => ({
     performanceId: String(p.id),
@@ -1202,6 +1284,223 @@ async function damaiSearch(keyword, limit, userCookie) {
     poster: p.verticalPic || p.posterUrl ||
       (Array.isArray(p.videos) && p.videos[0] && p.videos[0].picUrl) || '',
   }));
+}
+
+// ---------------------------------------------------------------------------
+// 大麦「热卖榜」匿名通道（2026-10-14 重大修正：零 Cookie 可用）
+// ---------------------------------------------------------------------------
+// 上一轮结论「热卖榜必须登录 Cookie」**只对关键词搜索接口成立**：
+// mtop.damai.wireless.search.search 匿名被网关层 RGV587 硬拦（搜过 16 个
+// 候选 API 名全灭）。但大麦新版 H5（m.damai.cn/shows/*，支付宝/微信端
+// show-h5-next）的**分类频道页**匿名就能列演出，走的是两条与搜索完全
+// 无关的 CMS 通道：
+//   ① mtop.damai.wireless.search.cms.category.get v2.0
+//      → 分类配置 [groupId, patternName, patternVersion]，静态、可缓存
+//   ② mtop.damai.mec.aristotle.get v3.0
+//      → 该分类整页 CMS 组件树；演出卡片散在 nodes 里，靠
+//        name / priceLow / verticalPic / topRight(城市) / showTime /
+//        schema 里的 itemId 认出来
+// 开关：H5Request=true + forceAntiCreep=true + AntiCreep=true，**不要 x-tap**
+// （与详情 V12 恰好相反）；令牌仍是 _m_h5_tk 轮转，首包 TOKEN_EMPTY 后重试。
+// 实测零 Cookie、零登录拉回 29 条演唱会（真实浏览器抓包验证，非猜）。
+// 仍未打通：关键词搜索（那条确实要 Cookie）——但热卖榜已经不再需要。
+// ---------------------------------------------------------------------------
+const DM_CMS_CHANNEL = 'damai@weixin_gzh';
+const DM_CMS_PLATFORM = '282';
+const DM_CMS_COMBO = '4';
+// 热卖榜取这几个分类（按此顺序凑，演唱会优先），最多 3 个分类
+const DM_HOT_CATS = ['category_solo', 'category_music_festival', 'category_drama_new', 'category_talkshow'];
+
+let dmCmsCookie = ''; // _m_h5_tk 令牌 jar（进程级复用）
+let dmCmsCats = null; // 分类配置缓存（静态，取一次即可）
+
+/**
+ * 大麦新版 H5 的匿名 mtop GET 通道（搜索 / CMS 分类页共用）。
+ * 与详情 V12 的区别：**不带 x-tap**，靠 H5Request + AntiCreep 这组开关过网关。
+ * opts.type / opts.valueType：搜索接口要用 originaljson/original，CMS 用 json/string。
+ * opts.userCookie：可选登录 Cookie——search.search 有更强的滑块风控
+ *   （FAIL_SYS_USER_VALIDATE / RGV587_ERROR），匿名突发易触发、按 IP 冷却，
+ *   带登录 Cookie 能绕开；CMS 分类接口对匿名更宽容。
+ */
+async function mtopH5Get(api, v, dataObj, opts) {
+  const data = JSON.stringify(dataObj || {});
+  const ty = (opts && opts.type) || 'json';
+  const vt = (opts && opts.valueType) || 'string';
+  // 用户 Cookie 里的 _m_h5_tk 必须剥掉——签名用匿名 jar 的令牌
+  let userCookie = '';
+  if (opts && opts.userCookie) {
+    userCookie = String(opts.userCookie).replace(/^Cookie:\s*/i, '').trim()
+      .split(';')
+      .filter((c) => !/^\s*_m_h5_tk(_enc)?\s*=/.test(c))
+      .join('; ')
+      .trim();
+  }
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const t = Date.now().toString();
+    const m = /(?:^|;\s*)_m_h5_tk=([^;]+)/.exec(dmCmsCookie);
+    const token = m ? m[1].split('_')[0] : '';
+    const sign = crypto.createHash('md5').update(`${token}&${t}&${MTOP_APPKEY}&${data}`).digest('hex');
+    const url =
+      `${MTOP_BASE}/${api}/${v}/?jsv=2.7.5&appKey=${MTOP_APPKEY}&t=${t}&sign=${sign}` +
+      `&api=${api}&v=${v}&H5Request=true&type=${ty}&timeout=10000&dataType=json&valueType=${vt}` +
+      `&ignTbpass=true&forceAntiCreep=true&AntiCreep=true&data=${encodeURIComponent(data)}`;
+    const headers = {
+      'User-Agent': MTOP_UA,
+      Referer: (opts && opts.referer) || 'https://m.damai.cn/shows/category.html',
+      Accept: 'application/json',
+    };
+    const ck = [];
+    if (dmCmsCookie) ck.push(dmCmsCookie);
+    if (userCookie) ck.push(userCookie);
+    if (ck.length) headers.Cookie = ck.join('; ');
+    const r = await request(url, { headers, timeout: 15000 });
+    const sc = r.headers['set-cookie'];
+    if (sc) dmCmsCookie = sc.map((c) => c.split(';')[0]).join('; ');
+    let j;
+    try {
+      j = JSON.parse(r.body);
+    } catch (e) {
+      throw new Error('大麦 CMS 返回非 JSON：' + r.body.slice(0, 100));
+    }
+    const ret = (j.ret || []).join('|');
+    if (/SUCCESS/.test(ret)) return j;
+    // 滑块风控（RGV587 / FAIL_SYS_USER_VALIDATE）：慢速再试 1 次；再不过就抛出，
+    // 由上层给「过几分钟再试 / 填 Cookie」的可行动话术，绝不在网关上死磕。
+    if (/RGV587|USER_VALIDATE/.test(ret) && attempt < 1) {
+      await sleep(1500);
+      continue;
+    }
+    if (/TOKEN_EMPTY|TOKEN_EXOIRED|TOKEN_EXPIRED|ILLEGAL_SIGN/.test(ret) && attempt < 4) {
+      await sleep(250);
+      continue;
+    }
+    throw damaiFail(ret);
+  }
+  throw new Error('大麦 CMS 连续失败');
+}
+
+function mtopCmsCall(api, v, dataObj) {
+  return mtopH5Get(api, v, dataObj);
+}
+
+async function damaiCmsCats() {
+  if (dmCmsCats) return dmCmsCats;
+  const j = await mtopCmsCall('mtop.damai.wireless.search.cms.category.get', '2.0', {
+    apiVersion: '3.4',
+    platform: DM_CMS_PLATFORM,
+    comboChannel: DM_CMS_COMBO,
+    dmChannel: DM_CMS_CHANNEL,
+  });
+  dmCmsCats = (j.data && j.data.data) || [];
+  if (!dmCmsCats.length) throw new Error('大麦分类配置为空');
+  return dmCmsCats;
+}
+
+/** 一个 CMS 分类 → 演出行数组（递归挖 nodes 里的卡片）。 */
+async function damaiCmsList(cat, cityId) {
+  const grpArgs = JSON.parse(cat.args || '{}');
+  const args = Object.assign(
+    {
+      comboConfigRule: 'true',
+      latitude: '0',
+      longitude: '0',
+      currentCityId: cityId,
+      comboCityId: cityId,
+      platform: DM_CMS_PLATFORM,
+      comboChannel: DM_CMS_COMBO,
+      dmChannel: DM_CMS_CHANNEL,
+    },
+    grpArgs,
+  );
+  const j = await mtopCmsCall('mtop.damai.mec.aristotle.get', '3.0', {
+    args: JSON.stringify(args),
+    patternName: cat.patternName,
+    patternVersion: cat.patternVersion,
+    platform: DM_CMS_PLATFORM,
+    comboChannel: DM_CMS_COMBO,
+    dmChannel: DM_CMS_CHANNEL,
+  });
+  const rows = [];
+  const seen = {};
+  const cityOf = (d) => {
+    if (typeof d.topRight === 'string') return d.topRight;
+    if (d.topRightV2 && d.topRightV2.value) return d.topRightV2.value;
+    return d.cityName || d.city || '';
+  };
+  const walk = (n) => {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) return n.forEach(walk);
+    const d = n.data;
+    if (d && typeof d === 'object') {
+      const sm = d.schema && String(d.schema).match(/[?&]id=(\d{6,})/);
+      const id = String(d.id || (sm && sm[1]) || '');
+      if (id && d.name && (d.priceLow != null || d.price)) {
+        if (!seen[id]) {
+          seen[id] = 1;
+          rows.push({
+            performanceId: id,
+            itemId: id,
+            name: stripTags(d.name),
+            city: stripTags(cityOf(d)),
+            venue: stripTags(d.venueName),
+            dateRange: stripTags(d.showTime),
+            price:
+              stripTags(d.price && d.price.text) ||
+              (d.priceLow != null ? '¥' + d.priceLow + ' 起' : ''),
+            status: stripTags(d.saleTitle) || (d.itemSaleStatus === 1 ? '在售' : ''),
+            poster:
+              d.verticalPic ||
+              (Array.isArray(d.verticalPicList) && d.verticalPicList[0] &&
+                (d.verticalPicList[0].url || d.verticalPicList[0].pic)) ||
+              d.cover ||
+              d.img ||
+              '',
+          });
+        }
+      }
+    }
+    if (n.nodes) walk(n.nodes);
+  };
+  walk((j.data && j.data.nodes) || []);
+  return rows;
+}
+
+/**
+ * 大麦/淘票票热卖榜（匿名）：取几个分类的 CMS 页，轮询交错合并成混合榜单。
+ * 全部失败才抛错——调用方据此给可行动指引。
+ */
+async function damaiHot(limit, cityId) {
+  const lim = Math.min(Number(limit) || 20, 60);
+  const city = String(cityId || '852');
+  const cats = await damaiCmsCats();
+  const picked = [];
+  for (const want of DM_HOT_CATS) {
+    const c = cats.find((x) => x.patternName === want);
+    if (c) picked.push(c);
+    if (picked.length >= 3) break;
+  }
+  if (!picked.length) picked.push(cats[0]);
+  const lists = [];
+  for (const c of picked) {
+    try {
+      lists.push(await damaiCmsList(c, city));
+    } catch (e) {
+      lists.push([]);
+    }
+  }
+  const out = [];
+  const seen = {};
+  for (let i = 0; out.length < lim && i < 80; i++) {
+    for (const l of lists) {
+      const row = l[i];
+      if (!row || seen[row.performanceId]) continue;
+      seen[row.performanceId] = 1;
+      out.push(row);
+      if (out.length >= lim) break;
+    }
+  }
+  if (!out.length) throw new Error('大麦分类页没返回演出');
+  return out;
 }
 
 /**
@@ -1287,7 +1586,7 @@ async function pollDamai(params) {
  * 大麦入口：链接/纯数字 id → mtop 详情+票档；关键词 → mtop 无线搜索。
  * 和猫眼/摩天轮一样，用户直接打字就能搜——不再逼人去 App 翻链接。
  */
-async function findDamai(linkOrId, userCookie) {
+async function findDamai(linkOrId, userCookie, cityId) {
   const raw = String(linkOrId || '').trim();
   if (/https?:\/\//i.test(raw) || /^\d{6,}$/.test(raw)) {
     const id = extractDamaiId(raw) || raw;
@@ -1325,7 +1624,7 @@ async function findDamai(linkOrId, userCookie) {
       },
     ];
   }
-  return damaiSearch(raw, 20, userCookie);
+  return damaiSearch(raw, 20, cityId, userCookie);
 }
 
 // ===========================================================================
@@ -1852,14 +2151,23 @@ async function detailShow(platform, id, event) {
     } catch (e) {
       shows = []; // 场次拿不到不影响项目级信息照常返回
     }
+    // 票价档位（匿名 /tickets 可读，本轮新打通）——摆出来，但**不可勾选**：
+    // 匿名 hasInventory 恒 false，逐档库存判断不了，做成选择器就是骗人。
+    let tiers = [];
+    try {
+      tiers = await maoyanTickets(id);
+    } catch (e) {
+      tiers = [];
+    }
     // 场次不做成「可勾选列表」：轮询走的是项目级通道，按场次过滤落不了地，
     // 摆一个勾了也没用的选择器就是在骗人。改成信息行——把日期如实摆出来，
     // 特展这种 199 场的只列前几个 + 总数，不铺满屏。
     const times = shows.map((s) => s.name).filter(Boolean);
     const head = times.slice(0, 3).join(' / ');
-    const saleNote = times.length
+    const showLine = times.length
       ? '场次 · ' + head + (times.length > 3 ? ' 等 ' + times.length + ' 场' : '')
       : '';
+    const tierLine = tiers.length ? '票档 · ' + tiers.map((t) => t.name).join(' / ') : '';
     return {
       platform,
       id,
@@ -1868,7 +2176,9 @@ async function detailShow(platform, id, event) {
       poster: p.posterUrl || '',
       dateRange: p.showTimeRange || '',
       priceRange: p.priceRange || '',
-      saleNote,
+      saleNote: [showLine, tierLine].filter(Boolean).join('　'),
+      // 只作展示用（前端渲染成不可点的价格标签）；勾选/过滤仍走 odea 通道
+      priceTiers: tiers.map((t) => t.name),
       sessions: [],
       noTiers: true,
     };
@@ -2643,11 +2953,8 @@ async function handleAction(event, action, db) {
 
       // 空关键词 = 各平台「正在热卖」。实测（2026-10-14 补测）：
       //   猫眼 k= 直返在售（带海报）；B站 listV2 免 keyword 返推荐位；
-      //   票星球 show/recommend 返 40 条热卖榜；大麦/淘票票的搜索接口
-      //   （mtop.damai.wireless.search.search）匿名在网关层就被 RGV587 硬拦
-      //   ——扫过 16 个候选 API 名，除详情 v1.2 外全不存在或全被拦，
-      //   只有登录 Cookie 通道能过（竞品 TicketMonitoring 同样要 Cookie）。
-      //   所以没 Cookie 时给可行动指引，不硬编假数据；
+      //   票星球 show/recommend 返 40 条热卖榜；大麦/淘票票走新版 H5 的
+      //   CMS 分类通道（damaiHot，匿名零 Cookie 可用）。
       //   摩天轮用「演唱会」关键词兜底（真实数据）；12306 是站站查询。
       if (!keyword) {
         if (platform === 'maoyan') {
@@ -2663,15 +2970,22 @@ async function handleAction(event, action, db) {
           return { ok: true, keyword: '', platform, rows };
         }
         if (platform === 'damai' || platform === 'taopiaopiao') {
-          // 热卖榜走搜索接口；匿名/凭证失效被 RGV587 时给「贴链接也能盯」的出路
+          // 热卖榜：优先走新版 H5 的 CMS 分类通道（**匿名零 Cookie 可用**，本轮打通）。
+          // 拿不到再退回搜索接口（要 Cookie），最后才给指引——不硬编假数据。
           try {
-            const rows = await damaiSearch('演唱会', limit, event.damaiCookie);
+            const rows = await damaiHot(limit, event.cityId);
+            if (rows.length) return { ok: true, keyword: '', platform, rows };
+          } catch (e) {
+            /* 落到搜索通道 */
+          }
+          try {
+            const rows = await damaiSearch('演唱会', limit, event.cityId, event.damaiCookie);
             return { ok: true, keyword: '', platform, rows };
           } catch (e) {
-            if (/排起了长队|RGV587/.test(String((e && e.message) || e))) {
+            if (/排起了长队|RGV587|挤爆/.test(String((e && e.message) || e))) {
               return {
                 ok: false,
-                error: '这个平台的热卖榜要登录凭证——「我的」页填一次大麦网页版登录 Cookie（要含 cookie2 字段）就能看；不填也行：把演出分享链接或数字编号粘进搜索框，匿名就能盯',
+                error: '大麦热卖榜接口暂时不可用——把演出分享链接或数字编号粘进搜索框，匿名就能盯',
               };
             }
             return { ok: false, error: String((e && e.message) || e) };
@@ -2714,8 +3028,22 @@ async function handleAction(event, action, db) {
       // 淘票票的演出就是大麦的 itemId（m.taopiaopiao.com/damai/detail/item.html?id=X），
       // 搜索/详情全走大麦同一套通道——一套代码两个 tab 共用（2026-10-14）。
       if (platform === 'damai' || platform === 'taopiaopiao') {
-        const rows = await findDamai(keyword, event.damaiCookie);
-        return { ok: true, keyword, platform, rows };
+        try {
+          const rows = await findDamai(keyword, event.damaiCookie, event.cityId);
+          return { ok: true, keyword, platform, rows };
+        } catch (e) {
+          const msg = String((e && e.message) || e);
+          // 关键词搜索有滑块风控（FAIL_SYS_USER_VALIDATE / RGV587），突发请求会触发、
+          // 按 IP 冷却几分钟。别把它当成「没有这个演出」——说清怎么办。
+          if (/RGV587|挤爆|排起了长队|USER_VALIDATE/.test(msg)) {
+            return {
+              ok: false,
+              error: '大麦搜索被风控拦了一下（短时间内请求过多）—— 过几分钟再搜，'
+                + '或直接切到空搜索看热卖榜；在「我的」页填一次大麦 Cookie 会更稳',
+            };
+          }
+          return { ok: false, error: msg };
+        }
       }
       // B站会员购：公开搜索接口（listV2），和大麦/猫眼一样直接打字搜
       if (platform === 'bilibili') {

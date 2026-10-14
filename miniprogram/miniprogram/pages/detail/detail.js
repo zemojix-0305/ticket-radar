@@ -36,6 +36,10 @@ Page({
     railDate: '',
     // 场次×票档选择网格：每场一个勾选框，档位一格一个可多选的价位按钮
     sessions: [],
+    // 巡演分站（大麦/淘票票父项目：真实 itemId + 城市 + 档期，点了进分站详情）
+    stops: [],
+    // 票档价格标签（只展示不勾选：猫眼匿名能读到档位，但逐档库存要凭证）
+    priceTiers: [],
     subCount: 0,
     priceCount: 0,
     selTiers: [],
@@ -84,20 +88,26 @@ Page({
         // 关键点：**降级不等于死路**——一条都拿不到时也得能按整场盯，
         // 否则用户点进来看到「没有数据」又退不出去，等于白跑一趟。
         if (r.degraded) {
+          const stops = r.stops || [];
+          // 巡演总条目没有自己的场次，但分站是真实的——别让页面看起来像坏了
+          const dm = stops.length
+            ? '这是巡回演出的总条目——点下面的分站看具体场次和票价'
+            : (r.degradeMsg || '场次和票档暂时拿不到，先按整场盯——有动静会提醒你');
           this.setData(
             Object.assign(
               {
                 loading: false,
                 degraded: true,
                 sessions,
+                stops,
                 name: r.name || this.data.name,
                 venue: r.venue || this.data.venue,
                 date: r.dateRange || this.data.date,
                 poster: r.poster || this.data.poster,
                 city: r.city || this.data.city,
                 price: r.priceRange ? '票价区间 ' + r.priceRange : this.data.price,
-                degradeMsg:
-                  r.degradeMsg || '场次和票档暂时拿不到，先按整场盯——有动静会提醒你',
+                priceTiers: r.priceTiers || [],
+                degradeMsg: dm,
                 noTiers,
               },
               rec,
@@ -111,6 +121,8 @@ Page({
             {
               loading: false,
               sessions,
+              stops: r.stops || [],
+              priceTiers: r.priceTiers || [],
               name: r.name || this.data.name,
               venue: r.venue || this.data.venue,
               poster: r.poster || this.data.poster,
@@ -221,6 +233,26 @@ Page({
   },
 
   noop() {},
+
+  /** 巡演分站：点一站进那一站的详情（同平台、同 itemId 命名空间） */
+  openStop(e) {
+    const s = e.currentTarget.dataset.stop || {};
+    if (!s.itemId) return;
+    const q = [
+      'platform=' + encodeURIComponent(this.data.platform),
+      'id=' + encodeURIComponent(s.itemId),
+      'name=' + encodeURIComponent(s.name ? this.data.name + ' ' + s.name : this.data.name),
+      'label=' + encodeURIComponent(this.data.label),
+      'city=' + encodeURIComponent(s.name || ''),
+      'date=' + encodeURIComponent(s.when || ''),
+    ];
+    wx.navigateTo({ url: '/pages/detail/detail?' + q.join('&') });
+  },
+
+  /** 要按票档/库存盯 = 得填凭证；这里只负责把用户送到「我的」页 */
+  gotoMine() {
+    wx.switchTab({ url: '/pages/mine/mine' });
+  },
 
   reload() {
     this.loadDetail();

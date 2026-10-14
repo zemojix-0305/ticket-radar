@@ -261,3 +261,46 @@
   padding: 0 0 12px 28px;
 }
 .none-hover { opacity: 1; }
+
+/* 票档价格标签（只展示不勾选）：与可勾选的 .ptier 视觉上要能区分——
+   这里是纯文字标签、无边框可点感，避免用户以为能点。 */
+.tierline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tierline-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #F4F1FA;
+  color: #6B6180;
+  font-size: 12px;
+}
+
+/* 巡演分站行：左名字、右「进入」，整行可点 */
+.stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 4px;
+  border-bottom: 1px solid #F0EDF6;
+}
+.stop:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+.stop-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink, #2E2A3A);
+}
+.stop-when {
+  font-size: 12px;
+  color: var(--ink3, #8A8378);
+}
+.stop-go {
+  font-size: 12px;
+  color: var(--brand, #6B4FA8);
+  padding-left: 6px;
+}
