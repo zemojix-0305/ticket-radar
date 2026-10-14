@@ -1564,6 +1564,9 @@ async function handleAction(event, action, db) {
           restock: (rec.restock || []).length,
           notify: rec.notify,
           error: rec.error,
+          // 无状态模式（第二十四轮）：云库是 no-op，客户端要拿全量记录
+          // 渲染监控卡 + 存下一轮基线。云函数模式客户端忽略此字段，不受影响。
+          full: rec,
         });
       }
       return { ok: true, at: now, tasks: results.length, results: results };

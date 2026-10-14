@@ -2,6 +2,7 @@
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
+import { loadTasks, removeTask } from '../../utils/tasks';
 //
 // 两条原则（跟 Python 那边保持一致）：
 //   1. 结论先行——卡片第一眼告诉你「有票还是没票」，不是先列车次；
@@ -20,6 +21,8 @@ const PLATFORMS = [
 
 const BANNER_CLOSED_KEY = 'home_banner_closed';
 const FAQ_KEY = 'home_faq_open';
+const PREV_KEY = 'radar_prev_states';          // 上一轮轮询快照（回流判定基线）
+const LAST_STATES_KEY = 'radar_last_states';   // 最近一轮结果（「我的」页展示用）
 
 const FAQ_LIST = [
   {
@@ -107,8 +110,11 @@ Page({
   },
 
   onShow() {
-    // 从「我的」页领完额度回来要能看到数字变了
+    // 从「我的」页领完额度回来要能看到数字变了；
+    // 从「搜演出/详情」盯完回来要立刻刷出新任务
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+    if (typeof this.refreshedOnce !== 'undefined') this.refresh();
+    this.refreshedOnce = true;
   },
 
   onPullDownRefresh() {
@@ -118,12 +124,36 @@ Page({
   refresh() {
     const self = this;
     self.setData({ loading: true, fail: '' });
-    return request({ action: 'query' })
+    const tasks = loadTasks().filter((t) => t && t._id && t.adapter);
+    if (!tasks.length) {
+      // 一个任务都没有：直接给空态，不打接口
+      self.setData({ loading: false, states: [], okCount: 0 });
+      self.applyFilter();
+      return Promise.resolve();
+    }
+    // 上一轮快照作为回流判定基线（只留 diffRestock 需要的字段，控制体积）
+    const prevStates = wx.getStorageSync(PREV_KEY) || {};
+    const payload = tasks.map((t) => ({
+      _id: t._id, adapter: t.adapter, name: t.name,
+      params: t.params, poster: t.poster || '',
+    }));
+    return request({ action: 'poll', tasks: payload, prevStates })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
-        const list = (r.states || []).map((s) => self.decorate(s));
+        const list = (r.results || []).map((row) => self.decorate(row.full || row));
         const okCount = list.filter((s) => s.ok && s.available > 0).length;
+        // 存下一轮基线：只留 ok + items 的 label/available
+        const next = {};
+        for (const row of r.results || []) {
+          const f = row.full || {};
+          next[row._id] = {
+            ok: !!f.ok,
+            items: (f.items || []).map((it) => ({ label: it.label, available: !!it.available })),
+          };
+        }
+        wx.setStorageSync(PREV_KEY, next);
+        wx.setStorageSync(LAST_STATES_KEY, list);
         self.setData({
           states: list,
           okCount,
@@ -137,10 +167,9 @@ Page({
           loading: false,
           fail:
             String(e.message || e) +
-            '\n\n三种常见原因：\n' +
-            '· 没开通云开发，或 app.js 里的环境 ID 是空的\n' +
-            '· 云函数 radar 没部署（去云开发控制台看看有没有这个函数）\n' +
-            '· 云函数 IP 被平台风控了（这种只影响抓取，不影响小程序本身）',
+            '\n\n两种常见原因：\n' +
+            '· 本地服务没开：在 server/ 目录跑 node api.js\n' +
+            '· 平台接口超时或被风控（只影响抓取那一项，其他项正常）',
         });
       });
   },
@@ -154,7 +183,12 @@ Page({
     const restock = Array.isArray(s.restock) && s.restock.length > 0;
 
     let head, cls, bar;
-    if (!s.ok) {
+    const offline = !s.ok && /404|不存在|已下架|下线/.test(String(s.error || ''));
+    if (offline) {
+      head = '已下架';
+      cls = 'tag-off';
+      bar = 'task-bar-none';
+    } else if (!s.ok) {
       head = '抓取失败';
       cls = 'tag-bad';
       bar = 'task-bar-bad';

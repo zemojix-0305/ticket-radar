@@ -18,4 +18,14 @@ function saveTasks(tasks) {
   }
 }
 
-module.exports = { loadTasks, saveTasks, TASKS_KEY };
+/** 按 _id 删除一条监控任务 */
+function removeTask(id) {
+  try {
+    const list = wx.getStorageSync(TASKS_KEY) || [];
+    wx.setStorageSync(TASKS_KEY, list.filter((t) => t._id !== id));
+  } catch (e) {
+    console.warn('[ticket-radar] removeTask failed:', e);
+  }
+}
+
+module.exports = { loadTasks, saveTasks, removeTask, TASKS_KEY };

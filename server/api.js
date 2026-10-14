@@ -43,8 +43,15 @@ const emptyCollection = () => ({
   get: async () => ({ data: [] }),
 });
 
+// 内存级 KV 存储：替代云存储缓存（如 12306 站名表，fetchStationMap 用）
+const memKV = {};
 global.cloud = {
   database: () => ({ collection: emptyCollection }),
+  getStorage: async (key) => (key in memKV ? memKV[key] : null),
+  setStorage: async (opt) => {
+    memKV[opt.key] = opt.value;
+    return {};
+  },
   getWXContext: () => ({ OPENID: '', APPID: '' }),
   openapi: {
     subscribeMessage: {

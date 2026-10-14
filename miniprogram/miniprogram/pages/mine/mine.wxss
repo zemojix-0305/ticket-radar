@@ -130,3 +130,42 @@
   white-space: nowrap;
   letter-spacing: 0.5px;
 }
+
+/* ---------- 正在盯 ---------- */
+.watched { padding: 14px 18px; }
+.watched-head { display: flex; align-items: center; justify-content: space-between; }
+.watched-empty { padding: 18px 0 6px; text-align: center; }
+.watched-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1rpx solid var(--card2);
+}
+.watched-item:last-child { border-bottom: none; padding-bottom: 2px; }
+.w-main { flex: 1; min-width: 0; }
+.w-name {
+  font-size: 15px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.w-sub { font-size: 12px; color: var(--ink3); margin-top: 4px; }
+.w-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--card2);
+  color: var(--ink3);
+}
+.w-ok { background: var(--accent-weak); color: var(--accent); }
+.w-off { background: var(--card2); color: var(--ink3); }
+.watched-off .w-name { color: var(--ink3); text-decoration: line-through; }
+.w-del {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ink3);
+  padding: 6px 4px;
+}
