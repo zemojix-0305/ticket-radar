@@ -74,7 +74,7 @@
               hover-class="{{t.available ? 'press-hover' : 'none-hover'}}"
             >{{t.name}}</view>
           </view>
-          <view class="sess2-empty" wx:else>票档明细拿不到（要登录该平台），这场按整场盯</view>
+          <view class="sess2-empty" wx:else>这个平台没给票档明细，这场按整场盯</view>
         </view>
       </view>
     </block>
