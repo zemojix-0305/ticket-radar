@@ -103,7 +103,7 @@
   <view class="card support">
     <view class="support-main">
       <view class="support-t">支持作者</view>
-      <view class="support-d">感谢大家点 star，谢谢支持！</view>
+      <view class="support-d" user-select="true">GitHub 搜 zemojix-0305/ticket-radar，感谢大家点 star！</view>
     </view>
     <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ Star</view>
   </view>
