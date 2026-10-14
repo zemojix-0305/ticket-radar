@@ -320,6 +320,35 @@ async function pollMaoyan(params) {
   ];
 }
 
+/**
+ * 猫眼「场次列表」——**匿名可用**（2026-10-14 实测）。
+ *   GET {MAOYAN_BASE}/ajax/performance/<id>/shows?sellChannel=7
+ *   → data[] = [{ name:"2026-11-14 周六 19:00", showId, hasInventory,
+ *                 ticketIdHasInventoryMap }]
+ *
+ * 为什么要它：项目级详情只回一个「整场价格区间」，此前的兜底代码把演出全名
+ * 当成唯一「票档」塞进列表，详情页就出现「一个票档写着演出全名」这种荒唐显示
+ * （用户截图反馈）。场次是真拿得到的，就把它摆出来——至少「哪几天」是准的。
+ * 档位×剩余库存仍只有 odea 登录通道有（ticketClassIds 匿名实测 12/12 全空）。
+ */
+async function maoyanShows(id) {
+  const data = await getJson(`${MAOYAN_BASE}/ajax/performance/${id}/shows?sellChannel=7`, {
+    headers: maoyanHeaders(),
+  });
+  if (data.code !== 200) throw new Error('猫眼场次失败：code=' + data.code + ' msg=' + data.msg);
+  const list = Array.isArray(data.data) ? data.data : [];
+  return list.map((s) => {
+    const inv = (s && s.ticketIdHasInventoryMap) || {};
+    const anyStock = Object.keys(inv).some((k) => inv[k]);
+    return {
+      showId: s && s.showId,
+      name: (s && s.name) || (s && s.startTimeTimeFormatted) || '场次',
+      when: (s && s.name) || '',
+      available: anyStock || (s && s.hasInventory === true),
+    };
+  });
+}
+
 // ===========================================================================
 // 平台：摩天轮（公开接口，POST + JSON）
 // ===========================================================================
@@ -1838,6 +1867,44 @@ async function detailShow(platform, id, event) {
     }
   }
 
+  // 猫眼（匿名 / token 失效）：项目级信息 + **真实场次**，但**不造票档**。
+  // 匿名通道只到「项目级价格区间」和「场次级有没有货」，档位×库存要登录 odea。
+  // 所以这里明确 noTiers，让详情页照实说「票档要登录后可见，先按整场盯」，
+  // 而不是塞一个名字等于演出全名的假票档糊弄（那正是用户截图里骂的点）。
+  if (platform === 'maoyan') {
+    const p = (await getJson(`${MAOYAN_BASE}/ajax/performance/${id}?sellChannel=7`, { headers: maoyanHeaders() })).data || {};
+    if (Number(p.ticketStatus) == null || !MAOYAN_TICKET_STATUS_LABELS[Number(p.ticketStatus)]) {
+      // 状态表对不上 = 平台改了映射，别静默当成「没票」（与 pollMaoyan 同一条红线）
+      throw new Error('猫眼详情的 ticketStatus=' + JSON.stringify(p.ticketStatus) + ' 看不懂，平台可能改了状态映射表');
+    }
+    let shows = [];
+    try {
+      shows = await maoyanShows(id);
+    } catch (e) {
+      shows = []; // 场次拿不到不影响项目级信息照常返回
+    }
+    // 场次不做成「可勾选列表」：轮询走的是项目级通道，按场次过滤落不了地，
+    // 摆一个勾了也没用的选择器就是在骗人。改成信息行——把日期如实摆出来，
+    // 特展这种 199 场的只列前几个 + 总数，不铺满屏。
+    const times = shows.map((s) => s.name).filter(Boolean);
+    const head = times.slice(0, 3).join(' / ');
+    const saleNote = times.length
+      ? '场次 · ' + head + (times.length > 3 ? ' 等 ' + times.length + ' 场' : '')
+      : '';
+    return {
+      platform,
+      id,
+      name: stripTags(p.name) || '',
+      venue: stripTags(p.shopName || p.address) || '',
+      poster: p.posterUrl || '',
+      dateRange: p.showTimeRange || '',
+      priceRange: p.priceRange || '',
+      saleNote,
+      sessions: [],
+      noTiers: true,
+    };
+  }
+
   if (platform === 'bilibili') {
     await biliWarm().catch(() => {});
     const j = await getJson(
@@ -1981,7 +2048,11 @@ async function detailShow(platform, id, event) {
     }
   }
 
-  // 其余平台：扁平 poll 包成单一分组
+  // 其余平台：扁平 poll 的**一行就是一个「可盯的东西」**。
+  // 摩天轮这类平台一行 = 一个场次（label 形如「2027-06-08 19:00 场馆」），
+  // 它压根不是票档。旧代码把 N 行压成「一场 N 档」，详情页就出现
+  // 「票档里写着别的日期」的错位显示（与猫眼那处同款的显示问题）。
+  // 这里按行展开成 N 个场次；拿不到价格就标 noTiers，不硬凑价位。
   const fn = PLATFORMS[platform];
   if (!fn) throw new Error('暂不支持平台 ' + platform);
   const paramKey =
@@ -1993,19 +2064,16 @@ async function detailShow(platform, id, event) {
   // 注意：不把 event.myToken 传给 generic 分支——有 token 的情形在前面 maoyan
   // 专属分支处理（失败已静默落回匿名）；这里再传会让 token 失效错误穿透到详情页
   const items = await fn(fnParams);
-  const first = items[0] || {};
-  return {
-    platform, id,
-    name: first.label || '',
-    venue: first.place || '',
-    sessions: [{
-      name: first.label || '票档', when: first.when || '', status: first.status || '',
-      available: !!first.available,
-      tiers: items.map((it) => ({
-        name: it.label, price: it.price || '', status: it.status || '', available: !!it.available,
-      })),
-    }],
-  };
+  const sessions = (items || []).map((it) => ({
+    name: it.label || it.when || '场次',
+    when: it.when || '',
+    status: it.status || '',
+    available: !!it.available,
+    tiers: [],
+  }));
+  // 不返回 name / venue：这条通道只能给「日期+场馆」这种行标签，拿它当演出名会把
+  // 详情页标题写成日期。演出名/场馆由列表页跳转时随 URL 带进来，更准（实测踩过）。
+  return { platform, id, sessions, noTiers: true };
 }
 
 // ===========================================================================
@@ -2359,6 +2427,31 @@ function filterItemsByTiers(items, params) {
   return (items || []).filter((it) => wanted.some((w) => tierHit(it, w)));
 }
 
+/** 任务里勾的场次名（多选）。没勾返回空数组 = 全选，不过滤。 */
+function wantedSessions(params) {
+  const raw = (params && params.sessions) || [];
+  return (Array.isArray(raw) ? raw : [raw])
+    .map((s) => String(s == null ? '' : s).trim())
+    .filter(Boolean);
+}
+
+/** 只保留命中已勾场次的条目。
+ *  场次与行的对应各平台不同：摩天轮是「一行 = 一个场次」（label 里带日期+场馆），
+ *  票星球/B站一行的 label 里也含场次名。所以命中 when 或 label 任一即算该场。
+ *  加它的原因：详情页早就让用户勾场次了，但服务端从来没按它过滤过——
+ *  勾了等于没勾。 */
+function filterItemsBySessions(items, params) {
+  const wanted = wantedSessions(params);
+  if (!wanted.length) return items || [];
+  return (items || []).filter((it) =>
+    wanted.some((sn) => {
+      const w = String((it && it.when) || '').trim();
+      const l = String((it && it.label) || '');
+      return (w && (w === sn || w.indexOf(sn) >= 0 || sn.indexOf(w) >= 0)) || l.indexOf(sn) >= 0;
+    }),
+  );
+}
+
 function diffRestock(prev, next) {
   if (!prev || !prev.ok || !next || !next.ok) return [];
   const before = {};
@@ -2480,6 +2573,12 @@ async function handleAction(event, action, db) {
             if (wanted.length) {
               rec.items = filterItemsByTiers(rec.items, task.params);
               rec.tier_filter = wanted;
+            }
+            // 场次级过滤：详情页勾了场次就只算这几场（摩天轮「一行=一个场次」靠这个落地）
+            const wantSess = wantedSessions(task.params);
+            if (wantSess.length) {
+              rec.items = filterItemsBySessions(rec.items, task.params);
+              rec.session_filter = wantSess;
             }
             rec.available = rec.items.filter((i) => i.available).length;
           } catch (e) {
@@ -2774,6 +2873,9 @@ exports._internals = {
   diffRestock: diffRestock,
   wantedTiers: wantedTiers,
   filterItemsByTiers: filterItemsByTiers,
+  wantedSessions: wantedSessions,
+  filterItemsBySessions: filterItemsBySessions,
+  maoyanShows: maoyanShows,
   damaiSearch: damaiSearch,
   pollDamai: pollDamai,
   damaiDetailSSR: damaiDetailSSR,

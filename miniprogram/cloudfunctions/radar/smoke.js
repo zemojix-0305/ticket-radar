@@ -21,6 +21,7 @@ global.cloud = {
 const {
   pollMaoyan, pollRail, pollMoretickets, parseSeat, errorKind,
   filterItemsByTiers, wantedTiers,
+  filterItemsBySessions, wantedSessions, maoyanShows,
 } = require('./index.js')._internals;
 
 let pass = 0;
@@ -81,6 +82,26 @@ check('一个价位都不勾 = 整场（不过滤）',
   filterItemsByTiers(FIX, {}).length === FIX.length);
 check('price_labels 优先于 price_label',
   wantedTiers({ price_labels: ['1'], price_label: '2' }).join(',') === '1');
+
+// --- 纯函数：场次多选过滤（不联网）----------------------------------------
+// 摩天轮这类平台「一行 = 一个场次」，label 里带日期。详情页早就让用户勾场次了，
+// 但服务端从来没按它过滤——勾了等于没勾。这段就是钉住那个行为。
+console.log('\n[2b] 场次多选过滤');
+const SHOWS = [
+  { label: '2027-06-08 19:00 GMO Arena Saitama', when: '2027-06-08 19:00' },
+  { label: '2027-06-09 19:00 GMO Arena Saitama', when: '2027-06-09 19:00' },
+  { label: '2027-06-11 19:00 GMO Arena Saitama', when: '2027-06-11 19:00' },
+];
+check('勾一场只留那一场',
+  filterItemsBySessions(SHOWS, { sessions: ['2027-06-09 19:00 GMO Arena Saitama'] }).length === 1);
+check('多选场次 = 并集',
+  filterItemsBySessions(SHOWS, { sessions: ['2027-06-09 19:00 GMO Arena Saitama', '2027-06-11 19:00 GMO Arena Saitama'] }).length === 2);
+check('用 when 也能命中（票星球/B站行里带场次名）',
+  filterItemsBySessions(SHOWS, { sessions: ['2027-06-08 19:00'] }).length === 1);
+check('一个场次都不勾 = 全选（不过滤）',
+  filterItemsBySessions(SHOWS, {}).length === SHOWS.length);
+check('wantedSessions 去空去重前先 trim',
+  wantedSessions({ sessions: [' a ', '', null] }).join(',') === 'a');
 
 // --- 猫眼（真实接口）------------------------------------------------------
 console.log('\n[3] 猫眼 509862（汪苏泷·阜阳斑马音乐节）');

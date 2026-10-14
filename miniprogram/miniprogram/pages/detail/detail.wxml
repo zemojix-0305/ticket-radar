@@ -78,8 +78,7 @@
         </view>
       </view>
     </block>
-    <view class="sec-more" wx:if="{{!degraded && !sessions.length}}">这个演出暂时没拿到场次——先「盯整场」，有动静会告诉你</view>
-    <view class="sec-more" wx:if="{{noTiers}}">票档明细要登录该平台后可见，现在按场次盯整场</view>
+    <view class="sec-more" wx:if="{{!degraded && !sessions.length}}">{{noTiers ? '这个平台的票档明细要登录后可见——先「盯整场」，有动静就提醒你' : '这个演出暂时没拿到场次——先「盯整场」，有动静会告诉你'}}</view>
   </block>
 
   <!-- 底部操作栏：降级时也能盯整场——点进来只有标题又没有出路，最劝退 -->

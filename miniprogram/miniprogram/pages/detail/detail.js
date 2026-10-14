@@ -77,6 +77,9 @@ Page({
         // 场次×票档：默认全选可用项（对齐竞品「共订阅 N 场 M 个价格」）
         const sessions = this.mapSessions(r.sessions);
         const rec = this.recount(sessions);
+        // 一条真档位都没有 = 只能按整场盯（猫眼/大麦/摩天轮的匿名通道都到这）。
+        // 服务端给了 noTiers 就用它的；没给但筛完确实没档位，也照实说。
+        const noTiers = !!r.noTiers || (sessions.length > 0 && sessions.every((s) => !s.tiers.length));
         // 服务端降级：只有基础信息、没有场次票档（大麦风控 / 平台要登录）。
         // 关键点：**降级不等于死路**——一条都拿不到时也得能按整场盯，
         // 否则用户点进来看到「没有数据」又退不出去，等于白跑一趟。
@@ -95,6 +98,7 @@ Page({
                 price: r.priceRange ? '票价区间 ' + r.priceRange : this.data.price,
                 degradeMsg:
                   r.degradeMsg || '场次和票档暂时拿不到，先按整场盯——有动静会提醒你',
+                noTiers,
               },
               rec,
               sessions.length ? {} : { subText: '盯整场（有动静就提醒）' },
@@ -115,7 +119,7 @@ Page({
               // 大麦/淘票票匿名通道给的是整场价格区间，信息卡里亮出来
               price: r.priceRange ? '票价区间 ' + r.priceRange : this.data.price,
               saleNote: r.saleNote || '',
-              noTiers: !!r.noTiers,
+              noTiers,
             },
             rec,
           ),
@@ -138,20 +142,32 @@ Page({
 
   /** 服务端 sessions → 页面态。默认全选可用项（不可用的档位灰掉、不参与轮询）。 */
   mapSessions(raw) {
-    return (raw || []).map((s) => ({
-      name: s.name || '场次',
-      when: s.when || '',
-      performId: s.performId || '',
-      available: !!s.available,
-      selected: true,
-      tiers: (s.tiers || []).map((t) => ({
-        name: t.name || '票档',
-        price: t.price || '',
-        status: t.status || '',
-        available: t.available !== false,
-        selected: t.available !== false,
-      })),
-    }));
+    return (raw || []).map((s) => {
+      const name = s.name || '场次';
+      // 假档位过滤：平台只给「项目级价格区间」时，上游可能把演出/场次全名当成
+      // 唯一票档塞过来——名字跟场次一模一样就不是真档位（选了也没法按它过滤），
+      // 直接丢掉，让这一场走「整场盯」。猫眼匿名通道就是这样，见用户截图反馈。
+      const tiers = (s.tiers || [])
+        .filter((t) => {
+          const tn = String(t.name == null ? '' : t.name).trim();
+          return !!tn && tn !== name;
+        })
+        .map((t) => ({
+          name: t.name || '票档',
+          price: t.price || '',
+          status: t.status || '',
+          available: t.available !== false,
+          selected: t.available !== false,
+        }));
+      return {
+        name,
+        when: s.when || '',
+        performId: s.performId || '',
+        available: !!s.available,
+        selected: true,
+        tiers,
+      };
+    });
   },
 
   /** 重算「共订阅 N 场 M 个价格」，并把选中价位折算成轮询用的关键字（数字）。 */
