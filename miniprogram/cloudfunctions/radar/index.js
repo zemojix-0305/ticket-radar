@@ -97,6 +97,9 @@ async function getJson(url, opts, redirectsLeft) {
   if (r.status !== 200) throw new Error('HTTP ' + r.status);
   // 被风控时会返回 HTML 而不是 JSON，这一条能把它和「真的没数据」分开
   if (/<html/i.test(r.body.slice(0, 300))) {
+    if (process.env.RADAR_DEBUG) {
+      console.error('[debug] HTML from', url, '| status', r.status, '| loc', r.headers.location || '无', '| head:', r.body.slice(0, 100).replace(/\n/g, ' '));
+    }
     throw new Error('返回了 HTML——通常是风控拦截页（云 IP 被识别了？）');
   }
   try {
@@ -442,8 +445,10 @@ function cityEn(name) {
 const RAIL_BASE = 'https://kyfw.12306.cn';
 const RAIL_INIT = `${RAIL_BASE}/otn/leftTicket/init`;
 const RAIL_STATION_JS = `${RAIL_BASE}/otn/resources/js/framework/station_name.js`;
-// 官方会轮换这几个端点，按顺序试到能用为止
-const RAIL_ENDPOINTS = ['queryE', 'queryZ', 'queryA', 'query'];
+// 官方会轮换这几个端点，按顺序试到能用为止。
+// queryG 实测（2026-10-14）是当前在用的：queryE 会 302 到一个
+// {"c_url":"leftTicket/queryG"} 的提示，说明官方挪到了 G。
+const RAIL_ENDPOINTS = ['queryG', 'queryE', 'queryZ', 'queryA', 'query'];
 
 const TRAIN_FIELDS = {
   train_code: 3,
@@ -519,11 +524,17 @@ async function fetchStationMap() {
 function resolveStationCode(name, map) {
   const raw = String(name || '').trim();
   if (!raw) return '';
-  // map 的 value 是中文名，反查它的 key（电报码）
+  // map 里一个站名挂了两个 key：小写电报码（izq）+ 大写站码（IZQ）。
+  // 余票接口**只认大写站码**——传小写的会直接 302 到风控 error 页，
+  // 所以同名多个 key 命中时，优先挑全大写的那个。
+  let fallback = '';
   for (const code of Object.keys(map)) {
-    if (map[code] === raw) return code;
+    if (map[code] === raw) {
+      if (/^[A-Z0-9]+$/.test(code)) return code;
+      if (!fallback) fallback = code;
+    }
   }
-  return raw;
+  return fallback || raw;
 }
 
 async function pollRail(params) {
@@ -545,14 +556,29 @@ async function pollRail(params) {
 
   let data = null;
   let lastErr = null;
-  for (const ep of RAIL_ENDPOINTS) {
+  const tried = new Set();
+  let ep = RAIL_ENDPOINTS[0];
+  // 官方会轮换端点：老端点会回 {"c_url":"leftTicket/queryX"} 的提示而不带数据，
+  // 所以除了逐个试列表，还要跟着 c_url 的提示走（官方以后再挪也不用改代码）。
+  while (ep && !tried.has(ep) && tried.size <= RAIL_ENDPOINTS.length + 2) {
+    tried.add(ep);
     try {
       data = await getJson(`${RAIL_BASE}/otn/leftTicket/${ep}?${q}`, {
         headers: railHeaders(cookie),
       });
+      if (data && data.c_url && !data.data) {
+        const hinted = String(data.c_url).split('/').pop();
+        if (hinted && !tried.has(hinted)) {
+          ep = hinted;
+          data = null;
+          continue;
+        }
+      }
       break;
     } catch (e) {
       lastErr = e;
+      const next = RAIL_ENDPOINTS.indexOf(ep) + 1;
+      ep = RAIL_ENDPOINTS[next];
     }
   }
   if (!data) throw lastErr || new Error('所有端点都失败了');
