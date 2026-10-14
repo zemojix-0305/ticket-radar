@@ -10,10 +10,10 @@ const HISTORY_KEY = 'radar_search_history';
 const CREDIT_KEY = 'wx_subscribe_credit';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
-import Toast from '/vant/toast/toast';
+import Toast from '../../vant/toast/toast';
 import { request } from '../utils/api';
 import { loadTasks, saveTasks } from '../utils/tasks';
-import Dialog from '/vant/dialog/dialog';
+import Dialog from '../../vant/dialog/dialog';
 
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。
 // 平台辨识靠文字，彩色只留给「有票/无票/异常」三个语义状态。
@@ -346,16 +346,14 @@ Page({
     }
 
     this.setData({ adding: id });
-saveTasks([...loadTasks(), { _id: id, adapter, name, params, enabled: true, poster: row.poster || '' }])
-      })
-      .then(() => {
-        Toast({ type: 'success', message: '已开始盯' });
-        this.setData({ adding: '' });
-        setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
-      })
-      .catch((e) => {
-        this.setData({ adding: '' });
-        Dialog.alert({ title: '添加失败', message: String(e.message || e) });
-      });
+    try {
+      saveTasks([...loadTasks(), { _id: id, adapter, name, params, enabled: true, poster: row.poster || '' }]);
+      Toast({ type: 'success', message: '已开始盯' });
+      this.setData({ adding: '' });
+      setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
+    } catch (e) {
+      this.setData({ adding: '' });
+      Dialog.alert({ title: '添加失败', message: String(e.message || e) });
+    }
   },
 });

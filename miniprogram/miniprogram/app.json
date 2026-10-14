@@ -55,7 +55,6 @@
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
-  "cloud": true,
   "permission": {
     "scope.qrcode": {
       "desc": "用于扫描二维码，快速获取演出信息"

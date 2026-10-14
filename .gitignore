@@ -48,3 +48,4 @@ project.private.config.json
 
 # 字体源文件 8MB，子集化后已入包，不进仓库
 tools/font-src/
+open_devtools.bat

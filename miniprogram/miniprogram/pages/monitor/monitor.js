@@ -1,7 +1,7 @@
 // 监控页：首屏回答三个问题——我在盯几个、现在有没有票、上次什么时候查的。
-import Toast from '/vant/toast/toast';
+import Toast from '../../vant/toast/toast';
 import { request } from '../utils/api';
-import Dialog from '/vant/dialog/dialog';
+import Dialog from '../../vant/dialog/dialog';
 //
 // 两条原则（跟 Python 那边保持一致）：
 //   1. 结论先行——卡片第一眼告诉你「有票还是没票」，不是先列车次；

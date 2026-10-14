@@ -12,7 +12,7 @@ const CREDIT_KEY = 'wx_subscribe_credit';
 const USER_KEY = 'radar_user_profile';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
-import Toast from '/vant/toast/toast';
+import Toast from '../../vant/toast/toast';
 import { request } from '../utils/api';
 
 function makeUid() {

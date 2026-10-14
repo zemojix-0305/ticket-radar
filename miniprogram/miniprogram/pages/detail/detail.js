@@ -1,8 +1,8 @@
 // 演出详情页：云函数 detail action 拉场次×票档，「盯这场」写 radar_tasks。
-import Toast from '/vant/toast/toast';
+import Toast from '../../vant/toast/toast';
 import { request } from '../utils/api';
 import { loadTasks, saveTasks } from '../utils/tasks';
-import Dialog from '/vant/dialog/dialog';
+import Dialog from '../../vant/dialog/dialog';
 
 const CREDIT_KEY = 'radar_credit';
 
@@ -87,10 +87,14 @@ request({ action: 'detail', platform: this.data.platform, id: this.data.id })
     }
     const docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
     this.setData({ adding: true });
-saveTasks([...loadTasks(), { _id: docId, adapter: p, name: this.data.name || ('#' + this.data.id), params, enabled: true, poster: this.data.poster || '' }])
-      })
-      .then(() => {
-        Toast({ type: 'success', message: '已开始盯' });
-        Toast({ type: "success", message: "已开始盯" });
-        this.setData({ adding: false });
-        setTimeout(() => wx.switchTab({ url: "/pages/monitor/monitor" }), 800);
+    try {
+      saveTasks([...loadTasks(), { _id: docId, adapter: p, name: this.data.name || ('#' + this.data.id), params, enabled: true, poster: this.data.poster || '' }]);
+      Toast({ type: 'success', message: '已开始盯' });
+      this.setData({ adding: false });
+      setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
+    } catch (e) {
+      this.setData({ adding: false });
+      Dialog.alert({ title: '添加失败', message: String(e.message || e) });
+    }
+  },
+});

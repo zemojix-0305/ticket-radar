@@ -6,9 +6,9 @@
 // 留言墙视觉：每条帖子随机（按 _id 稳定）套一张手账便签做背景，
 // 顶部盖一个小夹子/图钉——素材在 images/board/，工具脚本 tools/cut_board_assets.py。
 
-import Toast from '/vant/toast/toast';
+import Toast from '../../vant/toast/toast';
 import { request } from '../utils/api';
-import Dialog from '/vant/dialog/dialog';
+import Dialog from '../../vant/dialog/dialog';
 
 const USER_KEY = 'radar_user_profile';
 const POSTS_DB = 'radar_posts';
@@ -118,8 +118,7 @@ Page({
     const typeFilter = this.data.currentTab ? typeMap[this.data.currentTab] : '';
 
     self.setData({ loading: true, fail: '' });
-      request({ action: 'listPosts', keyword: kw, offset, limit: PAGE_SIZE },
-      })
+    request({ action: 'listPosts', keyword: kw, offset, limit: PAGE_SIZE })
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
