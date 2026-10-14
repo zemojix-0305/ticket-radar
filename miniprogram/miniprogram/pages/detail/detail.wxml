@@ -72,9 +72,11 @@
     </view>
 
     <view class="sec-more" wx:if="{{!tiers.length}}">盯整场 = 任意票档从无到有就提醒你</view>
+    <!-- 猫眼诚实说明：匿名只有项目级库存，按价位盯需要登录凭证（指引见 config 样例） -->
+    <view class="sec-more" wx:if="{{platform === 'maoyan' && !tiers.length}}">猫眼的票档库存需要登录后才能看到，当前只能盯整场</view>
 
-    <!-- 只盯某个价位：有票档粒度时出现，选了就只盯这个价位，再点一下取消 -->
-    <view class="tierpick" wx:if="{{tiers.length}}">
+    <!-- 只盯某个价位：票档粒度 ≥2 才有意义（只有一个档=没得选，摆出来纯属误导） -->
+    <view class="tierpick" wx:if="{{tiers.length > 1}}">
       <view class="tierpick-title">只盯某个价位（可选）</view>
       <view class="tierpick-chips">
         <view

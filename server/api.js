@@ -39,9 +39,10 @@ function loadSrvConfig() {
   const cfg = {};
   if (process.env.DAMAI_COOKIE) cfg.damaiCookie = process.env.DAMAI_COOKIE;
   if (process.env.FWD_TOKEN) cfg.fwdToken = process.env.FWD_TOKEN;
+  if (process.env.MY_TOKEN) cfg.myToken = process.env.MY_TOKEN;
   try {
     const local = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
-    for (const k of ['damaiCookie', 'fwdToken']) {
+    for (const k of ['damaiCookie', 'fwdToken', 'myToken']) {
       if (local[k] && !cfg[k]) cfg[k] = String(local[k]);
     }
   } catch (e) { /* 没有 config.json 就全走匿名 */ }
@@ -145,6 +146,7 @@ async function apiHandler(req, res) {
   // 服务端凭据注入：客户端没带才补（本地上强调试用），终端用户全程无感
   if (!event.damaiCookie && SRV_CONFIG.damaiCookie) event.damaiCookie = SRV_CONFIG.damaiCookie;
   if (!event.fwdToken && SRV_CONFIG.fwdToken) event.fwdToken = SRV_CONFIG.fwdToken;
+  if (!event.myToken && SRV_CONFIG.myToken) event.myToken = SRV_CONFIG.myToken;
 
   try {
     const out = await radar.main(event);

@@ -113,13 +113,16 @@ async function getJson(url, opts, redirectsLeft) {
 // 余票值的解析（三态：有票但数量未知 / 0 张 / n 张）
 // ===========================================================================
 
-const NOT_OFFERED = ['', '--', '*', '—', '-'];
+const NOT_OFFERED = ['', '--', '*', '—', '-', '0'];
 const ABUNDANT = ['有', '充足', '有票'];
-const SOLD_OUT = ['无', '无票', '0'];
+const SOLD_OUT = ['无', '无票'];
 
 /**
  * 解析单个席别的余票值。
  * 返回 null 表示本次列车不提供该席别——**不认识的值宁可漏报也不误报**。
+ * 实测（2026-10-14，G1 京沪原始行）：不设此席别的列是 '' 或 '0'
+ * （(动) 系列卧铺列尤其爱用 '0' 占位）；真卖光的列是 '无'。
+ * 把 '0' 算进 NOT_OFFERED——不然没卧铺的高铁会冒出「高级软卧 无票」这种鬼话。
  */
 function parseSeat(seatType, raw) {
   const v = String(raw == null ? '' : raw).trim();
@@ -200,9 +203,93 @@ async function findMaoyan(keyword, limit) {
  * 拿不到票档余量。搜索接口才有 performances/sessions 那种嵌套，
  * 两者结构不一样，别照抄。
  */
+// 猫眼「odea」登录通道（2026-10-14 实装，对照 ThinkerWen/TicketMonitoring 的 Monitor_MY.py）：
+//   场次: POST https://wx.maoyan.com/my/odea/project/shows?token=<t>&clientPlatform=2  body {"projectId":<id>}
+//         → data.showListVO[]: { showId, showName }
+//   票档: GET https://wx.maoyan.com/my/odea/show/tickets?token=<t>&showId=<sid>&projectId=<pid>&clientPlatform=2
+//         → data.ticketsVO[]: { ticketId, ticketPriceVO:{ticketPrice}, remainingStock }
+// 匿名一律 403「请先登录」——所以 token 必须自带（config.json 的 myToken 或客户端随请求带）。
+// m.dianping.com/myshow 的匿名详情只有项目级库存（inventoryCount/stockOut），没有票档粒度。
+function myOdeaHeaders() {
+  return {
+    'User-Agent':
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) ' +
+      'Mobile/15E148 MicroMessenger/8.0.53(0x18003531) NetType/WIFI Language/zh_CN',
+    'X-Channel-ID': '70001',
+    version: 'wallet-v5.10.9',
+    'X-Requested-With': 'wxapp',
+    'content-type': 'application/json',
+    'x-wxa-referer': 'pages/show/detail/v2/index',
+    'x-wxa-page': 'pages/showsubs/ticket-level/v2/index',
+    Referer: 'https://servicewechat.com/wxdbb4c5f1b8ee7da1/1557/page-frame.html',
+  };
+}
+
+/** odea 场次×票档全展开。返回 [{ showId, showName, tiers:[{name,price,stock}] }]。 */
+async function myOdeaTicketLevels(projectId, token) {
+  const showsRaw = await request(
+    `https://wx.maoyan.com/my/odea/project/shows?token=${encodeURIComponent(token)}&clientPlatform=2`,
+    {
+      method: 'POST',
+      headers: myOdeaHeaders(),
+      body: JSON.stringify({ projectId: Number(projectId) }),
+      timeout: 15000,
+    },
+  );
+  let showsRes = null;
+  try { showsRes = JSON.parse(showsRaw.body); } catch (e) { /* 落到下面统一报错 */ }
+  if (!showsRes || showsRes.success === false || !showsRes.data) {
+    throw new Error('猫眼登录凭证无效或过期（odea shows ' + JSON.stringify(showsRes && showsRes.error || {}).slice(0, 80) + '）');
+  }
+  const showList = showsRes.data.showListVO || [];
+  const out = [];
+  for (const s of showList.slice(0, 10)) {
+    const ticketsRes = await getJson(
+      `https://wx.maoyan.com/my/odea/show/tickets?token=${encodeURIComponent(token)}&showId=${s.showId}&projectId=${projectId}&clientPlatform=2`,
+      { headers: myOdeaHeaders(), timeout: 15000 },
+    );
+    if (!ticketsRes || ticketsRes.success === false || !ticketsRes.data) continue;
+    const tiers = (ticketsRes.data.ticketsVO || []).map((t) => {
+      const price = t.ticketPriceVO && t.ticketPriceVO.ticketPrice != null ? String(t.ticketPriceVO.ticketPrice) : '';
+      return {
+        name: price ? (price.replace(/\.0+$/, '') + ' 元档') : ('票档 ' + t.ticketId),
+        price: price ? '¥' + price.replace(/\.0+$/, '') : '',
+        stock: Number(t.remainingStock) || 0,
+      };
+    });
+    out.push({ showId: s.showId, showName: stripTags(s.showName) || '场次', tiers });
+  }
+  return out;
+}
+
 async function pollMaoyan(params) {
   const id = params.performance_id || params.id;
   if (!id) throw new Error('缺少 performance_id');
+  // 登录通道：有 token 时走 odea，拿场次×票档×剩余库存的真实粒度，
+  // 「只盯某个价位」靠 label 里的票价关键字就能罩住
+  if (params.myToken) {
+    const levels = await myOdeaTicketLevels(id, params.myToken);
+    const items = [];
+    for (const lv of levels) {
+      if (!lv.tiers.length) {
+        items.push({ label: lv.showName, place: '', when: lv.showName, status: '没挂出票档', available: false, count: 0 });
+        continue;
+      }
+      for (const t of lv.tiers) {
+        items.push({
+          label: lv.showName + ' · ' + t.name,
+          place: '',
+          when: lv.showName,
+          status: t.stock > 0 ? '可购' : '不可购',
+          available: t.stock > 0,
+          count: t.stock > 0 ? t.stock : 0,
+          price: t.price,
+        });
+      }
+    }
+    if (items.length) return items;
+    // odea 没回票档就落回匿名详情，别给用户一个空结果
+  }
   const url = `${MAOYAN_BASE}/ajax/performance/${id}?sellChannel=7`;
   const data = await getJson(url, { headers: maoyanHeaders() });
   if (data.code !== 200) throw new Error('猫眼返回 code=' + data.code + ' msg=' + data.msg);
@@ -1502,6 +1589,32 @@ async function detailShow(platform, id, event) {
     return { platform, id, name: name || ('纷玩岛 #' + id), venue: '', sessions };
   }
 
+  // 猫眼详情：有登录 token（myToken）时走 odea 拿真实场次×票档×库存；
+  // 没有 token 匿名通道只有项目级库存，落回 generic 分支（诚实：只有一个价位，
+  // 详情页会提示填凭证后才能按价位盯）
+  if (platform === 'maoyan' && event && event.myToken) {
+    try {
+      const levels = await myOdeaTicketLevels(id, event.myToken);
+      const sessions = levels.map((lv) => ({
+        name: lv.showName,
+        when: lv.showName,
+        status: '',
+        available: lv.tiers.some((t) => t.stock > 0),
+        tiers: lv.tiers.map((t) => ({
+          name: t.name,
+          price: t.price,
+          status: t.stock > 0 ? (t.stock + ' 张') : '无票',
+          available: t.stock > 0,
+        })),
+      }));
+      const d = (await getJson(`${MAOYAN_BASE}/ajax/performance/${id}?sellChannel=7`, { headers: maoyanHeaders() })).data || {};
+      return { platform, id, name: stripTags(d.name) || '', venue: stripTags(d.shopName || d.address) || '', sessions };
+    } catch (e) {
+      // token 失效别整页报错——落回匿名项目级详情
+      if (!/凭证/.test(String(e.message))) throw e;
+    }
+  }
+
   if (platform === 'bilibili') {
     await biliWarm().catch(() => {});
     const j = await getJson(
@@ -1635,7 +1748,10 @@ async function detailShow(platform, id, event) {
     : platform === 'maoyan' ? 'performance_id'
     : platform === 'damai' ? 'item_id'
     : 'id';
-  const items = await fn({ [paramKey]: id });
+  const fnParams = { [paramKey]: id };
+  // 注意：不把 event.myToken 传给 generic 分支——有 token 的情形在前面 maoyan
+  // 专属分支处理（失败已静默落回匿名）；这里再传会让 token 失效错误穿透到详情页
+  const items = await fn(fnParams);
   const first = items[0] || {};
   return {
     platform, id,
@@ -1961,6 +2077,9 @@ async function handleAction(event, action, db) {
             if (task.adapter === 'damai' && event.damaiCookie) {
               fnParams.damaiCookie = event.damaiCookie;
             }
+            if (task.adapter === 'maoyan' && event.myToken) {
+              fnParams.myToken = event.myToken;
+            }
             rec.items = await fn(fnParams);
             rec.ok = true;
             // 价位级监控（第二十七轮）：建任务时选了「只盯某个价位」的话，
@@ -2270,6 +2389,8 @@ exports._internals = {
   damaiSearch: damaiSearch,
   pollDamai: pollDamai,
   damaiDetailSSR: damaiDetailSSR,
+  getJson: getJson,
+  maoyanHeaders: maoyanHeaders,
   mtopCall: mtopCall,
   findBilibili: findBilibili,
   pollBilibili: pollBilibili,

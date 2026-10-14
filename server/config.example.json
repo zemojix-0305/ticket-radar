@@ -1,10 +1,13 @@
 {
-  "_说明": "复制本文件为 server/config.json 并填入真实凭据（config.json 已 gitignore，绝不提交）。云端部署用环境变量 DAMAI_COOKIE / FWD_TOKEN 等价。",
+  "_说明": "复制本文件为 server/config.json 并填入真实凭据（config.json 已 gitignore，绝不提交）。云端部署用环境变量 DAMAI_COOKIE / FWD_TOKEN / MY_TOKEN 等价。",
 
   "_damaiCookie怎么拿": "电脑浏览器登录 damai.cn → F12 打开开发者工具 → Network 标签 → 随便点一个请求 → 请求头里复制 Cookie 整行粘到这里。登录态 Cookie 可稳定通过大麦风控（RGV587），盯票详情/票档接口必须有它。",
   "damaiCookie": "",
 
   "_fwdToken怎么拿_方法一网页版": "电脑浏览器打开 www.livelab.com.cn 登录 → F12 → Network → 随便一个 api.livelab.com.cn 请求 → 复制请求头 authorization 里 Bearer 后面那串。",
   "_fwdToken怎么拿_方法二手机抓包": "抓包纷玩岛小程序任意请求的 authorization 请求头，Bearer 后面整段。",
-  "fwdToken": ""
+  "fwdToken": "",
+
+  "_myToken怎么拿": "抓包猫眼演出小程序（wx.maoyan.com 域名的请求），URL 上 token= 后面那串。填了它猫眼才有票档级库存（场次×票价×剩余张数），用户才能「只盯某个价位」；不填只能盯整场。",
+  "myToken": ""
 }

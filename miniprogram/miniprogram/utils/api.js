@@ -29,6 +29,9 @@ const FWD_TOKEN_KEY = 'radar_fwd_token';
 // 大麦 Cookie（可选）：登录大麦网页版后粘 Cookie 进来，过 mtop 风控最稳。
 // 同样全局随请求带上，服务端只在大麦相关调用里用。
 const DM_COOKIE_KEY = 'radar_dm_cookie';
+// 猫眼登录 token（可选）：猫眼小程序的用户凭证，票档级库存（remainingStock）
+// 只有登录通道有。服务端只在猫眼相关调用里用。
+const MY_TOKEN_KEY = 'radar_my_token';
 
 function request(params) {
   return new Promise((resolve, reject) => {
@@ -40,6 +43,10 @@ function request(params) {
     if (!payload.damaiCookie) {
       const ck = wx.getStorageSync(DM_COOKIE_KEY);
       if (ck) payload.damaiCookie = ck;
+    }
+    if (!payload.myToken) {
+      const tk = wx.getStorageSync(MY_TOKEN_KEY);
+      if (tk) payload.myToken = tk;
     }
     wx.request({
       url: base() + '/api',
