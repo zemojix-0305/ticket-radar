@@ -111,13 +111,17 @@ async function post(payload, timeout = 45000) {
 }
 
 // 每平台的预期。id 缺省时从 find 第一行取。
+// fenwandao 的 id 是加密 base64（从微博分享短链解出），匿名 find/detail 均可用；
+// get_performs（票档级）仍要凭证，属预期 WARN。
+const FWD_LINK = 'https://m.livelab.com.cn/hppreview/pages/concert/detail?id=' +
+  encodeURIComponent('6Z7dDOzIH3/BkhVHWLmiq1mzAtxijo4DkGC+p/cwsBo=') + '&type=1&channel=weibo';
 const EXPECT = [
   { platform: 'maoyan', find: 'ok', detailId: '498506', detail: 'ok', detailNoTiers: true },
   { platform: 'moretickets', find: 'ok', detail: 'ok', sessionsAsItems: true },
   { platform: 'bilibili', find: 'ok', detail: 'ok' },
   { platform: 'piaoxingqiu', find: 'ok', detail: 'ok', wantRealTiers: true },
-  { platform: 'damai', find: 'warn-token', detailId: '1086111708947', detail: 'ok-or-degraded' },
-  { platform: 'fenwandao', find: 'warn-token', detail: 'warn-token' },
+  { platform: 'damai', find: 'ok', flakyFind: true, detailId: '1086111708947', detail: 'ok-or-degraded' },
+  { platform: 'fenwandao', find: 'ok', findKw: FWD_LINK, detailId: decodeURIComponent(FWD_LINK.match(/id=([^&]+)/)[1]), detail: 'ok' },
   { platform: 'rail12306', find: 'ok', findKw: '广州南 长沙南', findDate: '2026-10-20', detail: 'ok', rail: true },
 ];
 
@@ -186,9 +190,15 @@ async function liveChecks() {
       // 凭据挂了就不continue detail——用兜底 id 试 detail，仍可能降级可用
     } else {
       const rows = f.rows || [];
-      record(sec, `${exp.platform}/find ok+有行`, f.ok === true && rows.length > 0,
-        `ok=${f.ok} rows=${rows.length} err=${String(f.error || '').slice(0, 50)}`,
-        f.ok ? '关键词太偏，换常用词再试' : '查该平台 find 分支');
+      const flaky = exp.flakyFind && f.ok === false && /长队|排队|RGV587|风控|稍后再试/.test(String(f.error || ''));
+      if (flaky) {
+        warn(sec, `${exp.platform}/find`, `匿名通道被限频（${String(f.error).slice(0, 40)}）`,
+          '密集测试触发的 IP 限频，等几分钟重跑即绿；填 Cookie 后更稳');
+      } else {
+        record(sec, `${exp.platform}/find ok+有行`, f.ok === true && rows.length > 0,
+          `ok=${f.ok} rows=${rows.length} err=${String(f.error || '').slice(0, 50)}`,
+          f.ok ? '关键词太偏，换常用词再试' : '查该平台 find 分支');
+      }
     }
 
     // ---- detail ----

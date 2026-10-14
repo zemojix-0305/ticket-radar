@@ -80,6 +80,16 @@
 .bind-arrow { font-size: 14px; color: var(--ink3); transition: transform .2s; }
 .bind-arrow-open { transform: rotate(180deg); }
 .code-box { background: var(--card2); border-radius: var(--r); padding: 11px 13px; margin-top: 12px; }
+.cred-label { font-size: 12px; color: var(--ink2); margin-top: 12px; }
+.cred-input {
+  margin-top: 6px;
+  background: var(--card2);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--ink);
+  word-break: break-all;
+}
 .code { font-size: 13px; color: var(--ink); word-break: break-all; display: block; line-height: 1.6; }
 .cmd { margin-top: 12px; padding: 10px 12px; background: var(--accent-weak); border-radius: var(--r); }
 .cmd-c {

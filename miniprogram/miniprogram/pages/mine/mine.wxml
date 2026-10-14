@@ -99,6 +99,31 @@
     </view>
   </view>
 
+  <!-- 平台凭证：纷玩岛票档/猫眼分档价/大麦风控都走登录通道，此处填一次全端生效 -->
+  <view class="card bind">
+    <view class="bind-head" bindtap="toggleCred" hover-class="press-hover">
+      <view class="t1">平台凭证</view>
+      <text class="bind-arrow {{credOpen ? 'bind-arrow-open' : ''}}">▾</text>
+    </view>
+
+    <view wx:if="{{credOpen}}">
+      <view class="t3" style="padding: 4px 0;">填一次存本机，盯票时自动带上。不填也能用，只是那些平台看不到票档明细。</view>
+
+      <view class="cred-label">纷玩岛 token（按票档盯必填）</view>
+      <input class="cred-input" password value="{{fwdToken}}" placeholder="抓纷玩岛小程序请求里的 authorization" bindinput="onFwdInput" />
+
+      <view class="cred-label">大麦 Cookie（过风控，可选）</view>
+      <input class="cred-input" value="{{dmCookie}}" placeholder="登录大麦网页版后粘 Cookie" bindinput="onDmInput" />
+
+      <view class="cred-label">猫眼 token（看分档价格，可选）</view>
+      <input class="cred-input" password value="{{myToken}}" placeholder="抓猫眼小程序请求里的 token" bindinput="onMyTokenInput" />
+
+      <view class="acts">
+        <view class="btn btn-primary" bindtap="saveCred" hover-class="press-hover">保存凭证</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 我的留言：本机发过的讨论区帖子，可删除 -->
   <view class="card bind">
     <view class="bind-head" bindtap="toggleMyPosts" hover-class="press-hover">

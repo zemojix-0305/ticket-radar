@@ -847,9 +847,18 @@ function mtopAttempt(api, dataObj, v, cVal, userCookie, extraQ) {
   };
   // 匿名令牌 + 用户自带 Cookie（可选）：登录态 Cookie 是过 RGV587 风控的
   // 最稳通道（Monitor_DM 同款）——匿名被拦时用户粘一次 Cookie 就能走
+  // 注意：用户 Cookie 里的 _m_h5_tk 必须剥掉——签名用的是匿名 jar 的令牌，
+  // 若用户 Cookie 带着过期令牌排在后面，服务端按它校验签名 → 永远 TOKEN_EXOIRED
   const cookieParts = [];
   if (mtopCookie) cookieParts.push(mtopCookie);
-  if (userCookie) cookieParts.push(String(userCookie).replace(/^Cookie:\s*/i, '').trim());
+  if (userCookie) {
+    const clean = String(userCookie).replace(/^Cookie:\s*/i, '').trim()
+      .split(';')
+      .filter((c) => !/^\s*_m_h5_tk(_enc)?\s*=/.test(c))
+      .join('; ')
+      .trim();
+    if (clean) cookieParts.push(clean);
+  }
   if (cookieParts.length) headers.Cookie = cookieParts.join('; ');
   // c 参数：被 AntiCreep 拦时响应带顶层 c 字段，带回去重试（Monitor_DM 同款）
   const cQ = cVal ? '&c=' + encodeURIComponent(cVal) : '';
@@ -1129,8 +1138,12 @@ async function mtopCall(api, dataObj, v, userCookie, extraQ) {
   let j = await mtopAttempt(api, dataObj, v, undefined, userCookie, extraQ);
   let ret = (j.ret || [])[0] || '';
   let tries = 0;
+  let cookie = userCookie;
   while (!/SUCCESS/.test(ret) && tries < 4) {
-    if (/TOKEN_EMPTY|TOKEN_EXPIRED/.test(ret)) {
+    // TOKEN_EXOIRED 不是笔误——阿里网关返回的官方串就少个 P，必须照抄才匹配得到
+    if (/TOKEN_EMPTY|TOKEN_EXPIRED|TOKEN_EXOIRED/.test(ret)) {
+      // 用户 Cookie 过期/失效会让签名与令牌对不上 → 丢掉它降级匿名重试
+      if (cookie && /TOKEN_EXPIRED|TOKEN_EXOIRED/.test(ret)) cookie = '';
       await sleep(200 + tries * 150); // 匿名令牌刚下发，重签即可
     } else if (/API_NOT_FOUNDED/.test(ret)) {
       mtopCookie = ''; // 丢弃可能错路的匿名令牌，重新签发
@@ -1140,7 +1153,7 @@ async function mtopCall(api, dataObj, v, userCookie, extraQ) {
     } else {
       break; // 其他错误重试无意义
     }
-    j = await mtopAttempt(api, dataObj, v, /RGV587|USER_VALIDATE/.test(ret) ? j.c : undefined, userCookie, extraQ);
+    j = await mtopAttempt(api, dataObj, v, /RGV587|USER_VALIDATE/.test(ret) ? j.c : undefined, cookie, extraQ);
     ret = (j.ret || [])[0] || '';
     tries++;
   }
@@ -1192,143 +1205,81 @@ async function damaiSearch(keyword, limit, userCookie) {
 }
 
 /**
- * 大麦盯票轮询（2026-10-14 重构为 mtop 双接口）：
- *   第一步 mtop.damai.item.detail.getdetail → 场次列表（performBases）
- *   第二步 mtop.alibaba.detail.subpage.getdetail → 每场次的票档 skuList
- * 票档可售判定用官方 skuSalable 字段（"false" 字符串 = 不可售，其余不猜，
- * 按 Monitor_DM 的口径只有明确 "false" 才跳过）。
- * 场次列表基本不变，进程内缓存 10 分钟，轮询大头只打票档接口。
+ * 大麦盯票轮询（2026-10-14 第三次重构：poll 与 detail 同走匿名 H5 v1.2 通道）：
+ * 旧链路（mtop.damai.item.detail.getdetail + subpage）匿名必被 RGV587，
+ * 永远只回「人太多排长队」——等于盯不了。detail 的 H5 v1.2 通道
+ * （mtop.alibaba.damai.detail.getdetail）匿名稳定，一次带回场次×票档；
+ * 匿名时 skuList 常为空（票档库存只在 Cookie 通道）→ 退化按场次盯，
+ * 场次行保持稳定、不伪造可购状态；用户填了大麦 Cookie 后票档自动生效。
  */
-
-// itemId → { at, sessions: [{performId, performName}] }
-const dmSessionCache = new Map();
-const DM_SESSION_TTL = 10 * 60 * 1000;
-
-async function dmGetSessions(itemId, userCookie) {
-  const hit = dmSessionCache.get(String(itemId));
-  if (hit && Date.now() - hit.at < DM_SESSION_TTL) return hit.sessions;
-
-  const detail = await mtopCall('mtop.damai.item.detail.getdetail', {
-    dmChannel: 'damai@weixin_weapp',
-    itemId: String(itemId),
-    lat: 39.93722786511198,
-    lng: 116.43680040115234,
-  }, '1.0', userCookie, {
-    // AntiCreep 参数组：详情接口不带会被 RGV587（照抄 Monitor_DM 抓包）
-    jsv: '2.4.12',
-    type: 'json',
-    AntiCreep: 'true',
-    AntiFlood: 'true',
-    env: 'm',
-    valueType: 'string',
-    url: 'mtop.damai.item.detail.getdetail',
-  });
-  // data.legacy 是 JSON 字符串（valueType=string 口径），parse 后取场次树
-  let legacy;
-  try {
-    legacy = typeof detail.legacy === 'string' ? JSON.parse(detail.legacy) : (detail.legacy || {});
-  } catch (e) {
-    throw new Error('大麦详情 legacy 结构解析失败——接口口径可能变了');
-  }
-  const compItem =
-    (((legacy.detailViewComponentMap || {}).item || {}).item) || {};
-  const bases = Array.isArray(compItem.performBases) ? compItem.performBases : [];
-  const sessions = [];
-  for (const b of bases.slice(0, 20)) {
-    const perfs = Array.isArray(b.performs) ? b.performs : [];
-    for (const p of perfs.slice(0, 10)) {
-      if (p.performId) {
-        sessions.push({ performId: String(p.performId), performName: p.performName || b.performName || '场次' });
-      }
-    }
-  }
-  dmSessionCache.set(String(itemId), { at: Date.now(), sessions });
-  return sessions;
-}
-
-/** 拉一个场次的票档列表。返回 [{skuId, priceName, onSale}]。 */
-async function dmGetSkus(itemId, performId, userCookie) {
-  const data = await mtopCall('mtop.alibaba.detail.subpage.getdetail', {
-    itemId: String(itemId),
-    bizCode: 'ali.china.damai',
-    scenario: 'itemsku',
-    exParams: JSON.stringify({ dataType: 2, dataId: String(performId) }),
-    platform: '8',
-    comboChannel: '2',
-    dmChannel: 'damai@damaih5_h5',
-  }, '2.0', userCookie, {
-    // 同上：票档接口的 AntiCreep 参数组（照抄 Monitor_DM 抓包）
-    jsv: '2.7.4',
-    H5Request: 'true',
-    timeout: '10000',
-    valueType: 'original',
-    forceAntiCreep: 'true',
-    AntiCreep: 'true',
-    useH5: 'true',
-  });
-  let result;
-  try {
-    result = typeof data.result === 'string' ? JSON.parse(data.result) : (data.result || {});
-  } catch (e) {
-    throw new Error('大麦票档 result 结构解析失败——接口口径可能变了');
-  }
-  const skus = ((result.perform || {}).skuList) || [];
-  return skus.map((s) => ({
-    skuId: String(s.skuId || ''),
-    priceName: s.priceName || '票档',
-    onSale: String(s.skuSalable || '') !== 'false', // 只有明确 false 才算不可售
-  }));
-}
 
 async function pollDamai(params) {
   const itemId = params.item_id || params.id || extractDamaiId(params.url || '');
   if (!itemId) throw new Error('缺少大麦 itemId——把大麦 App 分享出来的链接粘贴进来即可');
   const userCookie = params.damaiCookie || '';
 
-  const sessions = await dmGetSessions(itemId, userCookie);
-  if (!sessions.length) throw new Error('大麦没返回场次（项目可能已下架或 id 不对）');
-
+  const det = await damaiDetailV12(itemId, userCookie);
   const items = [];
-  for (const s of sessions.slice(0, 10)) {
-    s.performName = stripTags(s.performName) || '场次';
-    let skus = [];
-    try {
-      skus = await dmGetSkus(itemId, s.performId, userCookie);
-    } catch (e) {
-      // 单场次失败不拖垮整体——标成未知状态继续
-      items.push({
-        label: s.performName,
-        place: '',
-        when: s.performName,
-        status: '票档查询失败',
-        available: false,
-        count: 0,
-      });
+  let subpageDead = false; // subpage 被风控拦一次就不逐场次再试，省超时
+  for (const s of (det.sessions || []).slice(0, 10)) {
+    const name = stripTags(s.name) || '场次';
+    if (s.tiers && s.tiers.length) {
+      for (const t of s.tiers) {
+        items.push({
+          label: name + ' · ' + t.name,
+          place: '',
+          when: s.when || name,
+          status: t.available ? '可购' : '不可购',
+          available: !!t.available,
+          count: t.available ? null : 0,
+          price: t.price || '',
+        });
+      }
       continue;
     }
-    if (skus.length) {
-      for (const k of skus) {
+    // 匿名通道没带票档 → 有 Cookie 才试 subpage（Cookie 通道），否则按场次盯
+    let tiers = [];
+    if (!subpageDead && s.performId) {
+      try {
+        tiers = await damaiSessionTiers(itemId, s.performId, userCookie);
+      } catch (e) {
+        tiers = [];
+        subpageDead = true; // 一次被拦视作整段被拦
+      }
+    }
+    if (tiers.length) {
+      for (const t of tiers) {
         items.push({
-          label: s.performName + ' · ' + (stripTags(k.priceName) || '票档'),
+          label: name + ' · ' + t.name,
           place: '',
-          when: s.performName,
-          status: k.onSale ? '可购' : '不可购',
-          available: k.onSale,
-          count: k.onSale ? null : 0,
+          when: s.when || name,
+          status: t.available ? '可购' : '不可购',
+          available: !!t.available,
+          count: t.available ? null : 0,
+          price: t.price || '',
         });
       }
     } else {
       items.push({
-        label: s.performName,
+        label: name,
         place: '',
-        when: s.performName,
-        status: '没挂出票档',
+        when: s.when || name,
+        status: userCookie ? '没挂出票档' : '票档要凭证（「我的」页填大麦 Cookie 后按价位盯）',
         available: false,
         count: 0,
+        price: det.priceRange || '',
       });
     }
   }
-  if (!items.length) throw new Error('大麦没返回任何票档——项目可能已下架');
+  if (!items.length) {
+    // 连场次都没有：大概率被风控拦或项目已下架——给一句能行动的话
+    const ssr = await damaiDetailSSR(itemId).catch(() => null);
+    throw new Error(
+      ssr
+        ? '大麦场次列表暂时被风控拦住——「我的」页填一次大麦 Cookie 就能盯'
+        : '大麦没返回场次（项目可能已下架或 id 不对）'
+    );
+  }
   return items;
 }
 
@@ -1340,6 +1291,24 @@ async function findDamai(linkOrId, userCookie) {
   const raw = String(linkOrId || '').trim();
   if (/https?:\/\//i.test(raw) || /^\d{6,}$/.test(raw)) {
     const id = extractDamaiId(raw) || raw;
+    // 演出名优先走详情通道——poll 行标签是「场次 · 票档」，
+    // 拿它当演出名会把列表页名字写成场次（同摩天轮那次踩坑）
+    const det = await damaiDetailV12(id, userCookie).catch(() => null);
+    if (det && det.name) {
+      return [
+        {
+          performanceId: id,
+          itemId: id,
+          name: det.name,
+          city: det.city || '',
+          venue: det.venue || '',
+          dateRange: det.dateRange || '',
+          price: det.priceRange || '',
+          status: '',
+          poster: det.poster || '',
+        },
+      ];
+    }
     const items = await pollDamai({ item_id: id, damaiCookie: userCookie });
     const first = items[0] || {};
     return [
@@ -2272,9 +2241,21 @@ async function pollFenwandao(params) {
   return items;
 }
 
+/** t.cn 短链 → 真实链接（微博分享出来的纷玩岛入口全是 t.cn，必须先解开）。
+ *  解不出来就原样返回，让后面的 extractFwdId 兜底报错。 */
+async function resolveShortLink(u) {
+  try {
+    const r = await request(u, { headers: { 'User-Agent': FWD_UA, Accept: '*/*' }, timeout: 10000 });
+    const loc = r.headers && (r.headers.location || r.headers.Location);
+    if ((r.status === 301 || r.status === 302) && loc) return String(loc);
+  } catch (e) { /* 跟随不了就当普通文本 */ }
+  return u;
+}
+
 /** 纷玩岛 find：链接/数字 id → 直取详情行（匿名即可）；关键词 → 搜分销接口（未公开验证，失败给指引）。 */
 async function findFenwandao(keyword, limit, token) {
-  const raw = String(keyword || '').trim();
+  let raw = String(keyword || '').trim();
+  if (/^https?:\/\/t\.cn\//i.test(raw)) raw = await resolveShortLink(raw);
   if (/https?:\/\//i.test(raw) || /[?&]id=[A-Za-z0-9+/=_%-]{10,}/.test(raw) || /^\d{3,}$/.test(raw)) {
     const id = /^\d{3,}$/.test(raw) ? raw : extractFwdId(raw);
     // 匿名项目级优先（免凭证），拿不到再退回带 token 的 get_performs
@@ -2311,12 +2292,11 @@ async function findFenwandao(keyword, limit, token) {
     }];
   }
   if (!raw) throw new Error('搜索词不能为空');
-  if (!String(token || '').trim()) throw fwdTokenError();
-  // 搜索端点未在公开项目里验证过，先用社区常见的路径试；不行就引导粘贴链接
-  try {
+  // 搜索端点未公开验证：先匿名试一次（万一放开就白赚），11004（要登录）再按有无 token 走
+  const searchOnce = async (hdrs) => {
     const j = await getJson(
       `${FWD_BASE}/performance/app/search/project?keyword=${encodeURIComponent(raw)}`,
-      { headers: fwdHeaders(token), timeout: 15000 },
+      { headers: hdrs, timeout: 15000 },
     );
     if (j && j.code === 10000 && j.data) {
       const rows = (j.data.projects || j.data.list || j.data.result || []).slice(0, limit || 20);
@@ -2333,9 +2313,19 @@ async function findFenwandao(keyword, limit, token) {
       }));
     }
     throw new Error('code=' + ((j && j.code) || '?') + ' ' + ((j && j.msg) || ''));
-  } catch (e) {
+  };
+  let hasToken = !!String(token || '').trim();
+  try {
+    return await searchOnce(hasToken ? fwdHeaders(token) : fwdAnonHeaders());
+  } catch (anonErr) {
+    if (!hasToken) {
+      throw new Error(
+        '纷玩岛搜索要登录凭证——把演出的**分享链接**（微博分享的话 t.cn 短链也行）粘进来就能匿名盯；想按票档盯就在「我的」页填凭证'
+      );
+    }
+    // 有 token 还失败 → 带原始报错给指引
     throw new Error(
-      '纷玩岛搜索没通（' + String(e.message || e) + '）——先去纷玩岛小程序复制演出分享链接，粘到这里一样能盯'
+      '纷玩岛搜索没通（' + String(anonErr.message || anonErr) + '）——先去纷玩岛小程序复制演出分享链接，粘到这里一样能盯'
     );
   }
 }
@@ -2677,11 +2667,11 @@ async function handleAction(event, action, db) {
           return { ok: true, keyword: '', platform, rows };
         }
         if (platform === 'fenwandao') {
-          // 纷玩岛全接口要设备 token（无匿名通道）。token 由服务端配置注入
-          // （config.json / 用户端老版本存本地也会随请求带上），终端用户无感。
+          // 纷玩岛搜索/热卖榜都要登录（无匿名通道）。token 由「我的」页凭证或服务端注入；
+          // 没有凭证时用户仍可把分享链接（含 t.cn 短链）粘进搜索框——那条路匿名通。
           const tk = String((event && event.fwdToken) || '').trim();
           if (!tk) {
-            return { ok: false, error: '纷玩岛热门榜开发中（纷玩岛接口需要登录才能访问），先逛逛别的平台吧' };
+            return { ok: false, error: '纷玩岛没有公开热卖榜（接口要登录）——把演出的分享链接粘到搜索框就能盯，t.cn 短链也行' };
           }
           try {
             const rows = await findFenwandao('演唱会', limit, tk);

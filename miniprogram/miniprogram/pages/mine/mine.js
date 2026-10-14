@@ -42,6 +42,11 @@ Page({
     // 我的留言：本机发过的讨论区帖子，可在这里删除
     myPostsOpen: false,
     myPosts: [],
+    // 平台凭证（纷玩岛 token / 大麦 Cookie / 猫眼 token），存本地、随请求带上
+    credOpen: false,
+    fwdToken: '',
+    dmCookie: '',
+    myToken: '',
   },
 
   onLoad() {
@@ -49,6 +54,27 @@ Page({
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
     this.loadUser();
     this.loadWatched();
+    this.setData({
+      fwdToken: wx.getStorageSync('radar_fwd_token') || '',
+      dmCookie: wx.getStorageSync('radar_dm_cookie') || '',
+      myToken: wx.getStorageSync('radar_my_token') || '',
+    });
+  },
+
+  // --- 平台凭证 -------------------------------------------------------------
+  // 纷玩岛票档级库存、猫眼分档价格、大麦风控，都只有登录通道能给。
+  // 凭证只存本机 storage，随 find/detail/poll 请求带上，服务端不落库。
+  toggleCred() {
+    this.setData({ credOpen: !this.data.credOpen });
+  },
+  onFwdInput(e) { this.setData({ fwdToken: e.detail.value }); },
+  onDmInput(e) { this.setData({ dmCookie: e.detail.value }); },
+  onMyTokenInput(e) { this.setData({ myToken: e.detail.value }); },
+  saveCred() {
+    wx.setStorageSync('radar_fwd_token', String(this.data.fwdToken || '').trim());
+    wx.setStorageSync('radar_dm_cookie', String(this.data.dmCookie || '').trim());
+    wx.setStorageSync('radar_my_token', String(this.data.myToken || '').trim());
+    Toast({ type: 'success', message: '凭证已保存' });
   },
 
   // --- 我的留言管理 ---------------------------------------------------------
