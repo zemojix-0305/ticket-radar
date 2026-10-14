@@ -22,6 +22,10 @@ Page({
     venue: '',
     date: '',
     price: '',
+    // 12306 查询上下文（shows 页跳转时带上；详情=单趟车次全席别余票必需）
+    railFrom: '',
+    railTo: '',
+    railDate: '',
     sessions: [],
     // 票档扁平列表（去重），供「只盯这个价位」选择；空 = 该演出没票档粒度
     tiers: [],
@@ -40,6 +44,9 @@ Page({
       venue: decodeURIComponent(q.venue || ''),
       date: decodeURIComponent(q.date || ''),
       price: decodeURIComponent(q.price || ''),
+      railFrom: decodeURIComponent(q.from || ''),
+      railTo: decodeURIComponent(q.to || ''),
+      railDate: decodeURIComponent(q.railDate || ''),
     });
     wx.setNavigationBarTitle({ title: this.data.name ? this.data.name.slice(0, 12) : '演出详情' });
     this.loadDetail();
@@ -47,7 +54,14 @@ Page({
 
   loadDetail() {
     this.setData({ loading: true, error: '', tierSel: '' });
-    request({ action: 'detail', platform: this.data.platform, id: this.data.id })
+    const req = { action: 'detail', platform: this.data.platform, id: this.data.id };
+    // 12306：详情查询要站名×日期上下文（服务端按它重新拉一遍余票）
+    if (this.data.platform === 'rail12306') {
+      req.from = this.data.railFrom;
+      req.to = this.data.railTo;
+      req.date = this.data.railDate;
+    }
+    request(req)
       .then((res) => {
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
@@ -106,13 +120,24 @@ Page({
     else if (p === 'bilibili') params = { project_id: this.data.id };
     else if (p === 'piaoxingqiu') params = { show_id: this.data.id };
     else if (p === 'fenwandao') params = { project_id: this.data.id };
+    else if (p === 'rail12306') {
+      if (!this.data.railFrom || !this.data.railTo || !this.data.railDate) {
+        Toast('缺站名/日期——从查票页点车次进来才能盯');
+        return;
+      }
+      params = { from: this.data.railFrom, to: this.data.railTo, date: this.data.railDate };
+      // 选了席别就只盯这个席别（12306 的"价位"就是席别）
+      if (this.data.tierSel) params.seat_types = [this.data.tierSel];
+    }
     else {
       Toast('这个平台暂不能直接盯');
       return;
     }
     // 选了价位就只盯这个价位（服务端 poll 会按关键字过滤 items）
-    if (this.data.tierSel) params.price_label = this.data.tierSel;
-    const docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
+    if (this.data.tierSel && p !== 'rail12306') params.price_label = this.data.tierSel;
+    let docId = p + '-' + String(this.data.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
+    // 12306 同一车次不同日期是两个任务，docId 要带上日期防串
+    if (p === 'rail12306') docId += '-' + String(this.data.railDate || '').replace(/[^0-9]/g, '');
     this.setData({ adding: true });
     try {
       saveTasks([...loadTasks(), { _id: docId, adapter: p, name: this.data.name || ('#' + this.data.id), params, enabled: true, poster: this.data.poster || '' }]);

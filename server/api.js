@@ -27,6 +27,27 @@
 
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
+
+// ---------------------------------------------------------------------------
+// 服务端自持凭据（面向大众上架：终端用户不填任何 cookie/token）
+//   本地：server/config.json（已 gitignore，不进仓库）
+//   云端：环境变量 DAMAI_COOKIE / FWD_TOKEN 优先
+// 注入点在下面 handler 里：客户端没带才注入，客户端显式传的优先（调试用）。
+// ---------------------------------------------------------------------------
+function loadSrvConfig() {
+  const cfg = {};
+  if (process.env.DAMAI_COOKIE) cfg.damaiCookie = process.env.DAMAI_COOKIE;
+  if (process.env.FWD_TOKEN) cfg.fwdToken = process.env.FWD_TOKEN;
+  try {
+    const local = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+    for (const k of ['damaiCookie', 'fwdToken']) {
+      if (local[k] && !cfg[k]) cfg[k] = String(local[k]);
+    }
+  } catch (e) { /* 没有 config.json 就全走匿名 */ }
+  return cfg;
+}
+const SRV_CONFIG = loadSrvConfig();
 
 // ---------------------------------------------------------------------------
 // mock 云运行时全局对象（必须在 require index.js 之前挂到 global）
@@ -120,6 +141,10 @@ async function apiHandler(req, res) {
     res.end(JSON.stringify({ ok: false, error: 'bad request: ' + String(e.message || e) }));
     return;
   }
+
+  // 服务端凭据注入：客户端没带才补（本地上强调试用），终端用户全程无感
+  if (!event.damaiCookie && SRV_CONFIG.damaiCookie) event.damaiCookie = SRV_CONFIG.damaiCookie;
+  if (!event.fwdToken && SRV_CONFIG.fwdToken) event.fwdToken = SRV_CONFIG.fwdToken;
 
   try {
     const out = await radar.main(event);

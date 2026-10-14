@@ -1,0 +1,5 @@
+{
+  "_说明": "复制本文件为 server/config.json 并填入真实凭据（config.json 已 gitignore）。云端部署用环境变量 DAMAI_COOKIE / FWD_TOKEN 等价。",
+  "damaiCookie": "电脑浏览器登录 damai.cn → F12 → Network → 任意请求 → 复制 Cookie 请求头整行",
+  "fwdToken": "抓包纷玩岛小程序任意请求的 authorization 请求头（Bearer 后面的整段）"
+}

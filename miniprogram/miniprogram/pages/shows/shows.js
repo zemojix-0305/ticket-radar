@@ -183,8 +183,14 @@ Page({
       'price=' + encodeURIComponent(row.price || ''),
       'date=' + encodeURIComponent(row.dateRange || ''),
       'label=' + encodeURIComponent(row.platformLabel || ''),
-    ].join('&');
-    wx.navigateTo({ url: '/pages/detail/detail?' + q });
+    ];
+    // 12306 详情 = 单趟车次全席别余票，必须带上查询上下文（站名×日期）
+    if (row.platform === 'rail12306') {
+      q.push('from=' + encodeURIComponent(this.data.from || ''));
+      q.push('to=' + encodeURIComponent(this.data.to || ''));
+      q.push('railDate=' + encodeURIComponent(this.data.date || ''));
+    }
+    wx.navigateTo({ url: '/pages/detail/detail?' + q.join('&') });
   },
 
   searchKeyword(p) {

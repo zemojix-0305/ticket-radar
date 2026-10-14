@@ -537,8 +537,9 @@ function resolveStationCode(name, map) {
   return fallback || raw;
 }
 
-async function pollRail(params) {
-  const { from, to, date, seat_types: seatTypes } = params;
+/** 12306 余票查询公共段：站码转换 + 端点轮换，返回原始行与站名表。
+ *  pollRail（盯票）和 railDetail（详情页）共用，别在两处各抄一份。 */
+async function railQueryRaw(from, to, date) {
   if (!from || !to || !date) throw new Error('缺少 from / to / date');
 
   const stationMap = await fetchStationMap();
@@ -586,7 +587,13 @@ async function pollRail(params) {
     throw new Error('12306 返回 status=false（日期超预售期或站码不对）');
   }
   const result = data.data || {};
-  const rows = result.result || [];
+  return { rows: result.result || [], stationMap: stationMap };
+}
+
+async function pollRail(params) {
+  const { from, to, date, seat_types: seatTypes } = params;
+
+  const { rows, stationMap } = await railQueryRaw(from, to, date);
 
   const wanted = seatTypes && seatTypes.length ? seatTypes : ['二等座'];
   const items = [];
@@ -615,6 +622,51 @@ async function pollRail(params) {
     });
   }
   return items;
+}
+
+/** 12306 详情页：单趟车次的全部席别×余票（无票的也列出，标「无」）。
+ *  和 pollRail 的区别：盯票只关心有票的席别；详情要展示全量让用户挑。 */
+async function railDetail(from, to, date, trainCode) {
+  const { rows, stationMap } = await railQueryRaw(from, to, date);
+  const want = String(trainCode || '').trim().toUpperCase();
+  for (const row of rows) {
+    if (!row) continue;
+    const f = row.split('|');
+    const code = field(f, TRAIN_FIELDS.train_code).trim();
+    if (code.toUpperCase() !== want) continue;
+    const dep = field(f, TRAIN_FIELDS.from_station_code).trim();
+    const arr = field(f, TRAIN_FIELDS.to_station_code).trim();
+    const depTime = field(f, TRAIN_FIELDS.depart_time).trim();
+    const arrTime = field(f, TRAIN_FIELDS.arrive_time).trim();
+    const tiers = [];
+    for (const idx of Object.keys(SEAT_FIELDS)) {
+      const name = SEAT_FIELDS[idx];
+      const s = parseSeat(name, field(f, Number(idx)));
+      if (!s) continue; // 该车次不设这个席别
+      tiers.push({
+        name: name,
+        price: '',
+        status: s.available ? (s.count == null ? s.raw : s.count + ' 张') : '无票',
+        available: s.available,
+      });
+    }
+    return {
+      platform: 'rail12306',
+      id: code,
+      name: code + ' 次',
+      venue: (stationMap[dep] || dep) + ' → ' + (stationMap[arr] || arr),
+      sessions: [{
+        name: depTime + ' 开 – ' + arrTime + ' 到',
+        when: depTime + '–' + arrTime,
+        status: '',
+        available: tiers.some((t) => t.available),
+        tiers: tiers,
+      }],
+    };
+  }
+  throw new Error(
+    '没查到 ' + trainCode + ' 次——确认日期在预售期内、出发地/目的地和盯票时一致（12306 只返回两站之间的车）'
+  );
 }
 
 // ===========================================================================
@@ -666,7 +718,7 @@ const MTOP_UA =
 // 进程级缓存令牌 cookie；云函数实例常驻时复用，冷启动多一次重试
 let mtopCookie = '';
 
-function mtopAttempt(api, dataObj, v, cVal, userCookie) {
+function mtopAttempt(api, dataObj, v, cVal, userCookie, extraQ) {
   const t = Date.now().toString();
   const data = JSON.stringify(dataObj);
   const tkAt = mtopCookie.indexOf('_m_h5_tk=');
@@ -685,9 +737,15 @@ function mtopAttempt(api, dataObj, v, cVal, userCookie) {
   if (cookieParts.length) headers.Cookie = cookieParts.join('; ');
   // c 参数：被 AntiCreep 拦时响应带顶层 c 字段，带回去重试（Monitor_DM 同款）
   const cQ = cVal ? '&c=' + encodeURIComponent(cVal) : '';
+  // AntiCreep 等额外参数：详情类接口（getdetail/subpage）不带这组会被
+  // 网关当可疑流量直接 RGV587——搜索接口则不需要。键值对透传。
+  let ex = '';
+  for (const k of Object.keys(extraQ || {})) {
+    ex += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(extraQ[k]);
+  }
   return request(
     `${MTOP_BASE}/${api}/${v}/?jsv=2.7.2&appKey=${MTOP_APPKEY}&t=${t}` +
-      `&sign=${sign}&api=${api}&v=${v}&type=originaljson&dataType=json&data=${encodeURIComponent(data)}${cQ}`,
+      `&sign=${sign}&api=${api}&v=${v}&type=originaljson&dataType=json&data=${encodeURIComponent(data)}${cQ}${ex}`,
     { headers, timeout: 15000 },
   ).then((r) => {
     const sc = r.headers['set-cookie'];
@@ -710,16 +768,15 @@ function sleep(ms) {
 function damaiFail(ret) {
   if (/RGV587|USER_VALIDATE/.test(ret)) {
     return new Error(
-      '大麦风控验证（RGV587）——当前出口 IP 被阿里风控临时拦住。两个解法：' +
-        '① 等几十分钟自动恢复；② 去「我的 → 大麦 Cookie」粘入你登录大麦网页版后的 Cookie，' +
-        '登录态可以稳定通过（推荐，一劳永逸）'
+      '大麦风控验证（RGV587）——当前出口 IP 被阿里风控临时拦住，通常几十分钟自动恢复；' +
+        '服务端配置了大麦 Cookie（config.json 的 damaiCookie）后可长期稳定通过'
     );
   }
   return new Error('大麦 mtop：' + ret);
 }
 
-async function mtopCall(api, dataObj, v, userCookie) {
-  let j = await mtopAttempt(api, dataObj, v, undefined, userCookie);
+async function mtopCall(api, dataObj, v, userCookie, extraQ) {
+  let j = await mtopAttempt(api, dataObj, v, undefined, userCookie, extraQ);
   let ret = (j.ret || [])[0] || '';
   let tries = 0;
   while (!/SUCCESS/.test(ret) && tries < 4) {
@@ -733,7 +790,7 @@ async function mtopCall(api, dataObj, v, userCookie) {
     } else {
       break; // 其他错误重试无意义
     }
-    j = await mtopAttempt(api, dataObj, v, /RGV587|USER_VALIDATE/.test(ret) ? j.c : undefined, userCookie);
+    j = await mtopAttempt(api, dataObj, v, /RGV587|USER_VALIDATE/.test(ret) ? j.c : undefined, userCookie, extraQ);
     ret = (j.ret || [])[0] || '';
     tries++;
   }
@@ -788,7 +845,16 @@ async function dmGetSessions(itemId, userCookie) {
     itemId: String(itemId),
     lat: 39.93722786511198,
     lng: 116.43680040115234,
-  }, '1.0', userCookie);
+  }, '1.0', userCookie, {
+    // AntiCreep 参数组：详情接口不带会被 RGV587（照抄 Monitor_DM 抓包）
+    jsv: '2.4.12',
+    type: 'json',
+    AntiCreep: 'true',
+    AntiFlood: 'true',
+    env: 'm',
+    valueType: 'string',
+    url: 'mtop.damai.item.detail.getdetail',
+  });
   // data.legacy 是 JSON 字符串（valueType=string 口径），parse 后取场次树
   let legacy;
   try {
@@ -822,7 +888,16 @@ async function dmGetSkus(itemId, performId, userCookie) {
     platform: '8',
     comboChannel: '2',
     dmChannel: 'damai@damaih5_h5',
-  }, '2.0', userCookie);
+  }, '2.0', userCookie, {
+    // 同上：票档接口的 AntiCreep 参数组（照抄 Monitor_DM 抓包）
+    jsv: '2.7.4',
+    H5Request: 'true',
+    timeout: '10000',
+    valueType: 'original',
+    forceAntiCreep: 'true',
+    AntiCreep: 'true',
+    useH5: 'true',
+  });
   let result;
   try {
     result = typeof data.result === 'string' ? JSON.parse(data.result) : (data.result || {});
@@ -1318,6 +1393,18 @@ async function pollPiaoxingqiu(params) {
 //   B站/票星球出真场次结构；其余平台 poll 是扁平的，包成单一分组。
 // ===========================================================================
 async function detailShow(platform, id, event) {
+  // 12306：详情 = 单趟车次全席别余票。站名/日期从查询上下文带过来
+  // （shows 页跳转时随 URL 传，客户端再随请求传上来）。
+  if (platform === 'rail12306') {
+    const from = String((event && event.from) || '').trim();
+    const to = String((event && event.to) || '').trim();
+    const date = String((event && event.date) || '').trim();
+    if (!from || !to || !date) {
+      throw new Error('缺少 from / to / date');
+    }
+    return railDetail(from, to, date, id);
+  }
+
   if (platform === 'fenwandao') {
     const token = (event && event.fwdToken) || '';
     const infos = await fwdGetPerforms(id, token);
@@ -1500,8 +1587,7 @@ function fwdHeaders(token) {
 
 function fwdTokenError() {
   return new Error(
-    '纷玩岛需要你自己的 token：抓一次纷玩岛小程序的任意请求（抓包工具里看请求头），' +
-      '把 authorization 那一行原文粘到「我的 → 纷玩岛 Token」保存即可'
+    '纷玩岛需要登录凭据才能查询——服务端尚未配置（管理员在 server/config.json 填 fwdToken 即可），用户侧无需任何操作'
   );
 }
 
@@ -1513,7 +1599,7 @@ async function fwdGetPerforms(projectId, token) {
     { headers: fwdHeaders(token), timeout: 15000 },
   );
   if (j && j.code === 11004) {
-    throw new Error('纷玩岛 token 过期或无效（11004）——去「我的 → 纷玩岛 Token」重新粘一个');
+    throw new Error('纷玩岛凭据过期或无效（11004）——管理员更新 server/config.json 里的 fwdToken 即可，用户侧无需操作');
   }
   if (!j || j.code !== 10000) {
     throw new Error('纷玩岛返回：' + ((j && j.msg) || ('code=' + (j && j.code))));
@@ -1887,6 +1973,20 @@ async function handleAction(event, action, db) {
         if (platform === 'moretickets') {
           const rows = await findMoretickets('演唱会', limit);
           return { ok: true, keyword: '', platform, rows };
+        }
+        if (platform === 'fenwandao') {
+          // 纷玩岛全接口要设备 token（无匿名通道）。token 由服务端配置注入
+          // （config.json / 用户端老版本存本地也会随请求带上），终端用户无感。
+          const tk = String((event && event.fwdToken) || '').trim();
+          if (!tk) {
+            return { ok: false, error: '纷玩岛热门榜还没准备好——服务端尚未配置纷玩岛凭据，稍后再试' };
+          }
+          try {
+            const rows = await findFenwandao('演唱会', limit, tk);
+            return { ok: true, keyword: '', platform, rows };
+          } catch (e) {
+            return { ok: false, error: String((e && e.message) || e) };
+          }
         }
         return { ok: false, error: '12306 是查两站之间的余票，没有「热卖榜」——填上出发地和目的地就能查' };
       }

@@ -13,7 +13,7 @@ const USER_KEY = 'radar_user_profile';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
-import { request, FWD_TOKEN_KEY, DM_COOKIE_KEY } from '../../utils/api';
+import { request } from '../../utils/api';
 import { loadTasks } from '../../utils/tasks';
 
 function makeUid() {
@@ -37,14 +37,6 @@ Page({
     user: { uid: '', nickname: '', avatar: '' },
     editingName: false,
     watchedCount: 0,
-    // 纷玩岛 token（用户自带：抓包纷玩岛小程序的 authorization 请求头）
-    fwdOpen: false,
-    fwdToken: '',
-    fwdSaved: false,
-    // 大麦 Cookie（可选：登录大麦网页版后的 Cookie，过 mtop 风控最稳）
-    dmOpen: false,
-    dmCookie: '',
-    dmSaved: false,
   },
 
   onLoad() {
@@ -52,48 +44,6 @@ Page({
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
     this.loadUser();
     this.loadWatched();
-    this.setData({
-      fwdToken: wx.getStorageSync(FWD_TOKEN_KEY) || '',
-      fwdSaved: !!wx.getStorageSync(FWD_TOKEN_KEY),
-      dmCookie: wx.getStorageSync(DM_COOKIE_KEY) || '',
-      dmSaved: !!wx.getStorageSync(DM_COOKIE_KEY),
-    });
-  },
-
-  // --- 纷玩岛 token ---------------------------------------------------------
-  toggleFwd() {
-    this.setData({ fwdOpen: !this.data.fwdOpen });
-  },
-
-  onFwdInput(e) {
-    this.setData({ fwdToken: e.detail.value, fwdSaved: false });
-  },
-
-  saveFwdToken() {
-    const t = (this.data.fwdToken || '').trim();
-    if (!t) {
-      Toast({ message: '先粘贴 authorization 那一行', type: 'none' });
-      return;
-    }
-    wx.setStorageSync(FWD_TOKEN_KEY, t);
-    this.setData({ fwdSaved: true });
-    Toast({ type: 'success', message: '已保存' });
-  },
-
-  // --- 大麦 Cookie（可选） ---------------------------------------------------
-  toggleDm() {
-    this.setData({ dmOpen: !this.data.dmOpen });
-  },
-
-  onDmInput(e) {
-    this.setData({ dmCookie: e.detail.value, dmSaved: false });
-  },
-
-  saveDmCookie() {
-    const t = (this.data.dmCookie || '').trim();
-    wx.setStorageSync(DM_COOKIE_KEY, t);
-    this.setData({ dmSaved: !!t });
-    Toast({ type: 'success', message: t ? '已保存' : '已清空' });
   },
 
   loadUser() {

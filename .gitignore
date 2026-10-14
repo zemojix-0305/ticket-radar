@@ -49,3 +49,7 @@ project.private.config.json
 # 字体源文件 8MB，子集化后已入包，不进仓库
 tools/font-src/
 open_devtools.bat
+
+# 服务端自持凭据（大麦 Cookie / 纷玩岛 token），绝不提交
+server/config.json
+server/server.log
