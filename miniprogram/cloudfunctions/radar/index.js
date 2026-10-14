@@ -765,12 +765,11 @@ function sleep(ms) {
 }
 
 /** 把 mtop 的失败 ret 翻译成用户能看懂、我们知道怎么办的话。 */
+/** 把 mtop 的失败 ret 翻译成用户能看懂的话。管理员怎么配 Cookie 是运维的事
+ * （server/config.example.json 里写了），不漏进用户界面。 */
 function damaiFail(ret) {
   if (/RGV587|USER_VALIDATE/.test(ret)) {
-    return new Error(
-      '大麦风控验证（RGV587）——当前出口 IP 被阿里风控临时拦住，通常几十分钟自动恢复；' +
-        '服务端配置了大麦 Cookie（config.json 的 damaiCookie）后可长期稳定通过'
-    );
+    return new Error('大麦人太多排起了长队，详情暂时拿不到，稍后再试试吧');
   }
   return new Error('大麦 mtop：' + ret);
 }

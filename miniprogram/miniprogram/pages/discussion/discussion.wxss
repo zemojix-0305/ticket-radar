@@ -89,15 +89,23 @@
 .search-clear { font-size: 13px; color: var(--t3); padding-left: 8px; }
 
 /* ---------- 帖子板 ---------- */
-.post-board {
-  padding: 6px 0 14px;
+/* 留言墙：小便签一排两张，字直接落在纸上，点开看大图 */
+.note-wall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 10px 14px 0;
 }
-/* 便签墙：纸片 + 夹子。每张便签随机小角度旋转，像随手钉上去的 */
+.post-board {
+  width: 48.4%;
+  padding: 0 0 8px;
+}
+/* 便签：纸片 + 夹子。每张便签随机小角度旋转，像随手钉上去的 */
 .note-wrap {
   position: relative;
-  margin: 14px 14px 4px;
-  padding: 26px 18px 20px;
-  min-height: 120px;
+  margin: 12px 0 0;
+  padding: 20px 11px 14px;
+  min-height: 108px;
 }
 .note-bg {
   position: absolute;
@@ -109,11 +117,11 @@
 }
 .note-clip {
   position: absolute;
-  top: -14px;
+  top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   z-index: 2;
 }
 .note-body {
@@ -123,12 +131,12 @@
 .note-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 .note-avatar {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.6);
   flex-shrink: 0;
@@ -140,41 +148,50 @@
   flex-direction: column;
 }
 .note-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #3A4A45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .note-time {
-  font-size: 11px;
+  font-size: 10px;
   color: #7A8B84;
 }
 .note-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #2E3A36;
-  line-height: 1.7;
+  line-height: 1.65;
   word-break: break-word;
+  /* 小卡只露 4 行，全文点开看 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
 }
 /* 标签贴纸：白底虚线框，像贴在便签上的小标签 */
 .post-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 4px;
+  margin-top: 8px;
 }
 .post-tag {
-  font-size: 11px;
+  font-size: 10px;
   color: #4A6A5F;
   background: rgba(255, 255, 255, 0.65);
   border: 1px dashed #9FB8AE;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 10px;
 }
 .post-type-tag {
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 10px;
+  padding: 1px 6px;
   border-radius: 10px;
   background: var(--brand-weak);
   color: var(--brand);
+  flex-shrink: 0;
 }
 
 /* ---------- 加载更多 ---------- */

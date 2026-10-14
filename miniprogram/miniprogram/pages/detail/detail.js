@@ -12,6 +12,10 @@ Page({
   data: {
     loading: true,
     error: '',
+    // 降级模式：详情接口被风控拦住时，用跳转带过来的搜索信息渲染基础详情，
+    // 场次/票档/盯票不可用
+    degraded: false,
+    degradeMsg: '',
     adding: false,
     platform: '',
     id: '',
@@ -53,7 +57,7 @@ Page({
   },
 
   loadDetail() {
-    this.setData({ loading: true, error: '', tierSel: '' });
+    this.setData({ loading: true, error: '', degraded: false, degradeMsg: '', tierSel: '' });
     const req = { action: 'detail', platform: this.data.platform, id: this.data.id };
     // 12306：详情查询要站名×日期上下文（服务端按它重新拉一遍余票）
     if (this.data.platform === 'rail12306') {
@@ -85,6 +89,17 @@ Page({
         });
       })
       .catch((e) => {
+        // 大麦风控拦详情接口时（RGV587），别整页报错——搜索结果点进来时
+        // 名称/城市/场馆/价格/海报都随 URL 带上了，用这些降级渲染，
+        // 只是拿不到场次×票档，盯不了票。其余平台保持原样报错。
+        if (this.data.platform === 'damai' && this.data.name) {
+          this.setData({
+            loading: false,
+            degraded: true,
+            degradeMsg: '场次和票档暂时拿不到（大麦太挤了），稍后再来',
+          });
+          return;
+        }
         this.setData({ loading: false, error: String(e.message || e) });
       });
   },

@@ -43,13 +43,20 @@
       <view class="info-row info-price" wx:if="{{price}}">{{price}}</view>
     </view>
 
+    <!-- 降级提示：详情接口被风控拦住，只展示基础信息 -->
+    <view class="card empty" wx:if="{{degraded}}">
+      <view class="empty-title">场次和票档暂时拿不到</view>
+      <view class="empty-sub">{{degradeMsg}}</view>
+      <view class="empty-btn press" bindtap="reload" hover-class="press-hover">再试一次</view>
+    </view>
+
     <!-- 场次与票档 -->
-    <view class="sec">
+    <view class="sec" wx:if="{{!degraded}}">
       <view class="sec-title title-strong">场次与票档</view>
     </view>
 
     <!-- 票根列表：场次间用打孔线分隔 -->
-    <view class="card ticket">
+    <view class="card ticket" wx:if="{{!degraded}}">
       <view class="sess" wx:for="{{sessions}}" wx:key="name" wx:for-item="s" wx:for-index="si">
         <view class="sess-head">
           <view class="sess-name">{{s.name}}</view>
@@ -85,8 +92,8 @@
     </view>
   </block>
 
-  <!-- 底部操作栏 -->
-  <view class="actionbar" wx:if="{{!loading && !error}}">
+  <!-- 底部操作栏：降级模式下盯不了票，不显示 -->
+  <view class="actionbar" wx:if="{{!loading && !error && !degraded}}">
     <view class="action-btn press {{adding ? 'busy' : ''}}" bindtap="addMonitor" hover-class="press-hover">
       {{adding ? '安排上了…' : '盯这场演出'}}
     </view>

@@ -61,9 +61,10 @@
     <view class="stitch-hint">点击右下角 ✍ 发布</view>
   </view>
 
-  <!-- 帖子流 - 留言墙：手账便签 + 小夹子 -->
-  <view class="post-board press-card" wx:for="{{posts}}" wx:key="_id"
-        bindtap="onNoteTap" data-index="{{index}}" hover-class="press-card-hover">
+  <!-- 帖子流 - 留言墙：小便签两列排布，点击放大看全文 -->
+  <view class="note-wall">
+    <view class="post-board press-card" wx:for="{{posts}}" wx:key="_id"
+          bindtap="onNoteTap" data-index="{{index}}" hover-class="press-card-hover">
     <view class="note-wrap" style="transform: rotate({{item.rot}}deg);">
       <!-- 便签纸背景（8 种轮换，含自带的小夹子） -->
       <image class="note-bg" src="/images/board/note{{item.noteIdx}}.png" mode="widthFix" />
@@ -84,6 +85,7 @@
         </view>
       </view>
     </view>
+  </view>
   </view>
 
   <!-- 加载更多 -->
