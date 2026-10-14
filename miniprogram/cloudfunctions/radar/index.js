@@ -2348,7 +2348,7 @@ const PLATFORMS = {
 // 平台中文名：推送消息里的「放票机构」字段用
 const LABEL_CN = {
   maoyan: '猫眼', moretickets: '摩天轮', rail12306: '12306',
-  damai: '大麦', bilibili: 'B站会员购', piaoxingqiu: '票星球',
+  damai: '大麦', taopiaopiao: '淘票票', bilibili: 'B站会员购', piaoxingqiu: '票星球',
   fenwandao: '纷玩岛',
 };
 
@@ -2357,6 +2357,7 @@ const PLATFORM_PROBE = {
   moretickets: null, // POST 接口，probe 走真实轮询
   rail12306: () => `${RAIL_BASE}/otn/leftTicket/init`,
   damai: () => `${MTOP_BASE}/mtop.damai.item.detail.getdetail/1.0/`,
+  taopiaopiao: () => `${MTOP_BASE}/mtop.alibaba.damai.detail.getdetail/1.2/`,
   bilibili: () =>
     `${BILI_SHOW}/api/ticket/project/listV2?version=134&platform=web&page=1&pagesize=5&ptype=100104&area=0&keyword=${encodeURIComponent('演唱会')}`,
   piaoxingqiu: () => `${PXQ_M}/cyy_gatewayapi/home/pub/v3/show/recommend`,
@@ -2640,11 +2641,14 @@ async function handleAction(event, action, db) {
       const limit = (event && event.limit) || 20;
       const platform = String((event && event.platform) || 'moretickets').trim();
 
-      // 空关键词 = 各平台「正在热卖」。实测（2026-10）：
+      // 空关键词 = 各平台「正在热卖」。实测（2026-10-14 补测）：
       //   猫眼 k= 直返在售（带海报）；B站 listV2 免 keyword 返推荐位；
-      //   票星球 show/recommend 返 40 条热卖榜；大麦/摩天轮没有真正的
-      //   热门端点，用「演唱会」关键词兜底（真实数据，不是编的）；
-      //   12306 是站站查询，没有热卖榜。
+      //   票星球 show/recommend 返 40 条热卖榜；大麦/淘票票的搜索接口
+      //   （mtop.damai.wireless.search.search）匿名在网关层就被 RGV587 硬拦
+      //   ——扫过 16 个候选 API 名，除详情 v1.2 外全不存在或全被拦，
+      //   只有登录 Cookie 通道能过（竞品 TicketMonitoring 同样要 Cookie）。
+      //   所以没 Cookie 时给可行动指引，不硬编假数据；
+      //   摩天轮用「演唱会」关键词兜底（真实数据）；12306 是站站查询。
       if (!keyword) {
         if (platform === 'maoyan') {
           const rows = await findMaoyan('', limit);
@@ -2658,9 +2662,20 @@ async function handleAction(event, action, db) {
           const rows = await hotPiaoxingqiu(limit);
           return { ok: true, keyword: '', platform, rows };
         }
-        if (platform === 'damai') {
-          const rows = await damaiSearch('演唱会', limit, event.damaiCookie);
-          return { ok: true, keyword: '', platform, rows };
+        if (platform === 'damai' || platform === 'taopiaopiao') {
+          // 热卖榜走搜索接口；匿名/凭证失效被 RGV587 时给「贴链接也能盯」的出路
+          try {
+            const rows = await damaiSearch('演唱会', limit, event.damaiCookie);
+            return { ok: true, keyword: '', platform, rows };
+          } catch (e) {
+            if (/排起了长队|RGV587/.test(String((e && e.message) || e))) {
+              return {
+                ok: false,
+                error: '这个平台的热卖榜要登录凭证——「我的」页填一次大麦网页版登录 Cookie（要含 cookie2 字段）就能看；不填也行：把演出分享链接或数字编号粘进搜索框，匿名就能盯',
+              };
+            }
+            return { ok: false, error: String((e && e.message) || e) };
+          }
         }
         if (platform === 'moretickets') {
           const rows = await findMoretickets('演唱会', limit);
@@ -2695,8 +2710,10 @@ async function handleAction(event, action, db) {
         const rows = await findRail(keyword, (event && event.date) || '', limit);
         return { ok: true, keyword, platform, rows };
       }
-      // 大麦：链接/纯数字 id → mtop 详情+票档；关键词 → mtop 无线搜索（2026-10 重构）。
-      if (platform === 'damai') {
+      // 大麦/淘票票：链接/纯数字 id → mtop 详情+票档；关键词 → mtop 无线搜索。
+      // 淘票票的演出就是大麦的 itemId（m.taopiaopiao.com/damai/detail/item.html?id=X），
+      // 搜索/详情全走大麦同一套通道——一套代码两个 tab 共用（2026-10-14）。
+      if (platform === 'damai' || platform === 'taopiaopiao') {
         const rows = await findDamai(keyword, event.damaiCookie);
         return { ok: true, keyword, platform, rows };
       }

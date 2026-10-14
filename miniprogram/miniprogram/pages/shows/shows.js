@@ -53,7 +53,7 @@ const FAQ_LIST = [
   },
   {
     q: '支持哪些平台？',
-    a: '猫眼、摩天轮、大麦、B站会员购、12306 余票、票星球（贴链接）、纷玩岛（贴链接看详情）。携程没有公开接口，暂不支持。',
+    a: '猫眼、摩天轮、大麦、淘票票、B站会员购都能直接打字搜；票星球和纷玩岛贴分享链接就能盯（要按票档盯就在「我的」页填凭证）。大麦/淘票票的热卖榜和关键词搜索要登录 Cookie，贴链接不用。',
   },
   {
     q: '数据多久刷新？',
@@ -350,9 +350,12 @@ Page({
       params = { tour_id: row.id };
     } else if (row.platform === 'maoyan') {
       params = { performance_id: row.id };
-    } else if (row.platform === 'damai') {
-      // 大麦：搜出来的是 itemId，轮询走详情页 SSR
+    } else if (row.platform === 'damai' || row.platform === 'taopiaopiao') {
+      // 大麦/淘票票：搜出来的是 itemId（淘票票与大麦同一套演出编号），轮询走详情页 H5 v1.2
       params = { item_id: row.id };
+    } else if (row.platform === 'fenwandao') {
+      // 纷玩岛：project_id，轮询走 get_performs（票档要凭证，匿名盯场次状态）
+      params = { project_id: row.id };
     } else if (row.platform === 'bilibili') {
       // 会员购：project_id，轮询走 getV2 接口
       params = { project_id: row.id };

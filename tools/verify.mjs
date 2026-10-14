@@ -121,6 +121,8 @@ const EXPECT = [
   { platform: 'bilibili', find: 'ok', detail: 'ok' },
   { platform: 'piaoxingqiu', find: 'ok', detail: 'ok', wantRealTiers: true },
   { platform: 'damai', find: 'ok', flakyFind: true, detailId: '1086111708947', detail: 'ok-or-degraded' },
+  // 淘票票与大麦同一套 itemId/通道：关键词搜索匿名被 RGV587（预期 WARN），id 直查匿名可用
+  { platform: 'taopiaopiao', find: 'ok', flakyFind: true, detailId: '1086111708947', detail: 'ok-or-degraded' },
   { platform: 'fenwandao', find: 'ok', findKw: FWD_LINK, detailId: decodeURIComponent(FWD_LINK.match(/id=([^&]+)/)[1]), detail: 'ok' },
   { platform: 'rail12306', find: 'ok', findKw: '广州南 长沙南', findDate: '2026-10-20', detail: 'ok', rail: true },
 ];
@@ -172,6 +174,21 @@ async function liveChecks() {
     return;
   }
   record('活体', '本地服务可达', !!pong, '', '');
+
+  // 大麦/淘票票空关键词（热卖榜）：匿名被 RGV587 → 必须回可行动指引，
+  // 且绝不能再落到 12306 的报错文案（曾经淘票票 tab 显示的就是 12306 那段话）
+  for (const p of ['damai', 'taopiaopiao']) {
+    try {
+      const r = await post({ action: 'find', platform: p, keyword: '', limit: 3 });
+      const err = String(r.error || '');
+      const guided = r.ok === false && /凭证|Cookie|链接/.test(err);
+      record('活体', `${p}/热卖榜给可行动指引`, guided,
+        `ok=${r.ok} err=${err.slice(0, 50)}`, '空关键词分支必须自己兜住 RGV587，不能透传排长队或落到 12306 文案');
+    } catch (e) {
+      warn('活体', `${p}/热卖榜给可行动指引`, '请求异常 ' + String(e).slice(0, 60), '');
+    }
+  }
+
 
   for (const exp of EXPECT) {
     const sec = '活体';

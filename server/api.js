@@ -74,7 +74,9 @@ function loadSrvConfig() {
   const dotenv = readDotEnv();
   const env = (k) => process.env[k] || dotenv[k] || '';
   if (env('DAMAI_COOKIE')) cfg.damaiCookie = env('DAMAI_COOKIE');
-  if (env('FWD_TOKEN')) cfg.fwdToken = env('FWD_TOKEN');
+  // FENWANDAO_COOKIE 是 .env 里的既有键名（Python 侧 radar/ 用它），
+  // 这里当作 FWD_TOKEN 的别名——不然按 .env 注释填了凭证服务端却读不到。
+  if (env('FWD_TOKEN') || env('FENWANDAO_COOKIE')) cfg.fwdToken = env('FWD_TOKEN') || env('FENWANDAO_COOKIE');
   if (env('MY_TOKEN')) cfg.myToken = env('MY_TOKEN');
   try {
     const local = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
