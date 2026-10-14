@@ -10,7 +10,7 @@ import Toast from '../../vant/toast/toast';
 import Dialog from '../../vant/dialog/dialog';
 // 免费架构（第二十六轮）：帖子存本地 storage，不再走服务端
 // （云库已 no-op，listPosts/createPost 拿到的永远是空表）
-import { loadPosts as readLocalPosts, addPost } from '../../utils/posts';
+import { loadPosts as readLocalPosts, addPost, removePost, savePosts } from '../../utils/posts';
 
 const USER_KEY = 'radar_user_profile';
 const POSTS_DB = 'radar_posts';
@@ -41,6 +41,20 @@ const STICKERS = [
 function stickerBg(key) {
   const s = STICKERS.find((x) => x.key === key);
   return s ? s.bg : '';
+}
+
+// 设备 uid：发帖时标记发布者（删除权判定用「我的/管理员」）
+function deviceUid() {
+  try {
+    let u = wx.getStorageSync('radar_uid');
+    if (!u) {
+      u = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      wx.setStorageSync('radar_uid', u);
+    }
+    return u;
+  } catch (e) {
+    return 'anon';
+  }
 }
 
 // 把任意字符串 hash 成 0..n-1。同一个 _id 永远拿到同一个素材编号。
@@ -232,6 +246,25 @@ Page({
     this.setData({ zoomIdx: -1 });
   },
 
+  /** 放大层里删除这条留言（发布者可删；本机留言墙=本机即管理端） */
+  deleteZoomPost() {
+    const idx = this.data.zoomIdx;
+    const p = this.data.posts[idx];
+    if (!p) return;
+    const mine = !p.uid || p.uid === deviceUid();
+    Dialog.confirm({
+      title: '删除这条留言',
+      message: mine ? '删了就找不回来了，确定？' : '确定以管理员身份删除这条留言？',
+    })
+      .then(() => {
+        removePost(p._id);
+        this.setData({ zoomIdx: -1 });
+        this.loadPosts(true);
+        Toast({ message: '已删除', type: 'success' });
+      })
+      .catch(() => {});
+  },
+
   submitPost() {
     const content = (this.data.postContent || '').trim();
     if (!content) return Toast({ message: '写点什么再发', type: 'none' });
@@ -247,6 +280,8 @@ Page({
 
     const post = {
       _id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
+      // 设备 uid：标记发布者。「我的」页管理列表和删除权判定都用它
+      uid: deviceUid(),
       content,
       tags,
       type: typeLabels[this.data.postType] || '',

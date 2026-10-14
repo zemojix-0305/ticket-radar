@@ -24,10 +24,9 @@
   </view>
 
   <block wx:if="{{!loading && !error}}">
-    <!-- 大海报 -->
-    <view class="hero">
-      <image class="hero-poster" src="{{poster}}" mode="aspectFill" wx:if="{{poster}}" />
-      <view class="hero-poster hero-poster-blank" wx:if="{{!poster}}">暂无海报</view>
+    <!-- 大海报：没图（如 12306 车次）就整块不渲染，不留空占位 -->
+    <view class="hero" wx:if="{{poster}}">
+      <image class="hero-poster" src="{{poster}}" mode="aspectFill" />
       <image class="hero-stk stk-a" src="/images/board2/origami21.png" mode="aspectFit" />
     </view>
 

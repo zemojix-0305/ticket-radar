@@ -27,4 +27,13 @@ function addPost(post) {
   return post;
 }
 
-module.exports = { loadPosts, savePosts, addPost, POSTS_KEY };
+/** 按 _id 删除一条帖子。返回是否删到了。 */
+function removePost(id) {
+  const posts = loadPosts();
+  const next = posts.filter((p) => p._id !== id);
+  const removed = next.length !== posts.length;
+  if (removed) savePosts(next);
+  return removed;
+}
+
+module.exports = { loadPosts, savePosts, addPost, removePost, POSTS_KEY };

@@ -427,18 +427,29 @@
 }
 .zoom-note-body {
   position: absolute;
-  left: 9%;
-  right: 9%;
-  top: 10%;
+  /* 字必须落在撕纸的可写区里：四周留出撕边，内容超高内部滚动 */
+  left: 12%;
+  right: 12%;
+  top: 14%;
+  max-height: 68%;
+  overflow-y: auto;
 }
 .zoom-note-text {
-  
+
   font-size: 17px;
   line-height: 1.8;
   color: #3A3A3E;
   word-break: break-word;
 }
 .note-text-dark { color: #F4F1E8; }
+
+/* 放大层里的删除入口：小字弱化，贴在便签内容底部 */
+.zoom-del {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #C0655A;
+  opacity: 0.85;
+}
 
 /* 便签上的「点击放大」提示 */
 .note-zoom-hint {

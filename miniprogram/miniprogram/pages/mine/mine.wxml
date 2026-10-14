@@ -99,11 +99,31 @@
     </view>
   </view>
 
+  <!-- 我的留言：本机发过的讨论区帖子，可删除 -->
+  <view class="card bind">
+    <view class="bind-head" bindtap="toggleMyPosts" hover-class="press-hover">
+      <view class="t1">我的留言 {{myPosts.length ? '· ' + myPosts.length + ' 条' : ''}}</view>
+      <text class="bind-arrow {{myPostsOpen ? 'bind-arrow-open' : ''}}">▾</text>
+    </view>
+
+    <view wx:if="{{myPostsOpen}}">
+      <view wx:if="{{!myPosts.length}}" class="t3" style="padding: 6px 0;">还没发过留言，去讨论区写一条吧</view>
+      <view class="mypost" wx:for="{{myPosts}}" wx:key="_id">
+        <view class="mypost-main">
+          <view class="mypost-text">{{item.content}}</view>
+          <view class="mypost-meta">{{item.type}}{{item.type && item.time ? ' · ' : ''}}{{item.time}}</view>
+        </view>
+        <view class="mypost-del press" data-id="{{item._id}}" bindtap="deleteMyPost" hover-class="press-hover">删除</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 支持作者：默认字体 + 朴素排版（对齐用户给的参考截图） -->
   <view class="card support">
     <view class="support-main">
       <view class="support-t">支持作者</view>
-      <view class="support-d" user-select="true">GitHub 搜 zemojix-0305/ticket-radar，感谢大家点 star！</view>
+      <view class="support-d" user-select="true">项目已在 GitHub 开源：zemojix-0305/ticket-radar（可长按复制）</view>
+      <view class="support-d">感谢大家的反馈和建议，点个 star 就是最棒的支持！</view>
     </view>
     <view class="support-btn press" bindtap="goStar" hover-class="press-hover">☆ Star</view>
   </view>

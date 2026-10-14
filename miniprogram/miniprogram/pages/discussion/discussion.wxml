@@ -184,6 +184,7 @@
         <view class="post-tags" wx:if="{{posts[zoomIdx].tags && posts[zoomIdx].tags.length}}">
           <text class="post-tag" wx:for="{{posts[zoomIdx].tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
         </view>
+        <view class="zoom-del press" bindtap="deleteZoomPost" hover-class="press-hover">删除这条留言</view>
       </view>
     </view>
   </view>

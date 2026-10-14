@@ -13,8 +13,10 @@ const USER_KEY = 'radar_user_profile';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
+import Dialog from '../../vant/dialog/dialog';
 import { request } from '../../utils/api';
 import { loadTasks } from '../../utils/tasks';
+import { loadPosts, removePost } from '../../utils/posts';
 
 function makeUid() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -37,6 +39,9 @@ Page({
     user: { uid: '', nickname: '', avatar: '' },
     editingName: false,
     watchedCount: 0,
+    // 我的留言：本机发过的讨论区帖子，可在这里删除
+    myPostsOpen: false,
+    myPosts: [],
   },
 
   onLoad() {
@@ -44,6 +49,48 @@ Page({
     this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
     this.loadUser();
     this.loadWatched();
+  },
+
+  // --- 我的留言管理 ---------------------------------------------------------
+  toggleMyPosts() {
+    const open = !this.data.myPostsOpen;
+    if (open) this.loadMyPosts();
+    this.setData({ myPostsOpen: open });
+  },
+
+  loadMyPosts() {
+    // 本机留言墙全量在本地 storage；发帖时带 uid 的才算本机发的（历史帖一律算）
+    const list = (loadPosts() || []).map((p) => ({
+      _id: p._id,
+      content: p.content || '',
+      type: p.type || '',
+      time: this.fmtTime(p.createdAt),
+    }));
+    this.setData({ myPosts: list });
+  },
+
+  deleteMyPost(e) {
+    const id = e.currentTarget.dataset.id || '';
+    if (!id) return;
+    Dialog.confirm({ title: '删除这条留言', message: '删了就找不回来了，确定？' })
+      .then(() => {
+        removePost(id);
+        this.loadMyPosts();
+        Toast({ message: '已删除', type: 'success' });
+      })
+      .catch(() => {});
+  },
+
+  fmtTime(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const diff = (now - d) / 1000;
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+    const pad = (n) => (n < 10 ? '0' + n : n);
+    return (d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   },
 
   loadUser() {

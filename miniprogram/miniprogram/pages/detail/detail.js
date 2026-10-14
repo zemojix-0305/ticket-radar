@@ -41,7 +41,7 @@ Page({
     this.setData({
       platform: q.platform || '',
       id: q.id || '',
-      label: q.label || '',
+      label: decodeURIComponent(q.label || ''),
       name: decodeURIComponent(q.name || ''),
       poster: decodeURIComponent(q.poster || ''),
       city: decodeURIComponent(q.city || ''),

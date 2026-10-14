@@ -159,3 +159,30 @@
   word-break: break-all;
 }
 .fwd-ph { color: var(--ink3); }
+
+/* 我的留言列表：小行 + 右侧删除 */
+.mypost {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line, rgba(0, 0, 0, 0.08));
+}
+.mypost:last-child { border-bottom: none; }
+.mypost-main { flex: 1; min-width: 0; }
+.mypost-text {
+  font-size: 13px;
+  color: var(--ink, #2A2620);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.mypost-meta { font-size: 11px; color: var(--ink3, #8A8378); margin-top: 3px; }
+.mypost-del {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #C0655A;
+  padding: 4px 8px;
+}
