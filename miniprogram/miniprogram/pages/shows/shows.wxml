@@ -148,7 +148,7 @@
     </view>
 
     <view class="hot-list" wx:if="{{!hotLoading && hot.length}}">
-      <view class="show-card press-card" wx:for="{{hot}}" wx:key="id" hover-class="press-card-hover" data-row="{{item}}" bindtap="openDetail">
+      <view class="show-card press-card" wx:for="{{hot}}" wx:key="_uk" hover-class="press-card-hover" data-row="{{item}}" bindtap="openDetail">
         <block wx:if="{{item.platform !== 'rail12306'}}">
           <view class="poster">
             <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />
@@ -193,7 +193,7 @@
     </view>
 
     <view class="hot-list" wx:if="{{rows.length}}">
-      <view class="show-card press-card" wx:for="{{rows}}" wx:key="id" hover-class="press-card-hover" data-row="{{item}}" bindtap="openDetail">
+      <view class="show-card press-card" wx:for="{{rows}}" wx:key="_uk" hover-class="press-card-hover" data-row="{{item}}" bindtap="openDetail">
         <block wx:if="{{item.platform !== 'rail12306'}}">
           <view class="poster">
             <image class="poster-img" src="{{item.poster}}" mode="aspectFill" lazy-load />

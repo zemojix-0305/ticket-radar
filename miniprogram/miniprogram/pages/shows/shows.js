@@ -8,6 +8,8 @@
 
 const HISTORY_KEY = 'radar_search_history';
 const CREDIT_KEY = 'wx_subscribe_credit';
+// 列表渲染唯一 key 序号（12306 车次号会重复，不能用 id 当 wx:key）
+let ukSeq = 0;
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
@@ -250,7 +252,11 @@ Page({
 
   normalize(row, platform) {
     const id = row.tourId || row.performanceId || row.id || '';
+    // 12306 的 id 是车次号（G2172…），同一页会出现多条同车次（不同席别/经停），
+    // 用自增序号做渲染 key，避免 wx:key 重复告警与节点复用错乱
+    ukSeq += 1;
     return {
+      _uk: 'r' + ukSeq,
       id: String(id),
       platform: platform.key,
       platformLabel: platform.label,
