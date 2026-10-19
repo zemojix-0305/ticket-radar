@@ -47,22 +47,44 @@ Page({
   },
 
   onLoad(q) {
+    // 解码保护（2026-10-19）：decodeURIComponent 遇到裸 % 会抛 URIError，
+    // onLoad 一炸整个页面实例就废了——用户看到的就是一片全白（连骨架屏
+    // 都不渲染，Console 也未必红字醒目）。逐字段 try/catch，坏参数降级为空串。
+    const safe = (v) => {
+      try {
+        return decodeURIComponent(v == null ? '' : v);
+      } catch (e) {
+        return String(v == null ? '' : v);
+      }
+    };
     this.setData({
       platform: q.platform || '',
       id: q.id || '',
-      label: decodeURIComponent(q.label || ''),
-      name: decodeURIComponent(q.name || ''),
-      poster: decodeURIComponent(q.poster || ''),
-      city: decodeURIComponent(q.city || ''),
-      venue: decodeURIComponent(q.venue || ''),
-      date: decodeURIComponent(q.date || ''),
-      price: decodeURIComponent(q.price || ''),
-      railFrom: decodeURIComponent(q.from || ''),
-      railTo: decodeURIComponent(q.to || ''),
-      railDate: decodeURIComponent(q.railDate || ''),
+      label: safe(q.label),
+      name: safe(q.name),
+      poster: safe(q.poster),
+      city: safe(q.city),
+      venue: safe(q.venue),
+      date: safe(q.date),
+      price: safe(q.price),
+      railFrom: safe(q.from),
+      railTo: safe(q.to),
+      railDate: safe(q.railDate),
     });
     wx.setNavigationBarTitle({ title: this.data.name ? this.data.name.slice(0, 12) : '演出详情' });
     this.loadDetail();
+    // 兜底闹钟：wx.request 偶发在 devtools 里 success/fail 都不回调（网络栈
+    // 抽风），页面就会永远 loading。30 秒还没出结果就强制亮报错卡，
+    // 让用户至少能点「重试」——绝不许整页无声无息地白着。
+    if (this._loadWatchdog) clearTimeout(this._loadWatchdog);
+    this._loadWatchdog = setTimeout(() => {
+      if (this.data.loading && !this.data.error && !this.data.degraded) {
+        this.setData({
+          loading: false,
+          error: '详情请求一直没有回来（可能是开发者工具网络抽了）——点重试或下拉刷新',
+        });
+      }
+    }, 30000);
   },
 
   loadDetail() {
@@ -76,6 +98,7 @@ Page({
     }
     return request(req)
       .then((res) => {
+        if (this._loadWatchdog) clearTimeout(this._loadWatchdog);
         const r = res.result || {};
         if (!r.ok) throw new Error(r.error || '未知错误');
         // 场次×票档：默认全选可用项（对齐竞品「共订阅 N 场 M 个价格」）
@@ -138,6 +161,7 @@ Page({
         );
       })
       .catch((e) => {
+        if (this._loadWatchdog) clearTimeout(this._loadWatchdog);
         // 大麦风控拦详情接口时别整页报错——搜索结果点进来时名称/城市/场馆/价格/海报
         // 都随 URL 带上了，用这些降级渲染，只是拿不到场次×票档。
         if (this.data.name) {
@@ -150,6 +174,11 @@ Page({
         }
         this.setData({ loading: false, error: String(e.message || e) });
       });
+  },
+
+  /** 离开页面清掉兜底闹钟，别让它留着打空炮 */
+  onUnload() {
+    if (this._loadWatchdog) clearTimeout(this._loadWatchdog);
   },
 
   /** 服务端 sessions → 页面态。默认全选可用项（不可用的档位灰掉、不参与轮询）。 */
