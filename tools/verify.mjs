@@ -208,6 +208,19 @@ async function liveChecks() {
     }
   }
 
+  // 12306 过期日期（2026-10-19 钉死）：过去日期 12306 回 HTML 错误页，
+  // 曾被冒充成「风控拦截/云 IP 被拒」。必须在服务端本地拦截、说人话。
+  try {
+    const pastDay = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+    const pr = await post({ action: 'find', platform: 'rail12306', keyword: '广州南 长沙南', date: pastDay, limit: 1 });
+    record('活体', 'rail12306/过期日期给友好提示',
+      pr.ok === false && /已经过期|只能查/.test(String(pr.error || '')),
+      `ok=${pr.ok} err=${String(pr.error || '').slice(0, 50)}`,
+      '过期日期要本地拦截说人话，不能让 12306 的 HTML 错误页冒充风控报错');
+  } catch (e) {
+    warn('活体', 'rail12306/过期日期', '请求异常 ' + String(e).slice(0, 60), '');
+  }
+
 
   for (const exp of EXPECT) {
     const sec = '活体';

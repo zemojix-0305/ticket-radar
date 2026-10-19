@@ -87,7 +87,7 @@
       <view class="rail-dates">
         <view class="rail-date-chip press {{date === todayStr ? 'chip-on' : ''}}" data-off="0" bindtap="quickDate" hover-class="press-hover">今天</view>
         <view class="rail-date-chip press {{date === tomorrowStr ? 'chip-on' : ''}}" data-off="1" bindtap="quickDate" hover-class="press-hover">明天</view>
-        <picker mode="date" value="{{date}}" bindchange="onDate" class="rail-date-pick">
+        <picker mode="date" value="{{date}}" start="{{todayStr}}" bindchange="onDate" class="rail-date-pick">
           <view class="rail-date-chip">{{date}}</view>
         </picker>
       </view>

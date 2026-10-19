@@ -100,7 +100,7 @@ async function getJson(url, opts, redirectsLeft) {
     if (process.env.RADAR_DEBUG) {
       console.error('[debug] HTML from', url, '| status', r.status, '| loc', r.headers.location || '无', '| head:', r.body.slice(0, 100).replace(/\n/g, ' '));
     }
-    throw new Error('返回了 HTML——通常是风控拦截页（云 IP 被识别了？）');
+    throw new Error('返回了 HTML——通常是日期超出预售期/参数不对，或被风控拦截');
   }
   try {
     return JSON.parse(r.body);
@@ -744,6 +744,15 @@ async function railQueryRaw(from, to, date) {
 
 async function pollRail(params) {
   const { from, to, date, seat_types: seatTypes } = params;
+
+  // 过期日期拦截（2026-10-19 实测钉死）：12306 对过去日期返回的是 HTML
+  // 错误页，曾被我当成「风控拦截/云 IP 被拒」来报错，纯属误导——
+  // 用户只是选了已过去的日子。这里按北京时间提前拦下，说人话。
+  const bjToday = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  const railDay = String(date || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(railDay) && railDay < bjToday) {
+    throw new Error('乘车日期 ' + railDay + ' 已经过期——12306 只能查 ' + bjToday + ' 及以后的车次，换个日期再查');
+  }
 
   const { rows, stationMap } = await railQueryRaw(from, to, date);
 
