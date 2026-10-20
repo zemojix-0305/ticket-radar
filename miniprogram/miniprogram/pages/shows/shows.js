@@ -209,7 +209,8 @@ Page({
   searchKeyword(p) {
     const kw = (this.data.kw || '').trim();
     if (!kw) return Promise.resolve();
-    if (this.data.searching) return Promise.resolve();
+    // 不再用 searching 做硬守卫：devtools 偶发请求挂死会让 searching 永久停在 true，
+    // 之后所有点击被静默吞掉（表现=点查余票/搜索完全没反应）。改由发起时直接覆盖。
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
 
@@ -232,7 +233,7 @@ Page({
     const date = this.data.date;
     if (!from || !to) { Toast('填出发地和目的地'); return Promise.resolve(); }
     if (!date) { Toast('选乘车日期'); return Promise.resolve(); }
-    if (this.data.searching) return Promise.resolve();
+    // 同 searchKeyword：去掉 searching 硬守卫，避免上次请求挂死后永久点不动
 
     this.setData({ searching: true, fail: '', rows: [], searched: true });
     return request({ action: 'find', keyword: from + ' ' + to, platform: 'rail12306', date, limit: 20 })
