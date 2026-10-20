@@ -185,7 +185,7 @@ Page({
   /** 点演出卡片 → 详情页（海报 + 场次/票档 + 盯这场） */
   openDetail(e) {
     const row = e.currentTarget.dataset.row;
-    if (!row || !row.id) return;
+    if (!row || !row.id) { Toast('这条没带 id，跳不了详情'); return; }
     const q = [
       'platform=' + encodeURIComponent(row.platform),
       'id=' + encodeURIComponent(row.id),

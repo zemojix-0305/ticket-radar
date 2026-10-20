@@ -168,7 +168,7 @@
           </view>
           <view class="show-foot">
             <text class="show-price" wx:if="{{item.price}}">{{item.price}} 起</text>
-            <view class="show-more">详情 ›</view>
+            <view class="show-more" catchtap="openDetail" data-row="{{item}}">详情 ›</view>
             <view
               class="btn-watch {{adding === item.id ? 'btn-watch-busy' : ''}}"
               data-row="{{item}}"
@@ -213,7 +213,7 @@
           </view>
           <view class="show-foot">
             <text class="show-price" wx:if="{{item.price}}">{{item.price}} 起</text>
-            <view class="show-more">详情 ›</view>
+            <view class="show-more" catchtap="openDetail" data-row="{{item}}">详情 ›</view>
             <view
               class="btn-watch {{adding === item.id ? 'btn-watch-busy' : ''}}"
               data-row="{{item}}"
