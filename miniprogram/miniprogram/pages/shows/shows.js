@@ -87,18 +87,24 @@ Page({
     // 使用教程 / 常见问题（默认收起，占一行不碍事）
     faqOpen: false,
     faqList: FAQ_LIST,
+    bootError: '',
   },
 
   onLoad() {
-    const fmt = (off) => new Date(Date.now() + off * 86400000).toISOString().slice(0, 10);
-    this.setData({
-      history: wx.getStorageSync(HISTORY_KEY) || [],
-      todayStr: fmt(0),
-      tomorrowStr: fmt(1),
-      date: fmt(1),
-    });
-    // 进页面就拉热门，让第一屏有东西可逛
-    this.loadHot();
+    try {
+      const fmt = (off) => new Date(Date.now() + off * 86400000).toISOString().slice(0, 10);
+      this.setData({
+        history: wx.getStorageSync(HISTORY_KEY) || [],
+        todayStr: fmt(0),
+        tomorrowStr: fmt(1),
+        date: fmt(1),
+      });
+      // 进页面就拉热门，让第一屏有东西可逛
+      this.loadHot();
+    } catch (e) {
+      this.setData({ bootError: String(e && e.message || e) });
+      console.error('[shows] onLoad error:', e);
+    }
   },
 
   onShow() {

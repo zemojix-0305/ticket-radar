@@ -1,7 +1,13 @@
 <!-- 场次页 v5：纸感票根手账（第十七轮）
      语言：暖白期刊纸 + 平台用 van-tabs 切换 + 演出卡带印章状态。
      全部文字系统默认字体；交互反馈走 vant Toast/Dialog（纸感主题）。 -->
-<view class="page">
+  <view class="page">
+
+  <!-- 启动兜底：onLoad 抛错时可见，不再整页静默死 -->
+  <view class="card fail" wx:if="{{bootError}}">
+    <view class="fail-t">页面启动出错</view>
+    <view class="fail-b">{{bootError}}</view>
+  </view>
 
   <!-- 背景拼贴层：贴纸透明度压到 0.06~0.12，只在留白缝隙透出 -->
   <view class="bg-collage">

@@ -13,4 +13,10 @@ App({
     // 云开发已废弃，不再初始化
     console.log('[ticket-radar] launched, using stateless HTTP API');
   },
+  // 全局兜住页面运行时错误，避免「整页无声死掉」时用户毫无头绪。
+  // 注意：模块加载失败（import 抛错导致 Page 不注册）这一层兜不住，
+  // 那种情况 devtools Console 会直接红字点名文件，属于编译/环境问题。
+  onError(err) {
+    console.error('[ticket-radar] 运行时错误:', err);
+  },
 });
