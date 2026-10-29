@@ -1,14 +1,16 @@
 {
   "pages": [
-    "pages/splash/splash",
     "pages/monitor/monitor",
     "pages/shows/shows",
     "pages/detail/detail",
     "pages/history/history",
     "pages/discussion/discussion",
     "pages/mine/mine",
-    "pages/watched/watched"
+    "pages/watched/watched",
+    "pages/flight/flight",
+    "pages/compare/compare"
   ],
+  "entryPagePath": "pages/monitor/monitor",
   "window": {
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#F7F7FA",
@@ -30,7 +32,7 @@
       },
       {
         "pagePath": "pages/shows/shows",
-        "text": "演出",
+        "text": "找票",
         "iconPath": "images/tab_shows.png",
         "selectedIconPath": "images/tab_shows_on.png"
       },
