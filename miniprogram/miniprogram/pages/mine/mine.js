@@ -9,7 +9,7 @@ const USER_KEY = 'radar_user_profile';
 import Toast from '../../vant/toast/toast';
 import Dialog from '../../vant/dialog/dialog';
 import { request, pushTest, pushStatus } from '../../utils/api';
-import { isOn, renew as pushRenew, off as pushOff } from '../../utils/push';
+import { isOn, renew as pushRenew, off as pushOff, topUp as pushTopUp } from '../../utils/push';
 import { loadTasks } from '../../utils/tasks';
 import { loadPosts, removePost } from '../../utils/posts';
 
@@ -21,6 +21,10 @@ function makeUid() {
 }
 
 Page({
+  // 随便点一下页面就补一次推送机会，用户看不到「额度」这件事
+  onAnyTap() {
+    pushTopUp();
+  },
   data: {
     code: '',
     err: '',

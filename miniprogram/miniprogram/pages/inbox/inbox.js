@@ -7,7 +7,7 @@
 // 记录存在本地 storage：小程序端的检查日志不涉及他人数据，
 // 没必要为此多写一份云端集合。
 import { request } from '../../utils/api';
-import { isOn, renew, off } from '../../utils/push';
+import { isOn, renew, off, topUp } from '../../utils/push';
 
 const ACT_KEY = 'radar_activity';
 const MAX = 40;
@@ -41,6 +41,10 @@ const KIND = {
 };
 
 Page({
+  // 点开一条消息就补一次推送机会，用户无感
+  onAnyTap() {
+    topUp();
+  },
   data: {
     pushOn: false,
     activity: [],

@@ -7,6 +7,7 @@ import {
   renew as pushRenew,
   off as pushOff,
   renewAfterAdd as pushRenewAfterAdd,
+  topUp as pushTopUp,
 } from '../../utils/push';
 import { loadTasks, removeTask } from '../../utils/tasks';
 //
@@ -103,6 +104,11 @@ function relTime(iso) {
 }
 
 Page({
+  // 用户在页面上随便点一下（看卡片、切筛选、点刷新），顺手补一次下发机会。
+  // 勾过「总是保持以上选择」的人完全无感；节流与每日上限在 push.topUp 里。
+  onAnyTap() {
+    pushTopUp();
+  },
   data: {
     states: [],
     filtered: [],

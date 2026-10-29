@@ -1,6 +1,6 @@
 // 「历史」页：两个 tab——历史曲线 + 推送记录。
 import { request } from '../../utils/api';
-import { isOn, renew, off } from '../../utils/push';
+import { isOn, renew, off, topUp } from '../../utils/push';
 //
 // 历史曲线存在的理由：竞品的讨论区全是人在互相问「有回流吗」「什么价位好抢」
 // 「什么时候二开」——那些问题本来该由产品回答。我们手里有每次抓取的记录，
@@ -107,6 +107,10 @@ const KIND = {
 };
 
 Page({
+  // 切 tab、点曲线都算一次交互，顺手补一次推送机会
+  onAnyTap() {
+    topUp();
+  },
   data: {
     tab: 0,
     rows: [],

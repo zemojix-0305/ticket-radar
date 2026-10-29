@@ -1,5 +1,5 @@
 <!-- 我的 -->
-<view class="page">
+<view class="page" bindtap="onAnyTap">
 
   <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
   <view class="bg-collage">
@@ -57,6 +57,7 @@
       </view>
       <view class="quota-sw {{pushOn ? 'quota-sw-on' : ''}}" bindtap="togglePush" hover-class="press-hover">{{pushOn ? '暂停推送' : '恢复推送'}}</view>
     </view>
+    <text class="quota-hint" wx:if="{{!pushOn}}">弹窗里勾上「总是保持以上选择」，以后不再弹，推送自动续。</text>
     <text class="quota-msg" wx:if="{{authMsg}}">{{authMsg}}</text>
     <text class="quota-msg" wx:if="{{srvMsg}}">{{srvMsg}}</text>
   </view>

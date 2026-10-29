@@ -1,5 +1,5 @@
 <!-- 消息页：不列微信的通知，而是给「到底有没有在查」的证据 -->
-<view class="page">
+<view class="page" bindtap="onAnyTap">
 
   <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
   <view class="bg-collage">

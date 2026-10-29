@@ -8,14 +8,35 @@
  *
  * 微信的规则没变（一次性订阅 = 点一次允许换一条推送），所以实际做法是：
  *   1. 用户点「恢复推送」时请求一次授权，授权成功就记为「开」；
- *   2. 之后每次加监控静默再续一条（勾了「总是保持以上选择」的话完全不弹窗）；
- *   3. 暂停时不弹窗、不续期，加监控也不打扰。
+ *      这一次弹窗里勾上「总是保持以上选择」，后面就再也不会弹了；
+ *   2. 之后用户每次点击小程序（看卡片、切页、刷新）都静默补一条，见 topUp()；
+ *   3. 加监控时也顺手补一条（renewAfterAdd），因为那是最强的意愿时刻；
+ *   4. 暂停时不弹窗、不续期，加监控也不打扰。
+ *
+ * 一句话：把「续」藏进用户本来就会做的动作里，界面上永远只有开和关。
  */
 const TMPL_ID = 'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4';
+
+// 一次 requestSubscribeMessage 可以同时勾多个模板，每个模板各 +1 次下发机会。
+// 现在后台只有这一个模板；以后加了新的，把 ID 加到数组里就行，代码不用改。
+const TMPL_IDS = [TMPL_ID];
 
 const ON_KEY = 'radar_push_on';
 const PAUSED_KEY = 'radar_push_paused'; // 用户自己按过「暂停推送」
 const ASKED_AT = 'radar_push_asked_at';
+const TOPUP_AT = 'radar_push_topup_at';
+const TOPUP_DAY = 'radar_push_topup_day';
+const REJECT_AT = 'radar_push_reject_at';
+
+// 自动补次数：同一人 30 分钟内只补一次，一天最多 4 次。
+// 微信允许「点一次就 +1」，但短时间内高频率调用会被判刷量、模板会被回收，
+// 所以这里必须节流——用户完全无感，但不会把我们自己玩死。
+// 勾过「总是保持以上选择」的人，这一步完全静默；没勾的人会看到弹窗，
+// 所以频率再压低一点，别把人烦跑。
+const TOPUP_GAP = 30 * 60 * 1000;
+const TOPUP_MAX = 4;
+// 用户点过「取消」= 不想收。别追着问，一周内不再补。
+const REJECT_SILENCE = 7 * 24 * 60 * 60 * 1000;
 
 /** 推送现在开着吗 */
 function isOn() {
@@ -84,16 +105,24 @@ function renew(opt) {
       return;
     }
     markAsked();
+    // 也记一笔自动补的时间：刚手动领过，不需要再补一次
+    wx.setStorageSync(TOPUP_AT, Date.now());
     wx.requestSubscribeMessage({
-      tmplIds: [TMPL_ID],
+      tmplIds: TMPL_IDS,
       success: (res) => {
-        const ok = res && res[TMPL_ID] === 'accept';
+        const accepted = TMPL_IDS.filter((id) => res && res[id] === 'accept');
+        const ok = accepted.length > 0;
         if (ok) {
+          wx.removeStorageSync(REJECT_AT);
           setOn(true);
         } else if (!o.silent) {
-          const why =
-            res && res[TMPL_ID] === 'reject' ? '你选了拒绝，所以不会收到推送' : '没开成，稍后再点一次';
+          const rejected = TMPL_IDS.some((id) => res && res[id] === 'reject');
+          const why = rejected ? '你选了拒绝，所以不会收到推送' : '没开成，稍后再点一次';
           wx.showToast({ title: why, icon: 'none' });
+        }
+        if (TMPL_IDS.every((id) => res && res[id] === 'reject')) {
+          // 明确拒绝：记下来，自动补次数先停一周，别反复弹
+          wx.setStorageSync(REJECT_AT, Date.now());
         }
         resolve(ok);
       },
@@ -105,6 +134,32 @@ function renew(opt) {
       },
     });
   });
+}
+
+/**
+ * 自动补一次下发机会（用户完全无感）。
+ * ---------------------------------------------------------------------------
+ * 微信的硬规则是「点一次授权 = 能收一条」，没法像服务号那样无限发。
+ * 但我们可以在用户每次真正点击界面的时候，顺手补一条：
+ *   - 用户勾过「总是保持以上选择」→ 完全不弹窗，静默 +1；
+ *   - 没勾过 → 会弹一次，这也是他唯一一次需要做选择。
+ * 补足后，用户看到的就是「一直能收到」，页面里也不出现任何「额度」字样。
+ *
+ * 只能在 tap 回调链里调用（微信要求用户手势），且必须节流，理由见 TOPUP_GAP。
+ */
+function topUp() {
+  if (!isOn()) return Promise.resolve(false);
+  const now = Date.now();
+  const rej = Number(wx.getStorageSync(REJECT_AT) || 0);
+  if (rej && now - rej < REJECT_SILENCE) return Promise.resolve(false);
+  const today = new Date().toDateString();
+  const last = Number(wx.getStorageSync(TOPUP_AT) || 0);
+  let rec = wx.getStorageSync(TOPUP_DAY) || {};
+  if (!rec || rec.d !== today) rec = { d: today, n: 0 };
+  if (now - last < TOPUP_GAP || rec.n >= TOPUP_MAX) return Promise.resolve(true);
+  wx.setStorageSync(TOPUP_AT, now);
+  wx.setStorageSync(TOPUP_DAY, { d: today, n: rec.n + 1 });
+  return renew({ silent: true, force: true });
 }
 
 /**
@@ -125,4 +180,4 @@ function renewAfterAdd() {
   return renew({ silent: true, force: true });
 }
 
-module.exports = { TMPL_ID, isOn, setOn, off, renew, renewAfterAdd };
+module.exports = { TMPL_ID, TMPL_IDS, isOn, setOn, off, renew, renewAfterAdd, topUp };

@@ -103,6 +103,8 @@
 .acts .btn { flex: 1; }
 .quota .acts { margin-top: 0; }
 .quota-msg { display: block; font-size: 13px; color: var(--accent); margin-top: 10px; line-height: 1.6; }
+/* 只在「还没开」时出现：告诉用户第一次弹窗里该勾哪个，勾了就再也不会弹 */
+.quota-hint { display: block; font-size: 13px; color: var(--ink3); margin-top: 8px; line-height: 1.6; }
 
 /* ---------- 推送绑定 ---------- */
 .bind { padding: 14px 18px; }

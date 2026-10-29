@@ -1,5 +1,5 @@
 <!-- 历史页：历史曲线 + 推送记录两个 tab -->
-<view class="page">
+<view class="page" bindtap="onAnyTap">
 
   <!-- 背景拼贴层：贴纸素材压到 0.07~0.14 透明度，只在留白处透出 -->
   <view class="bg-collage">

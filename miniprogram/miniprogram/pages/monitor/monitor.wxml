@@ -1,5 +1,5 @@
 <!-- 监控页：纸感票根手账风。标题 + 大数字计数 + 纸卡任务列表 -->
-<view class="page">
+<view class="page" bindtap="onAnyTap">
 
   <!-- 背景拼贴层：仅保留 bg-stk 拼贴 -->
   <view class="bg-collage">
