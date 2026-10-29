@@ -83,7 +83,7 @@ radar doctor                       # 真发请求做体检：凭据还有效吗�
 | 适配器 | 平台 | 状态 | 你需要准备 |
 |---|---|---|---|
 | `rail12306` | 中国铁路 | ✅ **开箱可用** | 无（匿名即可，配 Cookie 更稳） |
-| `flight` / `amadeus` | 机票 | ✅ **开箱可用** | 无。小程序走同程匿名接口；Python 引擎保留 Amadeus 正规 API 那条路 |
+| `flight` / `amadeus` | 机票 | ✅ **开箱可用** | 无。小程序走同程匿名接口，能设目标价盯航线；Python 引擎保留 Amadeus 正规 API 那条路 |
 | `damai` | 大麦 | ⚙️ 信息匿名、库存要登录 | 演出名/场次/开售时间**匿名可查**；逐票档库存要 Cookie |
 | `maoyan` | 猫眼演出 | ✅ **开箱可用** | 无（公开接口，不需要 Cookie）。只需 `performance_id`（`radar find` 拿） |
 | `moretickets` | 摩天轮票务 | ✅ **开箱可用** | 无（公开接口，不需要 Cookie）。只需 `tour_id`。二手票，余量波动大 |
@@ -825,6 +825,26 @@ depart_before: "12:00"    # 不含 12:00
 - 走势图的柱高不用 `max` 做归一。机票常有「今天 ¥1600、下个月 ¥360」这种异常值，
   用 `max` 会把 29 根柱子压成一样高，走势就看不出来了。改用 P90 当上限锚点。
 
+**盯航线**：面板里点「盯这条航线」输一个目标价，就是一个 `adapter: 'flight'` 的普通监控任务——
+和演出票、12306 一样进首页的监控列表，能被 `poll` 轮询、走同一条一次性订阅推送。
+服务端 `pollFlight` 把「最低价 ≤ 目标价」直接映射成 `available: true`：
+
+```js
+// cloudfunctions/radar/index.js
+async function pollFlight(params) {      // { from:'SHA', to:'BJS', days:30, budget:600 }
+  const cal = await flightSvc.calendar(params.from, params.to, '', params.days);
+  const hit = params.budget > 0 && cal.stats.min <= params.budget;
+  return [{ label: '上海 → 北京 · 最低价', available: hit, price: cal.stats.min, /* … */ }];
+}
+```
+
+这不是偷懒：整套监控的状态机（`diffRestock` → 回流判定 → 推送）判的就是
+「某条 item 从不可用变成可用」。机票没有余票这回事，但「跌到你的心理价」和
+「回流出一张票」对用户是同一件事。复用 `available` 就不用给机票单开一条推送链路，
+卡片、历史、筛选也全都能直接用。
+
+`budget: 0` 表示只看不提醒（记价格、画曲线，但不判「到价」）。
+
 Python 引擎那条线保留了 `amadeus` 适配器（走正规开放 API）：
 
 ```yaml
@@ -1074,7 +1094,8 @@ SMTP_TO=you@qq.com
 ## 路线图
 
 - [x] 12306 铁路余票适配器
-- [x] 机票：同程匿名查价（逐日最低价 + 当天航班与舱位）。Python 线保留 Amadeus 正规 API
+- [x] 机票：同程匿名查价（逐日最低价 + 当天航班与舱位），可设目标价盯航线。
+      Python 线保留 Amadeus 正规 API
 - [x] 大麦（含 mtop 签名）/ 猫眼 / 摩天轮
 - [x] 猫眼与摩天轮改成真适配器 —— 实测它们的接口是**公开**的，不需要登录态
 - [x] 大麦与淘票票的匿名通道 —— 换官方 H5 那套请求形态后，信息层零 Cookie 全通
