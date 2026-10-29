@@ -247,11 +247,11 @@ Component({
       const rows = r.rows || [];
       const min = r.stats.min;
       const avg = r.stats.avg;
-      // 柱高：以 P90 为上限锚点，最低价 24rpx、最高 92rpx。
+      // 柱高：以 P90 为上限锚点，最低价 18rpx、最高 68rpx。
       // 为什么不用 max 直接归一：机票常有「今天飞 ¥1600、下个月 ¥360」这种
       // 异常值，用 max 归一会把 29 根柱子压成一样高，走势就看不出来了。
-      // 高度上限从 150 收到 92：走势只用来「看出哪几天便宜」，不需要高柱，
-      // 一屏放得下才不用一直往下滑。
+      // 高度上限一缩再缩（150 → 92 → 68）：这块只是让人看出「哪几天便宜」，
+      // 不需要高柱，整块压到 70px 左右刚好一屏能带过。
       const sorted = rows.map((x) => x.price).sort((a, b) => a - b);
       const p90 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))] || min;
       const span = Math.max(1, p90 - min);
@@ -260,7 +260,7 @@ Component({
         dd: x.date.slice(5),
         w: x.week,
         price: x.price,
-        h: Math.max(24, Math.min(92, Math.round(24 + ((x.price - min) / span) * 68))),
+        h: Math.max(18, Math.min(68, Math.round(18 + ((x.price - min) / span) * 50))),
         low: x.price === min,
       }));
       // 捡漏日：低于均价 12%（原先是 20%，太严——实测 SHA-BJS 最低只比均价
