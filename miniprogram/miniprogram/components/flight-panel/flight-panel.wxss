@@ -253,6 +253,40 @@
   font-size: 11px;
   color: var(--ink3);
 }
+
+/* 平台比价条：一行放三家，谁最低谁描绿边 */
+.plats {
+  display: flex;
+  gap: 8px;
+}
+.plat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: var(--r-sm);
+  background: var(--card);
+  border: 1px solid transparent;
+}
+.plat-low {
+  border-color: var(--ok);
+  background: var(--ok-weak);
+}
+.plat-n {
+  font-size: 11px;
+  color: var(--ink3);
+}
+.plat-p {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.plat-low .plat-p {
+  color: var(--ok);
+}
 .sec-more {
   font-size: 12px;
   color: var(--accent);
@@ -542,6 +576,16 @@
   border-bottom: 1px solid var(--line);
 }
 .city-hover { background: var(--paper-deep); }
+/* 「国际」小标：让用户一眼看出这行能不能走国际线 */
+.city-intl {
+  margin-left: 8px;
+  margin-right: auto;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--ok);
+  background: var(--ok-weak);
+}
 .city-n {
   font-size: 15px;
   color: var(--ink);

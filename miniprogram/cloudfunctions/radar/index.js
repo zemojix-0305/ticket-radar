@@ -2789,30 +2789,36 @@ async function pollFlight(params) {
   }
 
   const days = Math.min(60, Math.max(7, Number(params.days) || 30));
-  const cal = await flightSvc.calendar(from, to, params.date || '', days);
+  // 三家平台一起比（同程 / 飞猪 / 途牛，全部免登录，见 flight.js calendarMulti）。
+  // 哪家没出数就不给它建条目——不拿「暂无」冒充「没票」，也不让空平台占位。
+  const cal = await flightSvc.calendarMulti(from, to, params.date || '', days);
   const st = cal.stats || {};
   const min = Number(st.min) || 0;
   if (!min) throw new Error('这条航线这些天一条报价都没有');
-  const cheapest = st.cheapest || {};
-  const hit = target > 0 && min <= target;
-  // 用城市名而不是机场全名：「上海虹桥国际机场 → 北京首都国际机场」当 label 又长又漂
-  // （最低价换一班，机场就变了），diffRestock 是按 label 配对前后两轮的，必须稳定。
-  const bits = ['最低 ¥' + min];
-  if (cheapest.date) bits.push(cheapest.date.slice(5) + ' 出发');
-  bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');
-  return [
-    {
-      // label 要稳定：diffRestock 靠 label 配对前后两轮，"最低价" 这层别改字
-      label: fromCn + ' → ' + toCn + ' · 最低价',
-      place: '同程',
-      when: cheapest.date || '',
-      status: bits.join(' · '),
-      available: hit,
-      count: hit ? 1 : 0,
-      price: min,
-      target: target || null,
-    },
-  ];
+
+  return cal.plats
+    .filter((p) => p.ok && p.min > 0)
+    .map((p) => {
+      const hit = target > 0 && p.min <= target;
+      // 这家平台自己最便宜的那天（不是全平台最低那天）——降价提醒说的是「它的价」
+      const own = cal.rows.filter((r) => r.byPlat[p.plat] === p.min)[0] || {};
+      const bits = ['¥' + p.min];
+      if (own.date) bits.push(own.date.slice(5) + ' 出发');
+      if (p.min === min) bits.push('全平台最低');
+      bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');
+      return {
+        // label 带平台名，**必须稳定**：diffRestock 靠 label 配对前后两轮，
+        // 平台名不会随价格漂移，所以「同程降价」只会在同程那条上触发。
+        label: fromCn + ' → ' + toCn + ' · ' + p.plat,
+        place: p.plat,
+        when: own.date || '',
+        status: bits.join(' · '),
+        available: hit,
+        count: hit ? 1 : 0,
+        price: p.min,
+        target: target || null,
+      };
+    });
 }
 
 // ===========================================================================
@@ -3344,7 +3350,7 @@ async function handleAction(event, action, db) {
     // 全程匿名，不碰任何 Cookie / token：用户只需要选「从哪到哪」。
     if (action === 'flight') {
       try {
-        const data = await flightSvc.calendar(
+        const data = await flightSvc.calendarMulti(
           event && event.from,
           event && event.to,
           event && event.date,

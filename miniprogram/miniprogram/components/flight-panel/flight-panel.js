@@ -1,16 +1,22 @@
 // 机票面板（内联在 shows 页的「机票」tab 里，不再跳独立页）
 // ---------------------------------------------------------------------------
-// 数据源：同程「价格日历」（后端 cloudfunctions/radar/flight.js）
-//   · 匿名、免 Cookie、免签名，一次给整条航线 30/60 天逐日最低价
-//   · 每条带航班号 + 起降时刻 + 折扣，用户能直接判断这班要不要
+// 数据源：三家的「低价日历」（后端 cloudfunctions/radar/flight.js calendarMulti）
+//   · 同程 / 飞猪 / 途牛，全部匿名免登录，一次给整窗口逐日最低价
+//   · 国内三家都能比；国际只有同程出数（飞猪要机场码且常返 0，途牛无国际日历）
 // 产品口径（不吹）：
-//   · 「每条航线每天的最低价」是我们真能拿到的；「当天全部航班列表」匿名拿不到，
-//     不硬凑假数据；
-//   · 平台比价：同程可匿名取价，携程/去哪儿/飞猪/途牛都要登录态，
-//     所以这里给「一键复制查询链接」让你去对应平台核对，而不是假装能比价。
+//   · 给到的是「每条航线每天的最低起价」，不是「这一班在这一家的价」——
+//     逐航班逐平台的明细要登录态，我们没绕过它，也不假装有；
+//   · 所以文案写「起价」，不说「同班最低」。
 const { request } = require('../../utils/api');
 const { loadTasks, saveTasks } = require('../../utils/tasks');
 const { renewAfterAdd } = require('../../utils/push');
+
+/** YYYY-MM-DD → 周几（后端只给日期，不给星期） */
+function weekOf(date) {
+  const d = new Date(String(date || '') + 'T00:00:00+08:00');
+  if (isNaN(d.getTime())) return '';
+  return '周' + '日一二三四五六'[d.getDay()];
+}
 
 // 旧版本把盯的航线单独存在 radar_flight_watch 里，只能在本页面看到、也不会被轮询。
 // 现在统一进 utils/tasks 的监控任务列表（monitor 首页那一批），下面这个 key 只留着
@@ -41,8 +47,8 @@ function toWatch(t) {
     to: p.to,
     fromName: p.fromName || p.from,
     toName: p.toName || p.to,
-    // 数据源就一家，平台写死「同程」——不假装有多个平台在比价
-    plat: p.plat || '同程',
+    // 航班级只有同程有逐航班明细；航线级是同程/飞猪/途牛三家一起比
+    plat: isFlight ? '同程' : '比三家',
     budget: Number(p.budget) || 0, // 0 = 只看不提醒
     lastMin: Number(p.lastMin) || 0,
     prevMin: Number(p.prevMin) || 0,
@@ -99,6 +105,11 @@ Component({
     rowsTop: [],
     listOpen: false,
     savePct: 0,
+    // 平台行情：三家的最低价 + 谁最低；platNote 是没出数的平台名（只做一行小字）
+    plats: [],
+    platNote: '',
+    platTip: '',
+    intl: false,
     // 城市选择
     cityOpen: false,
     citySide: 'from',
@@ -260,8 +271,15 @@ Component({
         return;
       }
       this.setData({ loading: true, err: '', errTitle: '没拿到价格' });
-      // 价格日历和「当天航班」是两条独立请求，各走各的，谁先回来先渲染
-      this.queryFlights();
+      // 价格日历和「当天航班」是两条独立请求，各走各的，谁先回来先渲染。
+      // 国际/地区航线不查「当天航班」：逐航班明细（同程列表页 SSR）国际线恒空，
+      // 硬查只会给用户弹一句「没查到航班」，看起来像我们又坏了。
+      const cross = !!(from.intl || to.intl);
+      if (cross) {
+        this.setData({ flights: [], flView: [], flShow: [], flErr: '', flDate: '', intl: true });
+      } else {
+        this.queryFlights();
+      }
       request({ action: 'flight', from: from.code, to: to.code, date: startDate, days })
         .then((res) => {
           // 同 loadCities：先取 res.result。不取的话 r.ok 是 undefined，
@@ -291,55 +309,106 @@ Component({
     },
 
     applyRes(r, from, to) {
+      // rows 现在是「每天 × 多平台」的矩阵：{ date, byPlat:{同程:400,...}, min, minPlat }
+      // 走势图按 min（当天全平台最低）画，柱顶再标出这天是谁家。
       const rows = r.rows || [];
       const min = r.stats.min;
       const avg = r.stats.avg;
       // 柱高：以 P90 为上限锚点，最低价 22rpx、最高 88rpx（≈11~44px）。
       // 为什么不用 max 直接归一：机票常有「今天飞 ¥1600、下个月 ¥360」这种
       // 异常值，用 max 归一会把 29 根柱子压成一样高，走势就看不出来了。
-      // 柱高本身放回 88rpx——「太长」不是柱子的问题，是白卡被 scroll-view
-      // 撑到了整屏（见 wxss 的 .chart）。卡片高度写死后，柱子可以留高一点。
-      const sorted = rows.map((x) => x.price).sort((a, b) => a - b);
+      const sorted = rows.map((x) => x.min).sort((a, b) => a - b);
       const p90 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))] || min;
       const span = Math.max(1, p90 - min);
       const bars = rows.map((x) => ({
         date: x.date,
         dd: x.date.slice(5),
-        w: x.week,
-        price: x.price,
-        h: Math.max(22, Math.min(88, Math.round(22 + ((x.price - min) / span) * 66))),
-        low: x.price === min,
+        w: weekOf(x.date),
+        price: x.min,
+        plat: x.minPlat || '',
+        // 只有存在第二个平台报价时才值得标平台名，否则满屏「同程」是噪音
+        multi: Object.keys(x.byPlat || {}).length > 1,
+        h: Math.max(22, Math.min(88, Math.round(22 + ((x.min - min) / span) * 66))),
+        low: x.min === min,
       }));
       // 捡漏日：低于均价 12%（原先是 20%，太严——实测 SHA-BJS 最低只比均价
       // 低 19%，结果一条都筛不出来，页面上就是空的）。按价格升序最多 6 条。
       let deals = rows
-        .filter((x) => x.price <= avg * 0.88)
-        .sort((a, b) => a.price - b.price)
+        .filter((x) => x.min <= avg * 0.88)
+        .sort((a, b) => a.min - b.min)
         .slice(0, 6)
-        .map((x) => Object.assign({}, x, { save: Math.round(((avg - x.price) / avg) * 100) }));
+        .map((x) => ({
+          date: x.date,
+          dd: x.date.slice(5),
+          w: weekOf(x.date),
+          price: x.min,
+          plat: x.minPlat || '',
+          byPlat: x.byPlat || {},
+          save: Math.round(((avg - x.min) / avg) * 100),
+        }));
       // 兜底：整条航线价格很平的时候（没有一天低于均价 12%），
       // 至少把最便宜的那天拿出来，不让「捡漏日」整块空着。
       if (!deals.length && r.stats.cheapest) {
         const c = r.stats.cheapest;
-        deals = [Object.assign({}, c, { save: Math.round(((avg - c.price) / avg) * 100) })];
+        deals = [
+          {
+            date: c.date,
+            dd: String(c.date || '').slice(5),
+            w: weekOf(c.date),
+            price: c.min,
+            plat: c.minPlat || '',
+            byPlat: c.byPlat || {},
+            save: Math.round(((avg - c.min) / avg) * 100),
+          },
+        ];
       }
+
+      // 平台行情：三家各自的最低价，谁最低谁标绿。没出数的那家不列（不拿「暂无」占位）
+      const plats = (r.plats || [])
+        .filter((p) => p.ok && p.min > 0)
+        .map((p) => ({
+          plat: p.plat,
+          min: p.min,
+          span: p.span || 0,
+          low: p.min === min,
+        }));
+      const platNote = (r.plats || [])
+        .filter((p) => !p.ok || !p.min)
+        .map((p) => p.plat)
+        .join('/');
+      // 提示语在 js 里拼好：wxml 里叠三元 + 字符串拼接在部分基础库上会解析歪
+      const platTip = platNote ? platNote + ' 这次没出数' : r.intl ? '国际线' : '';
 
       // 记住这条航线（存用户选的城市名，不存后端机场全名，否则第二次进来
       // 卡片上会顶出「上海虹桥国际机场」这种超长标题）
       const code = from.code + '-' + to.code;
       // 不再把航线写进本地当"下次默认值"——用户明确要求进来不要预填城市
-      // 后端给的是机场全名（"上海虹桥国际机场"），展示时收成城市名
       this.setData({
         res: r,
         bars: bars,
         deals: deals,
-        rows: rows,
+        // rows 要再派一份「能直接渲染」的形态：wxml 里做不了对象遍历，
+        // 所以平台串（同程¥360 / 途牛¥372）在 js 里拼好，模板只管显示
+        rows: rows.map((x) => ({
+          date: x.date,
+          dd: x.date.slice(5),
+          week: weekOf(x.date),
+          min: x.min,
+          minPlat: x.minPlat || '',
+          platList: Object.keys(x.byPlat || {})
+            .map((k) => k + '¥' + x.byPlat[k])
+            .join(' / '),
+        })),
         rowsTop: rows.slice(0, 6),
+        plats: plats,
+        platNote: platNote,
+        platTip: platTip,
+        intl: !!r.intl,
         savePct: Math.round(((avg - min) / avg) * 100),
         fromName: r.fromName || from.name,
         toName: r.toName || to.name,
       });
-      this.recordLast(code, min, r.stats.cheapest);
+      this.recordLast(code, min, { date: (r.stats.cheapest || {}).date });
       this.syncRoute();
     },
 
@@ -711,14 +780,16 @@ Component({
             // 上一次看到的价格：优先用本地快照，没有就用任务里存的 lastMin
             const before = Number((prev && prev.price) || w.lastMin) || 0;
             const delta = before ? min - before : 0;
+            // 横幅要说清「现在哪家最便宜」，只写「比三家」等于没说
+            const cheap = r.stats.cheapest || {};
             if (delta < 0 && (!drop || -delta > drop.drop)) {
               drop = {
                 name: w.fromName + ' → ' + w.toName,
-                plat: w.plat,
+                plat: cheap.minPlat || w.plat,
                 drop: -delta,
                 now: min,
                 before: before,
-                date: r.stats.cheapest ? r.stats.cheapest.date : '',
+                date: cheap.date || '',
               };
             }
             last[w._id] = {

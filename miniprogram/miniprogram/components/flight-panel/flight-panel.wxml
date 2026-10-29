@@ -103,9 +103,23 @@
       </view>
     </block>
 
+    <!-- 平台比价：三家各自的最低价，谁最低谁标绿（口径是「起价」，不是同班价） -->
+    <block wx:if="{{plats.length}}">
+      <view class="sec-h">
+        <text class="sec-t">各平台最低</text>
+        <text class="sec-s">{{platTip}}</text>
+      </view>
+      <view class="plats">
+        <view class="plat {{item.low ? 'plat-low' : ''}}" wx:for="{{plats}}" wx:key="plat">
+          <text class="plat-n">{{item.plat}}</text>
+          <text class="plat-p">¥{{item.min}}</text>
+        </view>
+      </view>
+    </block>
+
     <view class="sec-h">
       <text class="sec-t">价格走势</text>
-      <text class="sec-s">{{bars.length}} 天</text>
+      <text class="sec-s">{{bars.length}} 天 · 取全平台最低</text>
     </view>
     <scroll-view class="chart" scroll-x enable-flex show-scrollbar="{{false}}">
       <view
@@ -137,12 +151,14 @@
         >
           <view class="deal-d">{{item.date}}</view>
           <view class="deal-p">¥{{item.price}}</view>
-          <view class="deal-s">{{item.week}} · 省{{item.save}}%</view>
+          <view class="deal-s">{{item.plat}} · 省{{item.save}}%</view>
         </view>
       </scroll-view>
     </block>
 
     <!-- ============ 当天航班（航班号 / 航司 / 时刻 / 舱位）============ -->
+    <!-- 国际线不给这块：逐航班明细拿不到，留个空壳比不显示更让人困惑 -->
+    <block wx:if="{{!intl}}">
     <view class="sec-h">
       <text class="sec-t">当天航班</text>
       <text class="sec-s">{{flDate}} · 共 {{flView.length}} 班</text>
@@ -227,6 +243,7 @@
     <view class="flmore" wx:if="{{flMore}}" bindtap="toggleFlights" hover-class="flmore-hover">
       {{flOpen ? '收起，只看前 5 班' : '还有 ' + flMore + ' 班 · 展开全部'}}
     </view>
+    </block>
 
     <!-- 每天最低价（默认收起，避免页面太长） -->
     <view class="sec-h">
@@ -236,15 +253,15 @@
     <block wx:if="{{listOpen}}">
       <view class="row-h">
         <text class="rh-d">日期</text>
-        <text class="rh-f">航班</text>
-        <text class="rh-t">时刻</text>
-        <text class="rh-p">价格</text>
+        <text class="rh-f">最低来自</text>
+        <text class="rh-t">各平台</text>
+        <text class="rh-p">起价</text>
       </view>
       <view class="row" wx:for="{{rows}}" wx:key="date">
-        <text class="rw-d">{{item.date}}<text class="rw-w">{{item.week}}</text></text>
-        <text class="rw-f">{{item.flightNo}}</text>
-        <text class="rw-t">{{item.depTime}}-{{item.arrTime}}</text>
-        <text class="rw-p {{item.price === res.stats.min ? 'rw-p-low' : ''}}">¥{{item.price}}</text>
+        <text class="rw-d">{{item.dd}}<text class="rw-w">{{item.week}}</text></text>
+        <text class="rw-f">{{item.minPlat}}</text>
+        <text class="rw-t">{{item.platList}}</text>
+        <text class="rw-p {{item.min === res.stats.min ? 'rw-p-low' : ''}}">¥{{item.min}}</text>
       </view>
     </block>
 
@@ -259,10 +276,11 @@
       <text class="sheet-t">选{{citySide === 'from' ? '出发' : '到达'}}城市</text>
       <text class="sheet-x" bindtap="closeCity">✕</text>
     </view>
-    <input class="sheet-inp" placeholder="中文 / 拼音 / 三字码，如 上海 或 sh" value="{{cityKw}}" bindinput="onCityKw" />
+    <input class="sheet-inp" placeholder="城市名 / 拼音 / 三字码（含国际，如 东京 或 TYO）" value="{{cityKw}}" bindinput="onCityKw" />
     <scroll-view class="sheet-list" scroll-y>
       <view class="city" wx:for="{{cityList}}" wx:key="code" data-city="{{item}}" bindtap="pickCity" hover-class="city-hover">
         <text class="city-n">{{item.name}}</text>
+        <text class="city-intl" wx:if="{{item.intl}}">国际</text>
         <text class="city-c">{{item.code}}</text>
       </view>
       <view class="city-empty" wx:if="{{!cityList.length}}">没匹配到，试试拼音首字母</view>
