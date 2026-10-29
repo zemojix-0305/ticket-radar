@@ -17,7 +17,6 @@ const { renewAfterAdd } = require('../../utils/push');
 // 做一次性迁移，不再写入。
 const WATCH_KEY = 'radar_flight_watch';
 const LAST_KEY = 'radar_flight_last';
-const ROUTE_KEY = 'radar_flight_route';
 
 /** 机票任务 id 前缀：monitor 页和这里靠 adapter === 'flight' 认，前缀只是好读 */
 const TASK_PREFIX = 'flight-';
@@ -28,18 +27,22 @@ function flightTasks() {
   return Array.isArray(list) ? list.filter((t) => t && t.adapter === 'flight' && t._id) : [];
 }
 
-/** 任务 → 面板里「在盯的航线」那一行 */
+/** 任务 → 面板里「在盯的」那一行 */
 function toWatch(t) {
   const p = t.params || {};
   const delta = Number(p.delta) || 0;
+  const isFlight = !!p.flightNo;
   return {
     id: t._id,
+    kind: isFlight ? 'flight' : 'route',
+    flightNo: p.flightNo || '',
+    date: p.date || '',
     from: p.from,
     to: p.to,
     fromName: p.fromName || p.from,
     toName: p.toName || p.to,
     // 数据源就一家，平台写死「同程」——不假装有多个平台在比价
-    plat: '同程',
+    plat: p.plat || '同程',
     budget: Number(p.budget) || 0, // 0 = 只看不提醒
     lastMin: Number(p.lastMin) || 0,
     prevMin: Number(p.prevMin) || 0,
@@ -48,6 +51,8 @@ function toWatch(t) {
     deltaText: delta < 0 ? '↓¥' + -delta : delta > 0 ? '↑¥' + delta : '',
     deltaCls: delta < 0 ? 'watch-down' : delta > 0 ? 'watch-up' : '',
     bestDate: p.lastDate || '',
+    // 航班级任务把「哪一天哪一班」写进副标题，否则用户分不清盯的是哪个
+    sub: isFlight ? (p.date || '') + ' · ' + p.flightNo : '',
   };
 }
 
@@ -123,23 +128,19 @@ Component({
   lifetimes: {
     attached() {
       const start = offsetDay(1);
-      const saved = wx.getStorageSync(ROUTE_KEY);
-      const from = (saved && saved.from) || { code: 'SHA', name: '上海' };
-      const to = (saved && saved.to) || { code: 'BJS', name: '北京' };
+      // 不再预填「上海 / 北京」：一进来是空的，让用户自己选。
+      // 上一版默认塞一对城市并自动查询，用户以为这是"他盯的航线"，实际跟他没关系。
       this.migrateLegacyWatches();
       this.setData({
         ready: true,
         today: offsetDay(0),
         startDate: start,
         dayOff: 1,
-        from: from,
-        to: to,
+        from: null,
+        to: null,
         watches: flightTasks().map(toWatch),
       });
       this.setWatches();
-      // 关键修复：进场就自动查一次。上一版只设了默认城市、从不发请求，
-      // 所以用户点进来永远是空白 —— 这就是「名存实亡」的根因。
-      this.query();
     },
   },
 
@@ -172,10 +173,22 @@ Component({
     pickCity(e) {
       const c = e.currentTarget.dataset.city;
       if (!c) return;
+      const side = this.data.citySide;
       const patch = { cityOpen: false, res: null, bars: [], deals: [], rows: [], err: '' };
-      patch[this.data.citySide] = { code: c.code, name: c.name };
+      patch[side] = { code: c.code, name: c.name };
       this.setData(patch);
       this.syncRoute();
+      // 只选了出发地：直接把「选到达地」弹出来，省得用户再点一次
+      const other = side === 'from' ? this.data.to : this.data.from;
+      if (!other) {
+        this.setData({ cityOpen: true, citySide: side === 'from' ? 'to' : 'from', cityKw: '' });
+        this.loadCities('');
+        return;
+      }
+      if (this.data.from.code === this.data.to.code) {
+        this.setData({ err: '出发和到达不能是同一个城市' });
+        return;
+      }
       this.query();
     },
     swap() {
@@ -191,16 +204,17 @@ Component({
       this.syncRoute();
       this.query();
     },
-    /** 把「在盯的航线」和按钮状态一起刷新，避免两处各写一遍 */
+    /** 把「在盯的」和按钮状态一起刷新，避免两处各写一遍 */
     setWatches() {
       const list = flightTasks().map(toWatch);
       const { from, to } = this.data;
-      const id = TASK_PREFIX + (from && from.code) + '-' + (to && to.code);
-      const cur = list.filter((w) => w.id === id)[0];
+      const id = from && to ? TASK_PREFIX + from.code + '-' + to.code : '';
+      const cur = id ? list.filter((w) => w.id === id)[0] : null;
       const budget = cur ? Number(cur.budget) || 0 : 0;
       // 按钮文案在 js 里拼好：多层三元 + 字符串拼接塞进 wxml 在一些基础库上会解析歪
       let watchText = '盯这条航线 · 到价提醒你';
-      if (cur) {
+      if (!id) watchText = '先选出发地和目的地';
+      else if (cur) {
         watchText = budget ? '已在盯 · 低于 ¥' + budget + ' 提醒 · 点这里改' : '已在盯 · 只记价 · 点这里改';
       }
       this.setData({
@@ -313,10 +327,7 @@ Component({
       // 记住这条航线（存用户选的城市名，不存后端机场全名，否则第二次进来
       // 卡片上会顶出「上海虹桥国际机场」这种超长标题）
       const code = from.code + '-' + to.code;
-      wx.setStorageSync(ROUTE_KEY, {
-        from: { code: from.code, name: from.name },
-        to: { code: to.code, name: to.name },
-      });
+      // 不再把航线写进本地当"下次默认值"——用户明确要求进来不要预填城市
       // 后端给的是机场全名（"上海虹桥国际机场"），展示时收成城市名
       this.setData({
         res: r,
@@ -382,6 +393,19 @@ Component({
         .filter((f) => f.cabList.length);
       if (sortBy === 'price') list.sort((a, b) => a.showLow - b.showLow);
       else list.sort((a, b) => String(a.dep).localeCompare(String(b.dep)));
+      // 每个航班自己有没有在被盯：任务 id 里带航班号 + 日期，
+      // 所以同一班不同天是两条互不干扰的任务。
+      const { from, to, flDate } = this.data;
+      const route = from && to ? from.code + '-' + to.code : '';
+      const tasks = loadTasks() || [];
+      list.forEach((f) => {
+        const id = route ? TASK_PREFIX + route + '-' + f.no + '-' + flDate : '';
+        const t = id ? tasks.filter((x) => x && x._id === id)[0] : null;
+        f.watched = !!t;
+        f.watchBudget = t ? Number(t.params && t.params.budget) || 0 : 0;
+        // 文案在 js 里拼好：多层三元塞进 wxml 在部分基础库会解析歪
+        f.watchLabel = f.watched ? (f.watchBudget ? '在盯 ¥' + f.watchBudget : '在盯') : '盯这班';
+      });
       const LIMIT = 5;
       this.setData({
         flView: list,
@@ -473,6 +497,7 @@ Component({
     // 已经盯着的再点一次 = 改目标价（不用先删再加）。
     addWatch() {
       const { res, from, to } = this.data;
+      if (!from || !to) return wx.showToast({ title: '先选出发地和目的地', icon: 'none' });
       if (!res) return wx.showToast({ title: '先等价格出来', icon: 'none' });
       const id = TASK_PREFIX + from.code + '-' + to.code;
       const tasks = loadTasks() || [];
@@ -538,6 +563,71 @@ Component({
       });
     },
 
+    // 盯某一个航班（不是整条航线）：任务 id 带航班号 + 日期，
+    // 这一班自己的价格跌到目标价才提醒，跟「这条航线的最低价」是两回事。
+    watchFlight(e) {
+      const i = Number(e.currentTarget.dataset.i);
+      const f = this.data.flView[i];
+      const { from, to, flDate } = this.data;
+      if (!f || !from || !to) return;
+      const id = TASK_PREFIX + from.code + '-' + to.code + '-' + f.no + '-' + flDate;
+      const tasks = loadTasks() || [];
+      const exists = tasks.filter((t) => t && t._id === id)[0] || null;
+      const curBudget = exists ? Number(exists.params && exists.params.budget) || 0 : 0;
+      const low = Number(f.showLow) || 0;
+      const suggest = low ? Math.floor((low * 0.9) / 10) * 10 : '';
+      wx.showModal({
+        title: (exists ? '改目标价 · ' : '盯 ') + f.no,
+        editable: true,
+        placeholderText: '低于多少提醒你，留空就只看不提醒',
+        content: curBudget ? String(curBudget) : suggest ? String(suggest) : '',
+        confirmText: exists ? '保存' : '开始盯',
+        success: (r) => {
+          if (!r.confirm) return;
+          const n = Number(String(r.content || '').replace(/[^0-9.]/g, ''));
+          const budget = n > 0 ? Math.round(n) : 0;
+          if (exists) {
+            exists.params = Object.assign({}, exists.params, { budget: budget, lastMin: low });
+            saveTasks(tasks);
+          } else {
+            tasks.unshift({
+              _id: id,
+              adapter: 'flight',
+              name: from.name + ' → ' + to.name + ' · ' + f.no,
+              params: {
+                from: from.code,
+                to: to.code,
+                fromName: from.name,
+                toName: to.name,
+                date: flDate,
+                flightNo: f.no,
+                plat: f.plat || '同程',
+                budget: budget,
+                lastMin: low,
+              },
+              poster: '',
+              enabled: true,
+              created_at: Date.now(),
+            });
+            saveTasks(tasks);
+            renewAfterAdd().catch(() => {});
+          }
+          this.buildView();
+          this.setWatches();
+          wx.showToast({
+            title: exists
+              ? budget
+                ? '目标价改成 ¥' + budget
+                : '已取消价格提醒'
+              : budget
+                ? '已盯上 ' + f.no + '，低于 ¥' + budget + ' 提醒你'
+                : '已盯上 ' + f.no,
+            icon: 'none',
+          });
+        },
+      });
+    },
+
     removeWatch(e) {
       const id = e.currentTarget.dataset.id;
       saveTasks((loadTasks() || []).filter((t) => !(t && t._id === id)));
@@ -547,18 +637,21 @@ Component({
     useWatch(e) {
       const w = e.currentTarget.dataset.w;
       if (!w) return;
-      this.setData({
+      const patch = {
         from: { code: w.from, name: w.fromName || w.from },
         to: { code: w.to, name: w.toName || w.to },
         res: null,
         bars: [],
         deals: [],
         rows: [],
-      });
-      wx.setStorageSync(ROUTE_KEY, {
-        from: { code: w.from, name: w.fromName || w.from },
-        to: { code: w.to, name: w.toName || w.to },
-      });
+      };
+      // 盯的是某一班：顺手把日期也切到那一天，不然跳过去看不到它
+      if (w.kind === 'flight' && w.date) {
+        const off = diffDays(w.date);
+        patch.startDate = w.date;
+        patch.dayOff = off === 0 || off === 1 || off === 2 ? off : -1;
+      }
+      this.setData(patch);
       this.query();
     },
 
@@ -601,12 +694,15 @@ Component({
       // 首页可能刚删过任务，进来先把卡片对齐一遍
       const list = this.setWatches();
       if (!list.length) return;
+      // 只比「航线级」任务的价：航班级任务盯的是某一天某班，
+      // 拿整条航线的最低价去比会得出错误的涨跌。
+      const routes = list.filter((w) => w.kind !== 'flight').slice(0, 6);
+      if (!routes.length) return;
       const last = wx.getStorageSync(LAST_KEY) || {};
       let drop = null;
       let done = 0;
-      list.slice(0, 6).forEach((w) => {
-        const p = w.params || {};
-        request({ action: 'flight', from: p.from, to: p.to, days: Number(p.days) || 30 })
+      routes.forEach((w) => {
+        request({ action: 'flight', from: w.from, to: w.to, days: 30 })
           .then((res) => {
             const r = (res && res.result) || {};
             if (!r.ok || !r.stats) return;
@@ -645,7 +741,7 @@ Component({
           .catch(() => {})
           .then(() => {
             done += 1;
-            if (done === Math.min(6, list.length)) {
+            if (done === Math.min(6, routes.length)) {
               this.setWatches();
               if (drop) this.setData({ dropTip: drop });
             }

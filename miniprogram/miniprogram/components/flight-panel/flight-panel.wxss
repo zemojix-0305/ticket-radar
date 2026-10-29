@@ -44,6 +44,9 @@
 .rc-city { flex: 1; min-width: 0; }
 .rc-city-r { text-align: right; }
 .rc-city-hover { opacity: 0.7; }
+/* 还没选城市时压暗，跟「已选」区分开 */
+.rc-city-empty .rc-cn { color: var(--ink3); font-weight: 500; }
+.rc-city-empty .rc-code { color: #B9B9C4; letter-spacing: 1px; }
 .rc-cn {
   font-size: 30px;
   font-weight: 600;
@@ -56,6 +59,21 @@
   color: var(--ink3);
   letter-spacing: 2px;
   margin-top: 6px;
+}
+/* 没选城市时的引导，一句话，不铺整屏 */
+.fp-empty {
+  margin: 14px 0 2px;
+  font-size: 12px;
+  color: var(--ink3);
+  text-align: center;
+  line-height: 1.6;
+}
+/* 航班级任务的副标题：日期 · 航班号 */
+.watch-sub {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 0.5px;
 }
 .rc-mid {
   width: 56px;
@@ -759,14 +777,36 @@
   border: 1px dashed #DCDCE4;
 }
 
-/* 餐食 / wifi / 机龄 */
+/* 餐食 / wifi / 机龄 —— 左边信息，右边那颗「盯这班」 */
 .fl-foot {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-top: 8px;
   font-size: 10px;
   color: var(--ink3);
+}
+.fl-meta { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; overflow: hidden; }
+/* 每班自己的盯：没盯是描边，盯上了变实心 */
+.fl-watch {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.2;
+}
+.fl-watch-on { background: var(--ink); color: #fff; border-color: var(--ink); }
+/* 航班行里的平台标：现在只有同程，接第二家时可以并排放两枚 */
+.fl-plat {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--ink2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 /* 展开剩余航班 */

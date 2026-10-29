@@ -10,23 +10,25 @@
     <view class="drop-x" bindtap="dismissDrop">✕</view>
   </view>
 
-  <!-- 航线卡：出发 / 交换 / 到达 -->
+  <!-- 航线卡：出发 / 交换 / 到达。进来是空的，不预填任何城市 -->
   <view class="route">
-    <view class="rc-city" bindtap="openCity" data-side="from" hover-class="rc-city-hover">
-      <view class="rc-cn">{{from.name}}</view>
-      <view class="rc-code">{{from.code}}</view>
+    <view class="rc-city {{from ? '' : 'rc-city-empty'}}" bindtap="openCity" data-side="from" hover-class="rc-city-hover">
+      <view class="rc-cn">{{from ? from.name : '出发'}}</view>
+      <view class="rc-code">{{from ? from.code : '选城市'}}</view>
     </view>
     <view class="rc-mid" bindtap="swap" hover-class="rc-mid-hover">
       <view class="rc-swap">⇌</view>
     </view>
-    <view class="rc-city rc-city-r" bindtap="openCity" data-side="to" hover-class="rc-city-hover">
-      <view class="rc-cn">{{to.name}}</view>
-      <view class="rc-code">{{to.code}}</view>
+    <view class="rc-city rc-city-r {{to ? '' : 'rc-city-empty'}}" bindtap="openCity" data-side="to" hover-class="rc-city-hover">
+      <view class="rc-cn">{{to ? to.name : '到达'}}</view>
+      <view class="rc-code">{{to ? to.code : '选城市'}}</view>
     </view>
   </view>
 
+  <view class="fp-empty" wx:if="{{!from || !to}}">选好两个城市，就出这条线 30 天的最低价。</view>
+
   <!-- 时间：今天/明天/后天 + 自选 + 区间 -->
-  <view class="when">
+  <view class="when" wx:if="{{from && to}}">
     <view class="daychips">
       <view class="chip {{dayOff === 0 ? 'chip-on' : ''}}" data-off="0" bindtap="setDay">今天</view>
       <view class="chip {{dayOff === 1 ? 'chip-on' : ''}}" data-off="1" bindtap="setDay">明天</view>
@@ -79,17 +81,18 @@
          等于没有入口——用户反馈的「没有办法去监控哪个」就是这个。 -->
     <view class="add add-top {{watching ? 'add-on' : ''}}" bindtap="addWatch" hover-class="press-hover">{{watchText}}</view>
 
-    <!-- 在盯的航线：和首页「监控」列表是同一批任务，不是另一份数据 -->
+    <!-- 在盯的：航线级和航班级混在一张表里，航班级会多一行「日期 · 航班号」 -->
     <block wx:if="{{watches.length}}">
       <view class="sec-h">
-        <text class="sec-t">在盯的航线</text>
+        <text class="sec-t">在盯的</text>
       </view>
       <view class="watch" wx:for="{{watches}}" wx:key="id">
         <view class="watch-main" data-w="{{item}}" bindtap="useWatch" hover-class="press-hover">
           <view class="watch-top">
             <text class="watch-n">{{item.fromName}} → {{item.toName}}</text>
-            <text class="watch-plat">{{item.plat}}</text>
+            <text class="watch-plat">{{item.flightNo || item.plat}}</text>
           </view>
+          <view class="watch-sub" wx:if="{{item.sub}}">{{item.sub}}</view>
           <view class="watch-s">
             <text class="watch-now" wx:if="{{item.lastMin}}">¥{{item.lastMin}}</text>
             <text class="watch-delta {{item.deltaCls}}" wx:if="{{item.deltaText}}">{{item.deltaText}}</text>
@@ -192,6 +195,7 @@
         <text class="fl-an">{{item.air}}</text>
         <text class="fl-pl">{{item.plane}}</text>
         <text class="fl-on" wx:if="{{item.ontime}}">{{item.ontime}}</text>
+        <text class="fl-plat">{{item.plat}} ¥{{item.low}}</text>
       </view>
 
       <view class="fl-cab">
@@ -209,9 +213,13 @@
       </view>
 
       <view class="fl-foot">
-        <text class="fl-meal" wx:if="{{item.meal}}">{{item.meal}}</text>
-        <text class="fl-wifi" wx:if="{{item.wifi}}">{{item.wifi}}</text>
-        <text class="fl-age" wx:if="{{item.age}}">{{item.age}}</text>
+        <view class="fl-meta">
+          <text class="fl-meal" wx:if="{{item.meal}}">{{item.meal}}</text>
+          <text class="fl-wifi" wx:if="{{item.wifi}}">{{item.wifi}}</text>
+          <text class="fl-age" wx:if="{{item.age}}">{{item.age}}</text>
+        </view>
+        <!-- 每一班都有自己的一颗「盯」：只盯这一班，价格到线才提醒 -->
+        <view class="fl-watch {{item.watched ? 'fl-watch-on' : ''}}" data-i="{{fi}}" catchtap="watchFlight" hover-class="press-hover">{{item.watchLabel}}</view>
       </view>
     </view>
 

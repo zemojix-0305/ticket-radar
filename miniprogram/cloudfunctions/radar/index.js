@@ -2755,18 +2755,48 @@ async function pollFlight(params) {
     throw new Error('出发地/目的地要三字码（例如上海=SHA、北京=BJS）');
   }
   if (from === to) throw new Error('出发地和到达地不能一样');
+  const target = Number(params.budget) || 0;
+  const fromCn = flightSvc.cityName(from);
+  const toCn = flightSvc.cityName(to);
+
+  // ---- 盯某一个航班（params.flightNo）----
+  // 用户可能只关心「周五那班 MU5101」，而不是整条航线的最低价。
+  // 这种任务固定查那一天的那一班，价格取它的最低舱位。
+  if (params.flightNo) {
+    const day = String(params.date || '');
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : flightSvc.bjDate(1);
+    const list = await flightSvc.bookList(from, to, date);
+    const f = (list.flights || []).filter((x) => x.no === params.flightNo)[0];
+    if (!f) throw new Error(date + ' 没查到 ' + params.flightNo + '（可能停飞或换了航班号）');
+    const price = Number(f.low) || (f.cabins[0] && Number(f.cabins[0].price)) || 0;
+    if (!price) throw new Error(params.flightNo + ' 这一天没有可售舱位');
+    const hit = target > 0 && price <= target;
+    const bits = ['¥' + price, f.dep + '-' + f.arr];
+    bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');
+    return [
+      {
+        // label 必须稳定：diffRestock 靠它配对前后两轮
+        label: fromCn + ' → ' + toCn + ' · ' + params.flightNo,
+        place: '同程',
+        when: date,
+        status: bits.join(' · '),
+        available: hit,
+        count: hit ? 1 : 0,
+        price: price,
+        target: target || null,
+      },
+    ];
+  }
+
   const days = Math.min(60, Math.max(7, Number(params.days) || 30));
   const cal = await flightSvc.calendar(from, to, params.date || '', days);
   const st = cal.stats || {};
   const min = Number(st.min) || 0;
   if (!min) throw new Error('这条航线这些天一条报价都没有');
   const cheapest = st.cheapest || {};
-  const target = Number(params.budget) || 0;
   const hit = target > 0 && min <= target;
   // 用城市名而不是机场全名：「上海虹桥国际机场 → 北京首都国际机场」当 label 又长又漂
   // （最低价换一班，机场就变了），diffRestock 是按 label 配对前后两轮的，必须稳定。
-  const fromCn = flightSvc.cityName(from);
-  const toCn = flightSvc.cityName(to);
   const bits = ['最低 ¥' + min];
   if (cheapest.date) bits.push(cheapest.date.slice(5) + ' 出发');
   bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');

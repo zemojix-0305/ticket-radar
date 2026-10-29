@@ -33,7 +33,9 @@ const dumpHeaders = process.argv.includes('--headers');
 const browser = await chromium.launch({
   channel: 'msedge',
   headless: !process.argv.includes('--headed'),
-  args: ['--disable-blink-features=AutomationControlled'],
+  // --no-proxy-server：Chromium 默认读系统代理，而本机系统代理指向一个可能不通的端口，
+  // 表现是 ERR_CONNECTION_CLOSED（curl --noproxy 却能通，极易误判成"站点关闭了连接"）。
+  args: ['--disable-blink-features=AutomationControlled', '--no-proxy-server'],
 });
 const ctx = await browser.newContext(
   mobile

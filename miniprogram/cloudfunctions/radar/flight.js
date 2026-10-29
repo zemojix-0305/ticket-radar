@@ -312,6 +312,9 @@ function shapeFlight(f) {
 
   return {
     no: String(f.flightNo || '').trim(),
+    // 比价的「平台」维度。现在只有同程能匿名取到全量航班+舱位，
+    // 所以固定一个；将来接了第二家，这里改成把多渠道结果 merge 成 offers 数组。
+    plat: '同程',
     air: String(f.airCompanyName || '').trim(),
     airCode: String(f.airCompanyCode || '').trim(),
     plane: String(f.equipmentName || '').trim(),
