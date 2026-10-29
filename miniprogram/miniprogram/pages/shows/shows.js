@@ -14,6 +14,7 @@ let ukSeq = 0;
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
 import { loadTasks, saveTasks } from '../../utils/tasks';
+import { renewAfterAdd } from '../../utils/push';
 import Dialog from '../../vant/dialog/dialog';
 
 // 平台不给彩色。taste-skill 的红线："色彩是稀缺资源，全页只留一个 accent"。
@@ -418,6 +419,9 @@ Page({
     try {
       saveTasks([...loadTasks(), { _id: id, adapter, name, params, enabled: true, poster: row.poster || '' }]);
       Toast({ type: 'success', message: '已开始盯' });
+      // 顺手换一条订阅额度：微信一次性订阅是「授权一次收一条」，额度只能靠
+      // 用户点击时这次请求攒。这里正处在点击的调用栈里，请求才会生效。
+      renewAfterAdd().catch(() => {});
       this.setData({ adding: '' });
       setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
     } catch (e) {

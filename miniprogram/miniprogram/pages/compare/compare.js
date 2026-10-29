@@ -2,6 +2,7 @@
 // 入口：监控页点「跨平台比价」按钮 → 跳到本 page，输入演出名或艺人名。
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
+import { renewAfterAdd } from '../../utils/push';
 
 const PLATFORM_LABEL = {
   damai: '大麦', taopiaopiao: '淘票票', maoyan: '猫眼',
@@ -88,6 +89,8 @@ Page({
       if (idx >= 0) existing[idx] = task; else existing.push(task);
       tasks.saveTasks(existing);
       Toast({ type: 'success', message: '已开始盯「' + (group.name || '').slice(0, 8) + '」' });
+      // 顺手换一条订阅额度（微信一次性订阅：授权一次收一条，只能靠点击时请求）
+      renewAfterAdd().catch(() => {});
       setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
     } catch (err) {
       Toast('添加失败：' + String(err.message || err));

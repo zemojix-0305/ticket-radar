@@ -108,12 +108,21 @@ function renew(opt) {
 }
 
 /**
- * 加监控成功后调用：静默续一条（第一次加监控时就是在这里拿到授权）。
- * 用户自己按过「暂停推送」的，就不打扰——他要的是别推，不是又被弹一次窗。
+ * 加监控成功后调用：续一次订阅额度。
+ * ---------------------------------------------------------------------------
+ * 这里必须 force（每次都真的请求），不能沿用「一天一次」的节流：
+ * 微信一次性订阅是**授权一次只能收一条**，攒额度全靠用户点击时那次请求。
+ * 节流成一天一次 = 一天最多攒一条，真回流时早就没额度了。
+ *
+ * 用户勾过「总是保持以上选择」的话，这个调用完全不弹窗、静默加一条；
+ * 没勾过才会弹一次窗，属于必要的打扰。
+ *
+ * 只能在用户点击的调用栈里调（wx.requestSubscribeMessage 硬性要求 TAP 手势），
+ * 放 onShow 里一定失败。
  */
 function renewAfterAdd() {
-  if (!isOn() && wx.getStorageSync(PAUSED_KEY)) return Promise.resolve(false);
-  return renew({ silent: true });
+  if (wx.getStorageSync(PAUSED_KEY)) return Promise.resolve(false);
+  return renew({ silent: true, force: true });
 }
 
 module.exports = { TMPL_ID, isOn, setOn, off, renew, renewAfterAdd };
