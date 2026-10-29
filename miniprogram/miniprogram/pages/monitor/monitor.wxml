@@ -70,14 +70,10 @@
     <view class="seg press {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{states.length - okCount}}</view>
   </view>
 
-  <!-- 推送状态条：不再要求用户手动「去领」。
-       加监控时会自动续一条，用户感知不到；这里只告诉他现在是不是通的。 -->
-  <view class="credit press-card {{credit > 0 ? '' : 'credit-empty'}}" bindtap="tapPush" hover-class="press-card-hover">
-    <view class="credit-l">
-      <text class="credit-t">{{credit > 0 ? '推送已开启' : '推送暂时停了'}}</text>
-      <text class="credit-s">{{credit > 0 ? '有票直接微信叫你 · 加监控时自动续，不用管' : '打开小程序照样能看到回流；点这恢复推送'}}</text>
-    </view>
-    <text class="credit-go" wx:if="{{credit <= 0}}">恢复</text>
+  <!-- 推送开关：只有开 / 关，点一下切换 -->
+  <view class="credit press-card {{pushOn ? '' : 'credit-empty'}}" bindtap="tapPush" hover-class="press-card-hover">
+    <text class="credit-t">{{pushOn ? '推送已开启' : '推送已暂停'}}</text>
+    <text class="credit-go">{{pushOn ? '暂停推送' : '恢复推送'}}</text>
   </view>
 
   <!-- 失败卡片 -->

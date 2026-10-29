@@ -92,11 +92,11 @@
   <view class="mode-hint" wx:if="{{!searched && !searching && platforms[platformIndex].key !== 'amadeus'}}">
     <view class="mode-hint-inner" wx:if="{{platforms[platformIndex].linkOnly}}">
       <text class="mode-icon">🔗</text>
-      <text class="mode-text">{{platforms[platformIndex].label}} 需要粘贴分享链接才能搜索。从 App 分享页面，复制链接粘进来即可。</text>
+      <text class="mode-text">{{platforms[platformIndex].label}} 只能贴分享链接搜</text>
     </view>
     <view class="mode-hint-inner" wx:elif="{{platforms[platformIndex].key === 'damai' || platforms[platformIndex].key === 'taopiaopiao'}}">
       <text class="mode-icon">💡</text>
-      <text class="mode-text">关键词搜索偶发被风控（平台限频）。搜不到时切到热卖榜，或填一次大麦 Cookie 更稳。</text>
+      <text class="mode-text">搜不到就切热卖榜，或去「我的」填 Cookie</text>
     </view>
   </view>
 
@@ -219,7 +219,7 @@
       </view>
     </view>
 
-    <view class="sec-more" wx:if="{{hot.length}}">点开看场次和票档 · 数据来自{{platforms[platformIndex].label}}</view>
+    <view class="sec-more" wx:if="{{hot.length}}">数据来自{{platforms[platformIndex].label}}</view>
   </block>
 
   <!-- ============ 搜索结果 ============ -->

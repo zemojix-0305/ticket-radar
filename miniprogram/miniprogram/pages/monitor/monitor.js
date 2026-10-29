@@ -3,8 +3,9 @@ import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
 import {
-  credit as pushCredit,
+  isOn as pushIsOn,
   renew as pushRenew,
+  off as pushOff,
   renewAfterAdd as pushRenewAfterAdd,
 } from '../../utils/push';
 import { loadTasks, removeTask } from '../../utils/tasks';
@@ -12,9 +13,6 @@ import { loadTasks, removeTask } from '../../utils/tasks';
 // 两条原则（跟 Python 那边保持一致）：
 //   1. 结论先行——卡片第一眼告诉你「有票还是没票」，不是先列车次；
 //   2. 不认识的状态不猜——云函数报什么就显示什么，不替它美化。
-//
-// 额度记账放在 storage：微信一次性订阅的额度后台查不到，
-// 只能让用户自己看得见「我还剩几条」，否则推送突然不响会毫无头绪。
 const PLATFORMS = [
   { key: 'damai', label: '大麦', hint: '粘贴大麦分享链接；或去「找票」直接搜名字', ph: '粘贴大麦分享链接' },
   { key: 'taopiaopiao', label: '淘票票', hint: '粘贴淘票票演出链接（与大麦同一演出编号）；或去「找票」', ph: '粘贴淘票票演出链接' },
@@ -46,7 +44,7 @@ const FAQ_LIST = [
   },
   {
     q: '为什么有票了没收到推送？',
-    a: '最常见两个原因：① 推送额度断了——回到首页看那条状态「推送已开启」还是「暂时停了」，停了就点一下恢复，一次授权能用很久；② 监控本身没在跑（页面没打开过、或网络断了）。注意：就算推送断了，打开小程序也能看到哪个场次翻出了票，这个不消耗任何额度。',
+    a: '① 推送关了：首页那条点「恢复推送」；② 监控没在跑：打开小程序才会查。',
   },
   {
     q: '大麦能监控吗？',
@@ -90,8 +88,6 @@ const ID_KEY = {
   fenwandao: 'project_id',
 };
 
-const CREDIT_KEY = 'wx_subscribe_credit';
-
 // 把时间戳变成「12 分钟前查过」。
 // 用户关心的是「这数据新不新」，不是具体几点查的。
 function relTime(iso) {
@@ -111,7 +107,8 @@ Page({
     states: [],
     filtered: [],
     okCount: 0,
-    credit: 0,
+    // 推送开关（只有开 / 关，不再有「还剩几条」）
+    pushOn: false,
     loading: true,
     fail: '',
     expanded: {},
@@ -143,9 +140,8 @@ Page({
   },
 
   onShow() {
-    // 从「我的」页领完额度回来要能看到数字变了；
     // 从「找票/详情」盯完回来要立刻刷出新任务
-    this.setData({ credit: pushCredit() });
+    this.setData({ pushOn: pushIsOn() });
     if (typeof this.refreshedOnce !== 'undefined') this.refresh();
     this.refreshedOnce = true;
   },
@@ -203,7 +199,7 @@ Page({
         self.setData({
           states: list,
           okCount,
-          credit: pushCredit(),
+          pushOn: pushIsOn(),
           loading: false,
         });
         self.applyFilter();
@@ -496,20 +492,17 @@ Page({
   // --- 添加任务 ---------------------------------------------------------
   openAdd() { this.setData({ showAdd: true, step: 1, dsessions: [], dSeats: [], dNote: '', dSub: '', dLoading: false }); },
 
-  // 跳「我的」页：领订阅额度
-  goMine() {
-    wx.switchTab({ url: '/pages/mine/mine' });
-  },
-
-  // 点推送状态条：只有在额度见底时才拉一次授权，其余情况只说明状态。
-  // 这样「领额度」从日常动作变成了几乎不会碰到的兜底。
+  // 点推送状态条 = 切换推送：开着就关，关着就申请一次授权打开。
   tapPush() {
-    if (this.data.credit > 0) {
-      Toast({ type: 'text', message: '推送是通的，加监控时会自动续，你不用管' });
+    if (this.data.pushOn) {
+      pushOff();
+      this.setData({ pushOn: false });
+      Toast({ type: 'text', message: '已暂停推送' });
       return;
     }
     pushRenew({ silent: false, force: true }).then((ok) => {
-      if (ok) this.setData({ credit: pushCredit() });
+      this.setData({ pushOn: pushIsOn() });
+      if (ok) Toast({ type: 'success', message: '推送已恢复' });
     });
   },
 
@@ -825,12 +818,9 @@ Page({
         form: { name: '', id: '', city: '', date: '' },
       });
       self._pending = null;
-      // 加监控成功后静默续一条推送额度。
-      // 用户首次授权时勾了「总是保持以上选择」的话，这里完全无感；
-      // 没勾的话会弹一次系统窗口——但这是在他刚点完加监控的时刻，
-      // 属于自然时机，而且之后系统会记住选择，不会再问。
+      // 加监控成功后静默续一条（推送关着的话不会扰动用户）
       pushRenewAfterAdd().then((ok) => {
-        if (ok) self.setData({ credit: pushCredit() });
+        if (ok) self.setData({ pushOn: pushIsOn() });
       });
       setTimeout(() => self.refresh(), 2500);
     } catch (e) {

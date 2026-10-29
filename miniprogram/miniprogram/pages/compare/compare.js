@@ -71,8 +71,6 @@ Page({
     const p = row._cmpPlatform;
     const id = row.performanceId || row.id || '';
     if (!id) { Toast('这条没有 id'); return; }
-    const credit = wx.getStorageSync('wx_subscribe_credit') || 0;
-    if (credit <= 0) { Toast('先领推送额度（「我的」页）'); return; }
     // 构建 params 按平台
     let params = {};
     if (p === 'damai' || p === 'taopiaopiao') params = { item_id: id };

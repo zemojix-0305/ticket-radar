@@ -31,14 +31,22 @@ function flightTasks() {
 /** 任务 → 面板里「在盯的航线」那一行 */
 function toWatch(t) {
   const p = t.params || {};
+  const delta = Number(p.delta) || 0;
   return {
     id: t._id,
     from: p.from,
     to: p.to,
     fromName: p.fromName || p.from,
     toName: p.toName || p.to,
+    // 数据源就一家，平台写死「同程」——不假装有多个平台在比价
+    plat: '同程',
     budget: Number(p.budget) || 0, // 0 = 只看不提醒
     lastMin: Number(p.lastMin) || 0,
+    prevMin: Number(p.prevMin) || 0,
+    delta: delta,
+    // 涨跌统一在这里拼好，wxml 只渲染字符串
+    deltaText: delta < 0 ? '↓¥' + -delta : delta > 0 ? '↑¥' + delta : '',
+    deltaCls: delta < 0 ? 'watch-down' : delta > 0 ? 'watch-up' : '',
     bestDate: p.lastDate || '',
   };
 }
@@ -62,31 +70,6 @@ function diffDays(dateStr) {
 }
 
 // 各平台的「查这条航线」链接（给复制用，不做假比价）
-function platformLinks(from, to, date) {
-  const d = date || ymd(new Date());
-  const f = from || 'SHA';
-  const t = to || 'BJS';
-  return [
-    {
-      key: 'ly',
-      name: '同程',
-      note: '当前价格来源',
-      url: 'https://www.ly.com/flights/itinerary/oneway/' + f + '-' + t + '?date=' + d,
-    },
-    {
-      key: 'ctrip',
-      name: '携程',
-      note: '需登录才返价',
-      url: 'https://flights.ctrip.com/online/list/oneway-' + f.toLowerCase() + '-' + t.toLowerCase() + '?depdate=' + d,
-    },
-    {
-      key: 'qunar',
-      name: '去哪儿',
-      note: '需登录才返价',
-      url: 'https://m.flight.qunar.com/ncs/page/flightlist?depCity=' + f + '&arrCity=' + t + '&goDate=' + d,
-    },
-  ];
-}
 
 Component({
   // 默认样式隔离：shows.wxss 里也有 .chip，apply-shared 会把两边混掉。
@@ -135,7 +118,6 @@ Component({
     watchBudget: 0,
     watchText: '盯这条航线 · 到价提醒你',
     dropTip: null,
-    platforms: [],
   },
 
   lifetimes: {
@@ -153,7 +135,6 @@ Component({
         from: from,
         to: to,
         watches: flightTasks().map(toWatch),
-        platforms: platformLinks(from.code, to.code, start),
       });
       this.setWatches();
       // 关键修复：进场就自动查一次。上一版只设了默认城市、从不发请求，
@@ -194,7 +175,7 @@ Component({
       const patch = { cityOpen: false, res: null, bars: [], deals: [], rows: [], err: '' };
       patch[this.data.citySide] = { code: c.code, name: c.name };
       this.setData(patch);
-      this.syncPlatforms();
+      this.syncRoute();
       this.query();
     },
     swap() {
@@ -207,7 +188,7 @@ Component({
         rows: [],
         err: '',
       });
-      this.syncPlatforms();
+      this.syncRoute();
       this.query();
     },
     /** 把「在盯的航线」和按钮状态一起刷新，避免两处各写一遍 */
@@ -220,9 +201,7 @@ Component({
       // 按钮文案在 js 里拼好：多层三元 + 字符串拼接塞进 wxml 在一些基础库上会解析歪
       let watchText = '盯这条航线 · 到价提醒你';
       if (cur) {
-        watchText = budget
-          ? '已在盯 · 低于 ¥' + budget + ' 提醒你 · 点这里改'
-          : '已在盯 · 只记价不提醒 · 点这里改';
+        watchText = budget ? '已在盯 · 低于 ¥' + budget + ' 提醒 · 点这里改' : '已在盯 · 只记价 · 点这里改';
       }
       this.setData({
         watches: list,
@@ -233,26 +212,21 @@ Component({
       return list;
     },
 
-    syncPlatforms() {
+    /** 换航线/换日期之后，盯价按钮和航线卡要跟着变 */
+    syncRoute() {
       this.setWatches();
-      const { from, to, startDate, res } = this.data;
-      // from/to 还没填时用结果里的城市码兜底（首屏只走 query、没走 pickCity 的情况）
-      const f = from || (res && { code: res.fromCode, name: res.fromName });
-      const t = to || (res && { code: res.toCode, name: res.toName });
-      if (!f || !t || !f.code || !t.code) return;
-      this.setData({ platforms: platformLinks(f.code, t.code, startDate) });
     },
 
     // ---------------- 时间 ----------------
     setDay(e) {
       const off = Number(e.currentTarget.dataset.off) || 0;
       this.setData({ startDate: offsetDay(off), dayOff: off, res: null, bars: [], deals: [], rows: [] });
-      this.syncPlatforms();
+      this.syncRoute();
       this.query();
     },
     onDate(e) {
       this.setData({ startDate: e.detail.value, dayOff: -1, res: null, bars: [], deals: [], rows: [] });
-      this.syncPlatforms();
+      this.syncRoute();
       // 原来这里只 setData 不发请求，选了日期页面还是旧数据，等于白选
       this.query();
     },
@@ -355,7 +329,7 @@ Component({
         toName: r.toName || to.name,
       });
       this.recordLast(code, min, r.stats.cheapest);
-      this.syncPlatforms();
+      this.syncRoute();
     },
 
     // ---------------- 当天航班 + 舱位 ----------------
@@ -638,12 +612,16 @@ Component({
             if (!r.ok || !r.stats) return;
             const min = r.stats.min;
             const prev = last[w._id];
-            if (prev && prev.price > min && (!drop || prev.price - min > drop.drop)) {
+            // 上一次看到的价格：优先用本地快照，没有就用任务里存的 lastMin
+            const before = Number((prev && prev.price) || w.lastMin) || 0;
+            const delta = before ? min - before : 0;
+            if (delta < 0 && (!drop || -delta > drop.drop)) {
               drop = {
-                code: w._id,
-                drop: prev.price - min,
+                name: w.fromName + ' → ' + w.toName,
+                plat: w.plat,
+                drop: -delta,
                 now: min,
-                before: prev.price,
+                before: before,
                 date: r.stats.cheapest ? r.stats.cheapest.date : '',
               };
             }
@@ -653,10 +631,12 @@ Component({
               at: Date.now(),
             };
             wx.setStorageSync(LAST_KEY, last);
-            // 记下这次看到的最低价，卡片上显示「上次 ¥xxx」，不用再查一次
+            // 记下这次看到的最低价和涨跌，卡片直接显示，不用再查一次
             const tasks = loadTasks() || [];
             const t = tasks.filter((x) => x && x._id === w._id)[0];
             if (t && t.params) {
+              t.params.prevMin = before;
+              t.params.delta = delta;
               t.params.lastMin = min;
               t.params.lastDate = r.stats.cheapest ? r.stats.cheapest.date : '';
               saveTasks(tasks);
@@ -670,16 +650,6 @@ Component({
               if (drop) this.setData({ dropTip: drop });
             }
           });
-      });
-    },
-
-    // ---------------- 平台比价（复制链接，不做假数据）----------------
-    copyLink(e) {
-      const url = e.currentTarget.dataset.url;
-      if (!url) return;
-      wx.setClipboardData({
-        data: url,
-        success: () => wx.showToast({ title: '链接已复制，去浏览器打开', icon: 'none' }),
       });
     },
 

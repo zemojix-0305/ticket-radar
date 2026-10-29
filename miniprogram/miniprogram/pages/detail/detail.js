@@ -3,11 +3,8 @@
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
 import { loadTasks, saveTasks } from '../../utils/tasks';
+import { renewAfterAdd } from '../../utils/push';
 import Dialog from '../../vant/dialog/dialog';
-
-// 注意：额度 key 全项目统一是 wx_subscribe_credit（mine/monitor/history/inbox 同款），
-// 之前这里写成 radar_credit 导致详情页永远读 0、明明有额度还弹"去领额度"。
-const CREDIT_KEY = 'wx_subscribe_credit';
 
 Page({
   data: {
@@ -389,6 +386,9 @@ Page({
         },
       ]);
       Toast({ type: 'success', message: '已开始盯' });
+      // 第一次加监控的时刻顺手拿一次推送授权（之后不会再弹）；
+      // 用户自己按过「暂停推送」的话，这里不会打扰他。
+      renewAfterAdd().catch(() => {});
       this.setData({ adding: false });
       setTimeout(() => wx.switchTab({ url: '/pages/monitor/monitor' }), 800);
     } catch (e) {

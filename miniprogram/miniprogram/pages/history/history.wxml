@@ -49,7 +49,7 @@
   <view class="card empty" wx:if="{{!loading && !rows.length && !fail}}">
     <view class="empty-mark"></view>
     <view class="empty-title">还没有数据</view>
-    <view class="empty-sub">加个监控，盯几天这里就有用了。</view>
+    <view class="empty-sub">盯几天才有曲线</view>
   </view>
 
   <!-- 每个监控一张 -->
@@ -107,15 +107,12 @@
   <!-- ===== 推送记录 ===== -->
   <view wx:if="{{tab === 1}}">
 
-    <!-- 推送健康 -->
+    <!-- 推送状态：只有开 / 关 -->
     <view class="card health">
       <view class="health-row">
         <view class="health-l">
-          <view class="t3">推送额度</view>
-          <view class="health-v">
-            <text class="num health-n {{credit > 0 ? '' : 'health-bad'}}">{{credit}}</text>
-            <text class="t2"> 条</text>
-          </view>
+          <view class="t3">推送</view>
+          <view class="health-v"><text class="t1">{{pushOn ? '已开启' : '已暂停'}}</text></view>
         </view>
         <view class="health-l">
           <view class="t3">平台连通</view>
@@ -130,31 +127,20 @@
         </view>
       </view>
 
-      <view class="notice notice-warn" wx:if="{{credit === 0}}">
-        额度用完了，现在有票也推不出去。点下面按钮重新领。
-      </view>
-      <view class="notice notice-ok" wx:else>
-        一切正常。有余票变化会立刻推到你微信。
-      </view>
-
-      <view class="btn btn-primary health-btn" bindtap="goMine" hover-class="press-hover">
-        {{credit > 0 ? '去领更多额度' : '现在去领额度'}}
+      <view class="btn {{pushOn ? 'btn-ghost' : 'btn-primary'}} health-btn" bindtap="togglePush" hover-class="press-hover">
+        {{pushOn ? '暂停推送' : '恢复推送'}}
       </view>
     </view>
 
     <!-- 活动流 -->
     <view class="sec">
       <text class="sec-title">检查记录</text>
-      <text class="sec-more">只记状态变化，不刷屏</text>
     </view>
 
     <view class="card empty" wx:if="{{!activity.length}}">
       <view class="empty-mark"></view>
       <view class="empty-title">还没有记录</view>
-      <view class="empty-sub">
-        余票数量发生变化时，这里会留下一条。<br />
-        没有变化说明一切正常——没票的时候本来就该安静。
-      </view>
+      <view class="empty-sub">有变化时才会记一条</view>
     </view>
 
     <view class="act" wx:for="{{activity}}" wx:key="t">

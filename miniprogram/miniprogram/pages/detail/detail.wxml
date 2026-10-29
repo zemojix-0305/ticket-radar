@@ -116,7 +116,7 @@
     <!-- 要按票档/逐档库存盯 = 平台要凭证。给一条明确的出路，别让用户干瞪眼 -->
     <view class="card empty" wx:if="{{!loading && noTiers && !stops.length}}">
       <view class="empty-title">想按票价档盯？</view>
-      <view class="empty-sub">这个平台的逐档库存只对登录用户开放。去「我的」页填一次凭证，回来就能勾价位；不填也能按整场盯。</view>
+      <view class="empty-sub">这个平台的分档库存要登录才有。不填也能按整场盯。</view>
       <view class="empty-btn press" bindtap="gotoMine" hover-class="press-hover">去填凭证</view>
     </view>
   </block>

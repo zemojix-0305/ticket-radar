@@ -381,33 +381,6 @@
 .rw-p-low { color: #2F6B3A; }
 
 /* ---------- 平台核对（一行胶囊） ---------- */
-.plat-h {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 20px 2px 10px;
-}
-.plat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.plat-i {
-  padding: 7px 13px;
-  border-radius: var(--r-pill);
-  background: var(--card);
-  box-shadow: var(--shadow);
-  font-size: 12px;
-  color: var(--ink2);
-}
-.plat-i-hover { opacity: 0.6; }
-.tip {
-  font-size: 11px;
-  color: var(--ink3);
-  line-height: 1.6;
-  padding: 0 2px;
-}
-
 /* ---------- 在盯的航线 ---------- */
 .watch {
   display: flex;
@@ -424,6 +397,20 @@
   color: var(--ink);
   font-weight: 500;
 }
+.watch-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 平台小标：告诉用户这条价是谁家的 */
+.watch-plat {
+  font-size: 10px;
+  color: var(--ink3);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
 .watch-s {
   display: flex;
   align-items: center;
@@ -432,6 +419,14 @@
   color: var(--ink3);
   margin-top: 5px;
 }
+.watch-now {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+/* 跌了绿、涨了红（国内用户习惯：跌为喜） */
+.watch-down { color: #2F6B3A; font-weight: 500; }
+.watch-up { color: #B3402F; font-weight: 500; }
 /* 目标价：设了就绿底，没设就是灰字，一眼看出这条会不会提醒你 */
 .watch-b {
   padding: 2px 7px;

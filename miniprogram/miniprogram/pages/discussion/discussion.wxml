@@ -104,7 +104,7 @@
 
   <!-- 底部说明 -->
   <view class="board-footer">
-    <text class="t3 stitch-text">数据来自社区 · 每五分钟刷新一次</text>
+    <text class="t3 stitch-text">每五分钟刷新</text>
   </view>
 
   <!-- 发帖悬浮按钮 -->
@@ -119,7 +119,8 @@
 <view class="sheet" wx:if="{{showPost}}">
   <view class="sheet-grab"></view>
   <view class="sheet-title">发布反馈</view>
-  <view class="sheet-sub">友善交流，禁止黄牛广告、转账引流。违者删帖。</view>
+  <!-- 正文放进可滚动的区域：内容比屏幕高时能拖，不会再被顶边裁掉 -->
+  <scroll-view class="sheet-body" scroll-y enable-flex>
 
   <view class="field">
     <view class="field-lbl">内容（500 字内）</view>
@@ -155,7 +156,7 @@
     <view class="type-selector">
       <view class="type-opt {{postType===0?'active':''}}" data-type="0" bindtap="onType">问题反馈</view>
       <view class="type-opt {{postType===1?'active':''}}" data-type="1" bindtap="onType">建议留言</view>
-      <view class="type-opt {{postType===2?'active':''}}" data-type="2" bindtap="onType">求助求助</view>
+      <view class="type-opt {{postType===2?'active':''}}" data-type="2" bindtap="onType">求助留言</view>
     </view>
   </view>
 
@@ -163,6 +164,8 @@
     <view class="field-lbl">标签（最多 3 个，空格分隔）</view>
     <input class="input" placeholder="孙燕姿 广州 二开" value="{{postTags}}" bindinput="onTagInput" />
   </view>
+
+  </scroll-view>
 
   <view class="acts">
     <button class="btn btn-ghost press" bindtap="closePost" hover-class="press-hover">取消</button>

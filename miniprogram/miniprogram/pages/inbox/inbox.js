@@ -1,16 +1,15 @@
 // 「消息」页：回答竞品 FAQ 里那两条最常见的抱怨——
-import { request } from '../../utils/api';
 //   「为什么别人收到通知而你收不到」「为什么收到却看不到票」。
 //
 // 这里不能列微信发出去的服务通知——微信不把订阅消息回传给小程序。
-// 所以记的是**我们自己这边的证据**：每次真的去查了平台、查到了什么、
-// 额度还剩几条。用户看这一页就能判断「是没票，还是我没在查」。
+// 所以记的是我们自己这边的证据：每次真的去查了平台、查到了什么。
 //
 // 记录存在本地 storage：小程序端的检查日志不涉及他人数据，
 // 没必要为此多写一份云端集合。
+import { request } from '../../utils/api';
+import { isOn, renew, off } from '../../utils/push';
 
 const ACT_KEY = 'radar_activity';
-const CREDIT_KEY = 'wx_subscribe_credit';
 const MAX = 40;
 
 // 追加一条活动。写进 storage 失败（隐私模式、配额满）不该让主流程崩掉。
@@ -43,7 +42,7 @@ const KIND = {
 
 Page({
   data: {
-    credit: 0,
+    pushOn: false,
     activity: [],
     states: [],
     healthy: 0,
@@ -54,7 +53,7 @@ Page({
 
   onShow() {
     this.setData({
-      credit: wx.getStorageSync(CREDIT_KEY) || 0,
+      pushOn: isOn(),
       activity: this.withRel(wx.getStorageSync(ACT_KEY) || []),
     });
     this.pullStates();
@@ -69,10 +68,10 @@ Page({
     });
   },
 
-  // 下拉刷新：重读额度/活动记录，再问一次平台连通状态。
+  // 下拉刷新：重读活动记录，再问一次平台连通状态。
   onPullDownRefresh() {
     this.setData({
-      credit: wx.getStorageSync(CREDIT_KEY) || 0,
+      pushOn: isOn(),
       activity: this.withRel(wx.getStorageSync(ACT_KEY) || []),
     });
     Promise.resolve(this.pullStates()).then(() => wx.stopPullDownRefresh());
@@ -119,7 +118,12 @@ Page({
       });
   },
 
-  goMine() {
-    wx.switchTab({ url: '/pages/mine/mine' });
+  togglePush() {
+    if (this.data.pushOn) {
+      off();
+      this.setData({ pushOn: false });
+      return;
+    }
+    renew({ silent: false, force: true }).then(() => this.setData({ pushOn: isOn() }));
   },
 });

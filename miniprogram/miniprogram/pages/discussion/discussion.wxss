@@ -472,3 +472,22 @@
 }
 .mine-wall-t { font-size: 13px; font-weight: 500; color: var(--brand, #6B4FA8); }
 .mine-wall-back { font-size: 12px; color: var(--ink3, #8A8378); padding: 2px 4px; }
+
+/* ---------- 发帖弹层：内容超出屏幕时可滚动 ----------
+   之前 .sheet 是 bottom:0 固定、没有高度上限，字段一多就顶出屏幕，
+   标题和第一行被状态栏裁掉，而且没法拖动。 */
+.sheet {
+  max-height: 84vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sheet-body {
+  max-height: 58vh;
+  flex: 1;
+  min-height: 0;
+}
+.sheet .acts {
+  flex-shrink: 0;
+}

@@ -38,7 +38,7 @@
   <view class="card empty" wx:if="{{!loading && !groups.length && !error && !kw}}">
     <image class="empty-stk" src="/images/board2/collage15.png" mode="aspectFit" />
     <view class="empty-title">跨平台比价</view>
-    <view class="empty-sub">输入演出名或艺人名，同时查大麦 / 猫眼 / 摩天轮 / B站 / 票星球，一眼看出哪里最便宜、哪里还有票。</view>
+    <view class="empty-sub">输入名字，同时查几个平台。</view>
   </view>
 
   <!-- 结果组 -->

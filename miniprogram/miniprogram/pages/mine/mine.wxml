@@ -49,20 +49,14 @@
     </view>
   </view>
 
-  <!-- 推送状态（不再是「领额度」的柜台）：正常情况下全靠自动续，用户不用管 -->
+  <!-- 推送开关：只有「开 / 关」两种状态，不出现额度、条数这些说法 -->
   <view class="card quota">
-    <view class="quota-v">
-      <text class="t1">{{credit > 0 ? '推送已开启' : '推送已暂停'}}</text>
-      <text class="t2">{{credit > 0 ? '有票会直接微信叫你 · 加监控时自动续，不用手动领' : '打开小程序照样能看到回流；点下面恢复推送'}}</text>
-    </view>
-
-    <view class="acts">
-      <view class="btn btn-primary" bindtap="requestSubscribe" hover-class="press-hover">恢复推送</view>
-      <view class="btn btn-ghost" bindtap="requestSubscribeBatch" hover-class="press-hover">
-        {{batching ? batchGot + '/' + batchTotal : '多领几条'}}
+    <view class="quota-row">
+      <view class="quota-v">
+        <text class="t1">{{pushOn ? '推送已开启' : '推送已暂停'}}</text>
       </view>
+      <view class="quota-sw {{pushOn ? 'quota-sw-on' : ''}}" bindtap="togglePush" hover-class="press-hover">{{pushOn ? '暂停推送' : '恢复推送'}}</view>
     </view>
-
     <text class="quota-msg" wx:if="{{authMsg}}">{{authMsg}}</text>
   </view>
 
@@ -193,10 +187,9 @@
 
     <view wx:if="{{myPostsOpen}}">
       <view class="mypost-wall press" bindtap="goMyWall" hover-class="press-hover">
-        <view class="mypost-wall-t">以留言墙的方式查看 ›</view>
-        <view class="t3">点开进入你的留言墙，点便签可放大、可删除</view>
+        <view class="mypost-wall-t">我的留言墙 ›</view>
       </view>
-      <view wx:if="{{!myPosts.length}}" class="t3" style="padding: 6px 0;">还没发过留言，去讨论区写一条吧</view>
+      <view wx:if="{{!myPosts.length}}" class="t3" style="padding: 6px 0;">还没发过留言</view>
       <view class="mypost" wx:for="{{myPosts}}" wx:key="_id">
         <view class="mypost-main">
           <view class="mypost-text">{{item.content}}</view>

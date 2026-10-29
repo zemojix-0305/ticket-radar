@@ -4,8 +4,8 @@
   <!-- 降价横幅：同一航线这次比上次记录的低，进场就顶在最上面 -->
   <view class="drop" wx:if="{{dropTip}}">
     <view class="drop-l">
-      <view class="drop-t">降价了 · {{dropTip.code}}</view>
-      <view class="drop-b">比上次记录便宜 ¥{{dropTip.drop}}，现在 ¥{{dropTip.now}}{{dropTip.date ? ' · ' + dropTip.date : ''}}</view>
+      <view class="drop-t">{{dropTip.plat}} · {{dropTip.name}} 降价了</view>
+      <view class="drop-b">¥{{dropTip.before}} → ¥{{dropTip.now}}{{dropTip.date ? ' · ' + dropTip.date + ' 出发' : ''}}</view>
     </view>
     <view class="drop-x" bindtap="dismissDrop">✕</view>
   </view>
@@ -79,10 +79,30 @@
          等于没有入口——用户反馈的「没有办法去监控哪个」就是这个。 -->
     <view class="add add-top {{watching ? 'add-on' : ''}}" bindtap="addWatch" hover-class="press-hover">{{watchText}}</view>
 
-    <!-- 价格走势：点柱子直接切到那天看航班 -->
+    <!-- 在盯的航线：和首页「监控」列表是同一批任务，不是另一份数据 -->
+    <block wx:if="{{watches.length}}">
+      <view class="sec-h">
+        <text class="sec-t">在盯的航线</text>
+      </view>
+      <view class="watch" wx:for="{{watches}}" wx:key="id">
+        <view class="watch-main" data-w="{{item}}" bindtap="useWatch" hover-class="press-hover">
+          <view class="watch-top">
+            <text class="watch-n">{{item.fromName}} → {{item.toName}}</text>
+            <text class="watch-plat">{{item.plat}}</text>
+          </view>
+          <view class="watch-s">
+            <text class="watch-now" wx:if="{{item.lastMin}}">¥{{item.lastMin}}</text>
+            <text class="watch-delta {{item.deltaCls}}" wx:if="{{item.deltaText}}">{{item.deltaText}}</text>
+            <text class="watch-b {{item.budget ? 'watch-b-on' : ''}}">{{item.budget ? '目标 ¥' + item.budget : '不提醒'}}</text>
+          </view>
+        </view>
+        <view class="watch-x" data-id="{{item.id}}" catchtap="removeWatch">✕</view>
+      </view>
+    </block>
+
     <view class="sec-h">
       <text class="sec-t">价格走势</text>
-      <text class="sec-s">{{bars.length}} 天 · 点柱子看那天航班</text>
+      <text class="sec-s">{{bars.length}} 天</text>
     </view>
     <scroll-view class="chart" scroll-x enable-flex show-scrollbar="{{false}}">
       <view
@@ -220,39 +240,6 @@
       </view>
     </block>
 
-    <!-- 平台核对：一行胶囊，不再占三张卡 -->
-    <view class="plat-h">
-      <text class="sec-t">去核对</text>
-      <view class="plat">
-        <view
-          class="plat-i"
-          wx:for="{{platforms}}"
-          wx:key="key"
-          data-url="{{item.url}}"
-          bindtap="copyLink"
-          hover-class="plat-i-hover"
-        >{{item.name}}</view>
-      </view>
-    </view>
-    <view class="tip">价格来自同程（匿名可查）。携程/去哪儿要登录才返价，所以给链接你自己核对，不做假比价。</view>
-
-    <!-- 在盯的航线：和首页「监控」列表是同一批任务，不是另一份数据 -->
-    <block wx:if="{{watches.length}}">
-      <view class="sec-h">
-        <text class="sec-t">在盯的航线</text>
-        <text class="sec-s">首页监控里也能看到</text>
-      </view>
-      <view class="watch" wx:for="{{watches}}" wx:key="id">
-        <view class="watch-main" data-w="{{item}}" bindtap="useWatch" hover-class="press-hover">
-          <view class="watch-n">{{item.fromName}} → {{item.toName}}</view>
-          <view class="watch-s">
-            <text class="watch-b {{item.budget ? 'watch-b-on' : ''}}">{{item.budget ? '目标 ¥' + item.budget : '只看不提醒'}}</text>
-            <text wx:if="{{item.lastMin}}">上次 ¥{{item.lastMin}}</text>
-          </view>
-        </view>
-        <view class="watch-x" data-id="{{item.id}}" catchtap="removeWatch">✕</view>
-      </view>
-    </block>
 
 
   </block>

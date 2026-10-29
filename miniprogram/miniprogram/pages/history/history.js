@@ -1,15 +1,15 @@
 // 「历史」页：两个 tab——历史曲线 + 推送记录。
 import { request } from '../../utils/api';
+import { isOn, renew, off } from '../../utils/push';
 //
 // 历史曲线存在的理由：竞品的讨论区全是人在互相问「有回流吗」「什么价位好抢」
 // 「什么时候二开」——那些问题本来该由产品回答。我们手里有每次抓取的记录，
 // 就能算出「这场的脾气」。
 //
 // 推送记录存在的理由：微信不把订阅消息回传给小程序，所以我们自己记证据——
-// 每次真的去查了平台、查到了什么、额度还剩几条。
+// 每次真的去查了平台、查到了什么。
 
 const ACT_KEY = 'radar_activity';
-const CREDIT_KEY = 'wx_subscribe_credit';
 const MAX_ACT = 40;
 
 function parseTs(t) {
@@ -115,7 +115,7 @@ Page({
     totalSamples: 0,
     totalTasks: 0,
     enoughCount: 0,
-    credit: 0,
+    pushOn: false,
     activity: [],
     states: [],
     healthy: 0,
@@ -149,7 +149,7 @@ Page({
 
   loadActivity() {
     this.setData({
-      credit: wx.getStorageSync(CREDIT_KEY) || 0,
+      pushOn: isOn(),
       activity: this.withRel(wx.getStorageSync(ACT_KEY) || []),
     });
     return this.pullStates();
@@ -199,8 +199,14 @@ Page({
       .catch(() => {});
   },
 
-  goMine() {
-    wx.switchTab({ url: '/pages/mine/mine' });
+  // 推送开关：和「首页」「我的」是同一个状态（存在 utils/push）
+  togglePush() {
+    if (this.data.pushOn) {
+      off();
+      this.setData({ pushOn: false });
+      return;
+    }
+    renew({ silent: false, force: true }).then(() => this.setData({ pushOn: isOn() }));
   },
 
   refresh() {
