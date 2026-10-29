@@ -9,10 +9,39 @@
 //   · 平台比价：同程可匿名取价，携程/去哪儿/飞猪/途牛都要登录态，
 //     所以这里给「一键复制查询链接」让你去对应平台核对，而不是假装能比价。
 const { request } = require('../../utils/api');
+const { loadTasks, saveTasks } = require('../../utils/tasks');
+const { renewAfterAdd } = require('../../utils/push');
 
+// 旧版本把盯的航线单独存在 radar_flight_watch 里，只能在本页面看到、也不会被轮询。
+// 现在统一进 utils/tasks 的监控任务列表（monitor 首页那一批），下面这个 key 只留着
+// 做一次性迁移，不再写入。
 const WATCH_KEY = 'radar_flight_watch';
 const LAST_KEY = 'radar_flight_last';
 const ROUTE_KEY = 'radar_flight_route';
+
+/** 机票任务 id 前缀：monitor 页和这里靠 adapter === 'flight' 认，前缀只是好读 */
+const TASK_PREFIX = 'flight-';
+
+/** 从监控任务里挑出机票航线 */
+function flightTasks() {
+  const list = loadTasks();
+  return Array.isArray(list) ? list.filter((t) => t && t.adapter === 'flight' && t._id) : [];
+}
+
+/** 任务 → 面板里「在盯的航线」那一行 */
+function toWatch(t) {
+  const p = t.params || {};
+  return {
+    id: t._id,
+    from: p.from,
+    to: p.to,
+    fromName: p.fromName || p.from,
+    toName: p.toName || p.to,
+    budget: Number(p.budget) || 0, // 0 = 只看不提醒
+    lastMin: Number(p.lastMin) || 0,
+    bestDate: p.lastDate || '',
+  };
+}
 
 function ymd(d) {
   const t = d instanceof Date ? d : new Date(d);
@@ -101,6 +130,10 @@ Component({
     sortBy: 'time',
     // 监控
     watches: [],
+    // 当前这条航线有没有在盯、目标价多少（按钮上直接显示，不用滑到底看列表）
+    watching: false,
+    watchBudget: 0,
+    watchText: '盯这条航线 · 到价提醒你',
     dropTip: null,
     platforms: [],
   },
@@ -111,6 +144,7 @@ Component({
       const saved = wx.getStorageSync(ROUTE_KEY);
       const from = (saved && saved.from) || { code: 'SHA', name: '上海' };
       const to = (saved && saved.to) || { code: 'BJS', name: '北京' };
+      this.migrateLegacyWatches();
       this.setData({
         ready: true,
         today: offsetDay(0),
@@ -118,9 +152,10 @@ Component({
         dayOff: 1,
         from: from,
         to: to,
-        watches: wx.getStorageSync(WATCH_KEY) || [],
+        watches: flightTasks().map(toWatch),
         platforms: platformLinks(from.code, to.code, start),
       });
+      this.setWatches();
       // 关键修复：进场就自动查一次。上一版只设了默认城市、从不发请求，
       // 所以用户点进来永远是空白 —— 这就是「名存实亡」的根因。
       this.query();
@@ -175,7 +210,31 @@ Component({
       this.syncPlatforms();
       this.query();
     },
+    /** 把「在盯的航线」和按钮状态一起刷新，避免两处各写一遍 */
+    setWatches() {
+      const list = flightTasks().map(toWatch);
+      const { from, to } = this.data;
+      const id = TASK_PREFIX + (from && from.code) + '-' + (to && to.code);
+      const cur = list.filter((w) => w.id === id)[0];
+      const budget = cur ? Number(cur.budget) || 0 : 0;
+      // 按钮文案在 js 里拼好：多层三元 + 字符串拼接塞进 wxml 在一些基础库上会解析歪
+      let watchText = '盯这条航线 · 到价提醒你';
+      if (cur) {
+        watchText = budget
+          ? '已在盯 · 低于 ¥' + budget + ' 提醒你 · 点这里改'
+          : '已在盯 · 只记价不提醒 · 点这里改';
+      }
+      this.setData({
+        watches: list,
+        watching: !!cur,
+        watchBudget: budget,
+        watchText: watchText,
+      });
+      return list;
+    },
+
     syncPlatforms() {
+      this.setWatches();
       const { from, to, startDate, res } = this.data;
       // from/to 还没填时用结果里的城市码兜底（首屏只走 query、没走 pickCity 的情况）
       const f = from || (res && { code: res.fromCode, name: res.fromName });
@@ -431,34 +490,84 @@ Component({
       this.setData({ dropTip: null });
     },
 
+    // 盯一条航线 = 往监控任务表里加一条 adapter='flight' 的任务。
+    // 这样首页「监控」列表能看到它、能被 poll 轮询、跌破目标价能走订阅消息推送——
+    // 上一版只写在本地的 radar_flight_watch 里，关掉小程序就什么都不会发生。
+    // 盯一条航线 = 往监控任务表里加一条 adapter='flight' 的任务。
+    // 这样首页「监控」列表能看到它、能被 poll 轮询、跌破目标价能走订阅消息推送——
+    // 上一版只写在本地的 radar_flight_watch 里，关掉小程序就什么都不会发生。
+    // 已经盯着的再点一次 = 改目标价（不用先删再加）。
     addWatch() {
       const { res, from, to } = this.data;
       if (!res) return wx.showToast({ title: '先等价格出来', icon: 'none' });
-      const list = (wx.getStorageSync(WATCH_KEY) || []).slice();
-      const code = from.code + '-' + to.code;
-      if (list.filter((x) => x.id === code).length) {
-        return wx.showToast({ title: '这条已经在盯了', icon: 'none' });
-      }
-      list.unshift({
-        id: code,
-        from: from.code,
-        to: to.code,
-        fromName: from.name,
-        toName: to.name,
-        best: res.stats.min,
-        bestDate: res.stats.cheapest ? res.stats.cheapest.date : '',
-        at: Date.now(),
+      const id = TASK_PREFIX + from.code + '-' + to.code;
+      const tasks = loadTasks() || [];
+      const exists = tasks.filter((t) => t && t._id === id)[0] || null;
+      const curBudget = exists ? Number(exists.params && exists.params.budget) || 0 : 0;
+      const min = Number(res.stats && res.stats.min) || 0;
+      const cheap = (res.stats && res.stats.cheapest) || {};
+      // 默认建议价：当前最低价再低 10%，取到十位（¥360 → ¥320）。
+      // 只是预填，用户可以改成任何数；留空则「只看不提醒」。
+      const suggest = min ? Math.floor((min * 0.9) / 10) * 10 : '';
+      wx.showModal({
+        title: (exists ? '改目标价 · ' : '盯 ') + from.name + ' → ' + to.name,
+        editable: true,
+        placeholderText: '低于多少提醒你，留空就只看不提醒',
+        content: curBudget ? String(curBudget) : suggest ? String(suggest) : '',
+        confirmText: exists ? '保存' : '开始盯',
+        success: (r) => {
+          if (!r.confirm) return;
+          const n = Number(String(r.content || '').replace(/[^0-9.]/g, ''));
+          const budget = n > 0 ? Math.round(n) : 0;
+          if (exists) {
+            exists.params = Object.assign({}, exists.params, {
+              budget: budget,
+              lastMin: min,
+              lastDate: cheap.date || '',
+            });
+            saveTasks(tasks);
+          } else {
+            tasks.unshift({
+              _id: id,
+              adapter: 'flight',
+              name: from.name + ' → ' + to.name,
+              params: {
+                from: from.code,
+                to: to.code,
+                fromName: from.name,
+                toName: to.name,
+                days: 30,
+                budget: budget,
+                lastMin: min,
+                lastDate: cheap.date || '',
+              },
+              poster: '',
+              enabled: true,
+              created_at: Date.now(),
+            });
+            saveTasks(tasks);
+            // 机票的「到价」推送走的是同一条一次性订阅，加完顺手静默续一条
+            renewAfterAdd().catch(() => {});
+          }
+          this.setWatches();
+          wx.showToast({
+            title: exists
+              ? budget
+                ? '目标价改成 ¥' + budget
+                : '已取消价格提醒'
+              : budget
+                ? '已盯上，低于 ¥' + budget + ' 提醒你'
+                : '已盯上，只记价不提醒',
+            icon: 'none',
+          });
+        },
       });
-      wx.setStorageSync(WATCH_KEY, list);
-      this.setData({ watches: list });
-      wx.showToast({ title: '已加入盯价', icon: 'none' });
     },
 
     removeWatch(e) {
       const id = e.currentTarget.dataset.id;
-      const list = (wx.getStorageSync(WATCH_KEY) || []).filter((x) => x.id !== id);
-      wx.setStorageSync(WATCH_KEY, list);
-      this.setData({ watches: list });
+      saveTasks((loadTasks() || []).filter((t) => !(t && t._id === id)));
+      this.setWatches();
     },
 
     useWatch(e) {
@@ -472,39 +581,94 @@ Component({
         deals: [],
         rows: [],
       });
+      wx.setStorageSync(ROUTE_KEY, {
+        from: { code: w.from, name: w.fromName || w.from },
+        to: { code: w.to, name: w.toName || w.to },
+      });
       this.query();
     },
 
-    // 刷新所有已盯航线：逐条查最低价，有降价就弹提示
+    /** 把早先存在 radar_flight_watch 里的航线搬进监控任务表（只跑一次） */
+    migrateLegacyWatches() {
+      const legacy = wx.getStorageSync(WATCH_KEY);
+      if (!Array.isArray(legacy) || !legacy.length) return;
+      const tasks = loadTasks() || [];
+      legacy.forEach((w) => {
+        if (!w || !w.from || !w.to) return;
+        const id = TASK_PREFIX + w.from + '-' + w.to;
+        if (tasks.some((t) => t && t._id === id)) return;
+        tasks.push({
+          _id: id,
+          adapter: 'flight',
+          name: (w.fromName || w.from) + ' → ' + (w.toName || w.to),
+          params: {
+            from: w.from,
+            to: w.to,
+            fromName: w.fromName || w.from,
+            toName: w.toName || w.to,
+            days: 30,
+            // 旧记录没有目标价，不替用户瞎设一个——当「只看不提醒」搬过来
+            budget: 0,
+            lastMin: Number(w.best) || 0,
+            lastDate: w.bestDate || '',
+          },
+          poster: '',
+          enabled: true,
+          created_at: w.at || Date.now(),
+        });
+      });
+      saveTasks(tasks);
+      wx.removeStorageSync(WATCH_KEY);
+    },
+
+    // 打开面板顺手比自己上次看到的最低价（本地快照，跨会话）。
+    // 真正的推送不靠这里：monitor 页的 poll 才是 7×24 那条线。
     refreshWatches() {
-      const list = wx.getStorageSync(WATCH_KEY) || [];
+      // 首页可能刚删过任务，进来先把卡片对齐一遍
+      const list = this.setWatches();
       if (!list.length) return;
       const last = wx.getStorageSync(LAST_KEY) || {};
       let drop = null;
       let done = 0;
       list.slice(0, 6).forEach((w) => {
-        request({ action: 'flight', from: w.from, to: w.to, days: 30 })
+        const p = w.params || {};
+        request({ action: 'flight', from: p.from, to: p.to, days: Number(p.days) || 30 })
           .then((res) => {
             const r = (res && res.result) || {};
             if (!r.ok || !r.stats) return;
             const min = r.stats.min;
-            const prev = last[w.id];
+            const prev = last[w._id];
             if (prev && prev.price > min && (!drop || prev.price - min > drop.drop)) {
               drop = {
-                code: w.id,
+                code: w._id,
                 drop: prev.price - min,
                 now: min,
                 before: prev.price,
                 date: r.stats.cheapest ? r.stats.cheapest.date : '',
               };
             }
-            last[w.id] = { price: min, date: r.stats.cheapest ? r.stats.cheapest.date : '', at: Date.now() };
+            last[w._id] = {
+              price: min,
+              date: r.stats.cheapest ? r.stats.cheapest.date : '',
+              at: Date.now(),
+            };
             wx.setStorageSync(LAST_KEY, last);
+            // 记下这次看到的最低价，卡片上显示「上次 ¥xxx」，不用再查一次
+            const tasks = loadTasks() || [];
+            const t = tasks.filter((x) => x && x._id === w._id)[0];
+            if (t && t.params) {
+              t.params.lastMin = min;
+              t.params.lastDate = r.stats.cheapest ? r.stats.cheapest.date : '';
+              saveTasks(tasks);
+            }
           })
           .catch(() => {})
           .then(() => {
             done += 1;
-            if (done === Math.min(6, list.length) && drop) this.setData({ dropTip: drop });
+            if (done === Math.min(6, list.length)) {
+              this.setWatches();
+              if (drop) this.setData({ dropTip: drop });
+            }
           });
       });
     },

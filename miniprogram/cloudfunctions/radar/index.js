@@ -2737,6 +2737,54 @@ async function fwdHotList(limit) {
   }));
 }
 
+/**
+ * 机票航线：查同程逐日最低价，把「最低价 ≤ 你设的目标价」当成一次「有票」。
+ *
+ * 为什么复用 available 字段：整套监控判的就是「某条 items 从不可用变成可用」
+ * （diffRestock → 回流 → 推送）。机票没有余票这回事，但「跌到你的心理价」
+ * 和「回流出一张票」对用户是同一件事——都值得喊一声。这样机票不用单开一条
+ * 推送链路，monitor 页的卡片、历史曲线、筛选也全都能直接用。
+ *
+ * params: { from: 'SHA', to: 'BJS', days: 30, budget: 600 }
+ *   budget = 0 表示只看不提醒（记价格、画曲线，但不判「到价」）
+ */
+async function pollFlight(params) {
+  const from = String(params.from || '').toUpperCase();
+  const to = String(params.to || '').toUpperCase();
+  if (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to)) {
+    throw new Error('出发地/目的地要三字码（例如上海=SHA、北京=BJS）');
+  }
+  if (from === to) throw new Error('出发地和到达地不能一样');
+  const days = Math.min(60, Math.max(7, Number(params.days) || 30));
+  const cal = await flightSvc.calendar(from, to, params.date || '', days);
+  const st = cal.stats || {};
+  const min = Number(st.min) || 0;
+  if (!min) throw new Error('这条航线这些天一条报价都没有');
+  const cheapest = st.cheapest || {};
+  const target = Number(params.budget) || 0;
+  const hit = target > 0 && min <= target;
+  // 用城市名而不是机场全名：「上海虹桥国际机场 → 北京首都国际机场」当 label 又长又漂
+  // （最低价换一班，机场就变了），diffRestock 是按 label 配对前后两轮的，必须稳定。
+  const fromCn = flightSvc.cityName(from);
+  const toCn = flightSvc.cityName(to);
+  const bits = ['最低 ¥' + min];
+  if (cheapest.date) bits.push(cheapest.date.slice(5) + ' 出发');
+  bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');
+  return [
+    {
+      // label 要稳定：diffRestock 靠 label 配对前后两轮，"最低价" 这层别改字
+      label: fromCn + ' → ' + toCn + ' · 最低价',
+      place: '同程',
+      when: cheapest.date || '',
+      status: bits.join(' · '),
+      available: hit,
+      count: hit ? 1 : 0,
+      price: min,
+      target: target || null,
+    },
+  ];
+}
+
 // ===========================================================================
 // 分发
 // ===========================================================================
@@ -2750,13 +2798,14 @@ const PLATFORMS = {
   bilibili: pollBilibili,
   piaoxingqiu: pollPiaoxingqiu,
   fenwandao: pollFenwandao,
+  flight: pollFlight,
 };
 
 // 平台中文名：推送消息里的「放票机构」字段用
 const LABEL_CN = {
   maoyan: '猫眼', moretickets: '摩天轮', rail12306: '12306',
   damai: '大麦', taopiaopiao: '淘票票', bilibili: 'B站会员购', piaoxingqiu: '票星球',
-  fenwandao: '纷玩岛',
+  fenwandao: '纷玩岛', flight: '同程机票',
 };
 
 const PLATFORM_PROBE = {
@@ -3082,11 +3131,21 @@ async function handleAction(event, action, db) {
                 templateId: NOTIFY_TMPL,
                 page: 'pages/monitor/monitor',
                 data: {
-                  thing6: { value: String(rec.name || '你盯的演出').slice(0, 20) },
-                  thing8: { value: String((first.label || '有场次放票')).slice(0, 20) },
+                  thing6: { value: String(rec.name || '你盯的项目').slice(0, 20) },
+                  // 机票没有「场次」，这里放价格摘要（「最低 ¥520 · 10-31 出发」）
+                  thing8: {
+                    value: String(
+                      task.adapter === 'flight' ? first.status || '已到目标价' : first.label || '有票了',
+                    ).slice(0, 20),
+                  },
                   time7: { value: new Date().toLocaleString('zh-CN', { hour12: false }) },
                   thing5: { value: String(LABEL_CN[task.adapter] || task.adapter).slice(0, 20) },
-                  thing4: { value: '回流票出现，尽快去官方渠道下单' },
+                  thing4: {
+                    value:
+                      task.adapter === 'flight'
+                        ? '已跌到你的目标价，去同程下单'
+                        : '回流票出现，尽快去官方渠道下单',
+                  },
                 },
               });
               rec.notify.sent = true;

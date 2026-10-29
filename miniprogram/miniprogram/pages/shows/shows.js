@@ -109,6 +109,20 @@ Page({
   },
 
   onShow() {
+    // 从「监控」页点了机票任务：把那条航线塞进机票面板再切过去。
+    // 组件是 wx:if 渲染的，切平台会重新 attached，那边读 radar_flight_route 自动查价。
+    const fl = wx.getStorageSync('shows_prefill_flight');
+    if (fl && fl.from && fl.to) {
+      wx.removeStorageSync('shows_prefill_flight');
+      wx.setStorageSync('radar_flight_route', {
+        from: { code: fl.from, name: fl.fromName || fl.from },
+        to: { code: fl.to, name: fl.toName || fl.to },
+      });
+      const fi = PLATFORMS.findIndex((p) => p.key === 'amadeus');
+      if (fi >= 0) {
+        this.setData({ platformIndex: fi, rows: [], searched: false, fail: '', hot: [] });
+      }
+    }
     // 机票 tab 现在是内联面板（不跳页）。回来时让它刷新一下已盯航线的价格，
     // 有降价就能立刻弹横幅。
     if (PLATFORMS[this.data.platformIndex].key === 'amadeus') {

@@ -75,6 +75,7 @@ const LABEL = {
   bilibili: 'B站会员购',
   piaoxingqiu: '票星球',
   fenwandao: '纷玩岛',
+  flight: '同程机票',
 };
 
 // 任务参数里哪个字段是这个平台的主 id。加监控弹层存的是 `url`（可能是链接），
@@ -228,6 +229,7 @@ Page({
     const restock = Array.isArray(s.restock) && s.restock.length > 0;
 
     let head, cls, bar;
+    const isFlight = s.adapter === 'flight' || s.platform === 'flight';
     const offline = !s.ok && /404|不存在|已下架|下线/.test(String(s.error || ''));
     if (offline) {
       head = '已下架';
@@ -241,6 +243,22 @@ Page({
       head = '暂未开售';
       cls = 'tag-none';
       bar = 'task-bar-none';
+    } else if (isFlight) {
+      // 机票没有「有没有票」，只有「有没有跌到目标价」，标签别照搬演出那套
+      const tgt = Number((s.params || {}).budget) || 0;
+      if (avail > 0) {
+        head = '到价了';
+        cls = 'tag-ok';
+        bar = 'task-bar-ok';
+      } else if (tgt) {
+        head = '未到价';
+        cls = 'tag-none';
+        bar = 'task-bar-none';
+      } else {
+        head = '只看价';
+        cls = 'tag-none';
+        bar = 'task-bar-none';
+      }
     } else if (avail > 0) {
       head = '有票 ' + avail;
       cls = 'tag-ok';
@@ -255,7 +273,8 @@ Page({
     // 抢票时机建议：采样足够多时，基于历史数据给提示
     const hist = (s.history || []).filter((h) => h && h.t);
     let tip = '';
-    if (hist.length >= 5) {
+    // 机票的 history 是「到价/没到价」的 0-1，拿它算「回流次数」是胡说，直接跳过
+    if (!isFlight && hist.length >= 5) {
       const recent = hist.slice(-10);
       const hadTicket = recent.some((h) => h.n > 0);
       const drops = recent.filter((h) => h.n > 0).length;
@@ -271,7 +290,8 @@ Page({
       headClass: cls,
       barClass: bar,
       platform: LABEL[s.platform] || s.platform,
-      sub2: first.when || '',
+      // 机票的 when 只是一个日期，把价格摘要放上去更有用
+      sub2: isFlight ? first.status || '' : first.when || '',
       total,
       available: avail,
       restock: restock,
@@ -300,6 +320,18 @@ Page({
       const p = s.params || {};
       wx.setStorageSync('shows_prefill_rail', {
         from: p.from || '', to: p.to || '', date: p.date || '',
+      });
+      wx.switchTab({ url: '/pages/shows/shows' });
+      return;
+    }
+
+    // 机票也没有「演出详情」：回「找票」页，把这条航线填进机票面板。
+    // 组件靠 radar_flight_route 读航线，attached 时自动查一次价。
+    if (s.adapter === 'flight') {
+      const p = s.params || {};
+      wx.setStorageSync('shows_prefill_flight', {
+        from: p.from || '', to: p.to || '',
+        fromName: p.fromName || '', toName: p.toName || '',
       });
       wx.switchTab({ url: '/pages/shows/shows' });
       return;

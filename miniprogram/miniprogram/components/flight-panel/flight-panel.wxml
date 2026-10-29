@@ -75,6 +75,10 @@
       挑对日子最多省 <text class="save-n">{{savePct}}%</text>（¥{{res.stats.max}} → ¥{{res.stats.min}}）
     </view>
 
+    <!-- 盯这条航线：放概览正下方。之前压在页面最底部，得滑半天才看得见，
+         等于没有入口——用户反馈的「没有办法去监控哪个」就是这个。 -->
+    <view class="add add-top {{watching ? 'add-on' : ''}}" bindtap="addWatch" hover-class="press-hover">{{watchText}}</view>
+
     <!-- 价格走势：点柱子直接切到那天看航班 -->
     <view class="sec-h">
       <text class="sec-t">价格走势</text>
@@ -232,22 +236,25 @@
     </view>
     <view class="tip">价格来自同程（匿名可查）。携程/去哪儿要登录才返价，所以给链接你自己核对，不做假比价。</view>
 
-    <!-- 在盯的航线 -->
+    <!-- 在盯的航线：和首页「监控」列表是同一批任务，不是另一份数据 -->
     <block wx:if="{{watches.length}}">
       <view class="sec-h">
         <text class="sec-t">在盯的航线</text>
-        <text class="sec-s">进来就自动比价</text>
+        <text class="sec-s">首页监控里也能看到</text>
       </view>
       <view class="watch" wx:for="{{watches}}" wx:key="id">
         <view class="watch-main" data-w="{{item}}" bindtap="useWatch" hover-class="press-hover">
           <view class="watch-n">{{item.fromName}} → {{item.toName}}</view>
-          <view class="watch-s">上次最低 ¥{{item.best}} · {{item.bestDate}}</view>
+          <view class="watch-s">
+            <text class="watch-b {{item.budget ? 'watch-b-on' : ''}}">{{item.budget ? '目标 ¥' + item.budget : '只看不提醒'}}</text>
+            <text wx:if="{{item.lastMin}}">上次 ¥{{item.lastMin}}</text>
+          </view>
         </view>
         <view class="watch-x" data-id="{{item.id}}" catchtap="removeWatch">✕</view>
       </view>
     </block>
 
-    <view class="add" bindtap="addWatch" hover-class="press-hover">+ 盯这条航线（降价提示）</view>
+
   </block>
 
   <!-- 城市选择弹层 -->

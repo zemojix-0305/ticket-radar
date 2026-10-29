@@ -425,9 +425,24 @@
   font-weight: 500;
 }
 .watch-s {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
   color: var(--ink3);
-  margin-top: 4px;
+  margin-top: 5px;
+}
+/* 目标价：设了就绿底，没设就是灰字，一眼看出这条会不会提醒你 */
+.watch-b {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #F1F1F4;
+  color: var(--ink3);
+}
+.watch-b-on {
+  background: #EAF4EC;
+  color: #2F6B3A;
+  font-weight: 500;
 }
 .watch-x {
   width: 34px;
@@ -436,6 +451,15 @@
   font-size: 13px;
 }
 
+.add-top {
+  margin: 14px 0 2px;
+}
+/* 已经在盯的：换成浅绿描边，和「还没加」的黑底区分开 */
+.add-on {
+  background: #EAF4EC;
+  color: #2F6B3A;
+  border: 1px solid #CFE6D6;
+}
 .add {
   margin-top: 16px;
   padding: 14px;
