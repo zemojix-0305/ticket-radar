@@ -53,3 +53,8 @@ open_devtools.bat
 # 服务端自持凭据（大麦 Cookie / 纷玩岛 token），绝不提交
 server/config.json
 server/server.log
+
+# 服务端常驻监控的落盘状态 + access_token 缓存（都含本机运行数据，不进仓库）
+server/state/
+server/.wx_token.json
+server/config.json

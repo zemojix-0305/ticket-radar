@@ -22,9 +22,27 @@ function isOn() {
   return !!wx.getStorageSync(ON_KEY);
 }
 
+/**
+ * 开关一变就通知服务端。
+ * ---------------------------------------------------------------------------
+ * 服务端是根据 pushOn 决定发不发的。不同步的话，用户点了「暂停推送」，
+ * 服务端还在照旧往他手机上推——这比不发还难受。
+ * 用 require 写在函数体里（而不是文件顶部）是为了避开 tasks <-> push 的
+ * 循环依赖：真正调用时两个模块都已经加载完了。
+ */
+function notifyServer() {
+  try {
+    const t = require('./tasks');
+    if (t && t.syncPush) t.syncPush();
+  } catch (e) {
+    /* 服务端连不上不影响本地开关 */
+  }
+}
+
 function setOn(v) {
   if (v) wx.removeStorageSync(PAUSED_KEY);
   wx.setStorageSync(ON_KEY, !!v);
+  notifyServer();
   return !!v;
 }
 

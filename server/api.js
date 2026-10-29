@@ -142,6 +142,53 @@ global.cloud = {
 // 云函数主体（内部有 normalizePosters 出口层 + 全部平台 adapter）
 const radar = require(path.join(__dirname, '..', 'miniprogram', 'cloudfunctions', 'radar', 'index.js'));
 
+// 真正会发微信消息的一层（原来这里是 mock 掉、永远发不出去）
+const wxpush = require('./wxpush');
+const notify = require('./notify');
+const watcher = require('./watcher');
+
+// ---------------------------------------------------------------------------
+// 本层自有 action：推送相关的都走这里，不转发给云函数
+//   pushSync    小程序同步「要盯哪些票」+ 推送开关
+//   pushStatus  小程序/我 查服务端盯得怎么样、发没发出去
+//   pushTest    立刻发一条测试消息，验证手机能不能收到
+//   login       wx.login 的 code 换 openid，自动写回 .env（免手工 wxbind）
+//   watchTick   立刻跑一轮（调试用，正常由定时器自己跑）
+// ---------------------------------------------------------------------------
+async function handleLocal(event) {
+  const action = event.action;
+  if (action === 'pushSync') {
+    const r = watcher.setTasks(event);
+    return Object.assign({ ok: true }, r);
+  }
+  if (action === 'pushStatus') {
+    return watcher.status();
+  }
+  if (action === 'pushTest') {
+    // 走多通道分发：小程序订阅 / pushplus / 企业微信 谁通算谁
+    const out = await notify.send({
+      title: event.title || '推送测试',
+      event: event.event || '这条能收到，说明整条链路是通的',
+      org: 'ticket-radar',
+      tip: '测试消息，可忽略',
+      page: 'pages/monitor/monitor',
+    });
+    return out;
+  }
+  if (action === 'login') {
+    if (!event.code) return { ok: false, error: '缺 code' };
+    const r = await wxpush.bindByCode(event.code);
+    const saved = wxpush.persistOpenId(r.openid);
+    return { ok: true, openid: r.openid, savedToEnv: saved };
+  }
+  if (action === 'watchTick') {
+    return watcher.tick();
+  }
+  return null;
+}
+
+const LOCAL_ACTIONS = new Set(['pushSync', 'pushStatus', 'pushTest', 'login', 'watchTick']);
+
 // ---------------------------------------------------------------------------
 // HTTP 处理
 // ---------------------------------------------------------------------------
@@ -191,6 +238,14 @@ async function apiHandler(req, res) {
   if (!event.myToken && SRV_CONFIG.myToken) event.myToken = SRV_CONFIG.myToken;
 
   try {
+    // 推送相关的 action 由本层处理（云函数里那套是云开发模式，本地没有 openid）
+    if (LOCAL_ACTIONS.has(event.action)) {
+      const out = await handleLocal(event);
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify(out == null ? { ok: true } : out));
+      return;
+    }
     const out = await radar.main(event);
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -219,6 +274,18 @@ if (require.main === module) {
       '  (来源：环境变量 / .env / server/config.json)',
     );
     console.log('[ticket-radar] try: curl -X POST http://127.0.0.1:' + port + "/api -H 'Content-Type: application/json' -d '{\"action\":\"find\",\"platform\":\"maoyan\",\"keyword\":\"\",\"limit\":3}'");
+
+    // 常驻监控：小程序把任务同步上来后，由这里一直查、真的发微信。
+    // 关掉小程序不会中断它——这才是「关掉也能收推送」的实现方式。
+    watcher.start({ poll: radar.main });
+    const wx = wxpush.ready();
+    const chs = notify.channels();
+    console.log(
+      '[ticket-radar] 微信推送通道: ' + (chs.length ? chs.join(' / ') : '一个都没配（填 .env 的 PUSHPLUS_TOKEN 即可）'),
+    );
+    console.log(
+      '[ticket-radar] 小程序订阅消息: ' + (wx.ok ? 'ready' : '缺 ' + wx.miss.join('/')),
+    );
   });
 }
 

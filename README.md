@@ -257,7 +257,10 @@ miniprogram/
 │       ├── api.js        # 统一请求封装（唯一改域名的地方）
 │       └── push.js       # 推送开关（开 / 关）
 ├── cloudfunctions/radar/ # 查询逻辑（本地服务与云函数共用同一份）
-└── server/api.js         # 本地/云端 HTTP 壳（Vercel 部署的就是它）
+└── server/
+    ├── api.js            # 本地/云端 HTTP 壳（Vercel 部署的就是它）
+    ├── watcher.js        # 常驻监控：按间隔自己查、发现回流就推（关掉小程序也照跑）
+    └── wxpush.js         # 微信订阅消息发送（access_token 缓存 + errcode 人话）
 ```
 
 **本地开发**：先把服务跑起来，再在微信开发者工具里打开 `miniprogram/`
@@ -273,6 +276,42 @@ cd server && node api.js       # 或双击根目录 start-server.bat（带自动
 `routes` 全路径转发）。部署完把域名填进 `miniprogram/utils/api.js` 的 `API_BASE`，
 再到小程序后台「开发管理 → 服务器域名」把它加进 request 白名单
 （个人主体每月可改 5 次，改完不用重新审核）。
+
+### 真·微信推送：为什么必须有一台常驻机器
+
+小程序关掉就停了，微信不允许小程序后台常驻——所以「关掉小程序也能收到提醒」
+这件事，光靠小程序本身做不到。真正在跑的是**服务端**：
+
+```
+小程序（加/删监控）──pushSync──▶ server/state/tasks.json
+                                      │
+                          server/watcher.js（每 120 秒一轮）
+                                      │  发现「无票 → 有票」
+                                      ▼
+                          server/wxpush.js ──▶ 微信「服务通知」
+```
+
+- 任务列表由小程序同步上来：每次加/删监控、每次切推送开关都会推一份，
+  所以服务端永远知道该盯什么（`utils/tasks.js` 的 `saveTasks` 里统一做，不散落在各页）
+- 服务端把上一轮结果存在 `state/prev.json` 当基线，`diffRestock` 判「无 → 有」
+- 判定到回流就调订阅消息；`pushOn=false`（用户按了暂停）时一条都不发
+- 间隔下限 **60 秒**（`watcher.MIN_INTERVAL`），压到秒级 + 换 IP 就是自动刷票，不碰
+
+`.env` 里要填齐这四个，缺一个都发不出去：
+
+```bash
+WX_APPID=wx...            # 小程序 AppID
+WX_APPSECRET=...          # AppSecret，只在服务端，绝不进小程序包
+WX_OPEN_ID=o...           # 收消息的人；不填也行，小程序启动时会用 wx.login 自动绑
+WX_TEMPLATE_ID=...        # 「订阅消息 → 我的模板」里的 priTmplId，不是模板标题
+```
+
+> **一次性订阅的硬规则**：授权一次只能收一条。额度用完微信返回 `43101`，
+> 不是 bug。所以小程序每次进前台都会静默续一次（勾了「总是保持以上选择」
+> 就不再弹窗），额度攒着等真回流时用。看到「该续期了」，点一次「恢复推送」即可。
+
+> **代价**：这条链路依赖电脑开着。要 7×24 且不依赖本机，得把 `server/` 丢到
+> 一台常开的机器上（免费额度的腾讯云函数 + 定时触发器、或任意 VPS）。
 
 ### 写适配器时记得填 `Snapshot.context`
 

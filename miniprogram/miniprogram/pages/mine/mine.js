@@ -1,15 +1,14 @@
 // 「我的」页：推送开关 + 微信绑定 + 我们不做什么。
 //
-// 为什么页面上显示的是 code 而不是 openid：换 openid 需要 AppSecret，
-// 而 AppSecret 绝不能打进小程序包里（任何人反编译都能拿到）。
-// 所以这里只负责把 code 显示出来，由用户在电脑上跑 `radar wxbind <code>` 去换。
-// 这样既不需要开通云开发，也不泄露密钥。
+// openid 现在是自动绑的：小程序启动时用 wx.login 拿 code 发给服务端，服务端用
+// AppSecret 换 openid 存下来（AppSecret 绝不能打进小程序包，任何人反编译都能拿到）。
+// 下面那个手填 code 的入口只是万一自动绑定失败时的兜底，正常用不到。
 const USER_KEY = 'radar_user_profile';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
 import Dialog from '../../vant/dialog/dialog';
-import { request } from '../../utils/api';
+import { request, pushTest, pushStatus } from '../../utils/api';
 import { isOn, renew as pushRenew, off as pushOff } from '../../utils/push';
 import { loadTasks } from '../../utils/tasks';
 import { loadPosts, removePost } from '../../utils/posts';
@@ -28,6 +27,7 @@ Page({
     // 推送开关：只有「开 / 关」两种状态，不再显示还剩几条
     pushOn: false,
     authMsg: '',
+    srvMsg: '',
     bindOpen: false,
     user: { uid: '', nickname: '', avatar: '' },
     editingName: false,
@@ -297,6 +297,7 @@ Page({
     // 别的页面可能刚把推送开关切过（首页那条），回来对齐一下
     this.setData({ pushOn: isOn() });
     this.loadWatched();
+    if (isOn()) this.loadSrvStatus();
   },
 
   // --- 正在盯：入口按钮跳独立页 -------------------------------------------
@@ -351,23 +352,56 @@ Page({
     });
   },
 
-  // 切换推送：开 → 关 直接关；关 → 开 走一次订阅授权。
-  // 这是用户唯一需要操作的推送动作，没有第二个入口。
+  // 切换推送：开 → 关 直接关；关 → 开 走一次订阅授权 + 立刻发一条验证。
+  // 为什么开完要发一条：微信的一次性订阅是「授权一次 = 能收一条」，用户点完
+  // 允许后如果什么都不发，这条授权就白白躺着，而他其实没法确认到底通不通。
+  // 用掉这一条换一句「收到了」——反而最有用。
   togglePush() {
     if (this.data.pushOn) {
       pushOff();
-      this.setData({ pushOn: false, authMsg: '' });
+      this.setData({ pushOn: false, authMsg: '', srvMsg: '' });
       Toast({ type: 'text', message: '已暂停推送' });
       return;
     }
     pushRenew({ silent: false, force: true }).then((ok) => {
-      this.setData({
-        pushOn: isOn(),
-        authMsg: ok ? '' : '没开成。若之前选过拒绝，去微信「设置 → 隐私 → 授权管理」里重新允许。',
-      });
-      if (ok) Toast({ type: 'success', message: '推送已恢复' });
+      this.setData({ pushOn: isOn() });
+      if (!ok) {
+        this.setData({
+          authMsg: '没开成。若之前选过拒绝，去微信「设置 → 隐私 → 授权管理」里重新允许。',
+        });
+        return;
+      }
+      this.setData({ authMsg: '正在往你微信发一条…' });
+      pushTest('推送已开启')
+        .then((res) => {
+          const r = (res && res.result) || {};
+          if (r.ok) {
+            this.setData({ authMsg: '', srvMsg: '' });
+            Toast({ type: 'success', message: '已发到微信，去「服务通知」看' });
+          } else {
+            const why =
+              r.error ||
+              ((r.failed && r.failed[0] && r.failed[0].error) || '发不出去，检查电脑上的服务有没有开');
+            this.setData({ authMsg: '', srvMsg: why });
+          }
+        })
+        .catch(() => this.setData({ authMsg: '', srvMsg: '连不上电脑上的服务，推送发不出去' }));
     });
   },
-});
+
+  // 服务端是不是真的在盯、真的能发。不查这一下，用户看到「推送已开启」
+  // 却永远收不到消息，还以为是自己手机的问题。
+  loadSrvStatus() {
+    pushStatus()
+      .then((res) => {
+        const r = (res && res.result) || {};
+        if (!r.ok) return this.setData({ srvMsg: '服务端没响应' });
+        let msg = '';
+        if (r.wx && !r.wx.ready) msg = '微信推送没配好：缺 ' + (r.wx.missing || []).join('/');
+        else if (r.lastError && /43101/.test(r.lastError)) msg = '该续期了：微信一次授权只能收一条，点一次「恢复推送」';
+        else if (r.lastError) msg = '上次发送失败：' + r.lastError;
+        this.setData({ srvMsg: msg });
+      })
+      .catch(() => this.setData({ srvMsg: '连不上电脑上的服务，推送发不出去' }));
   },
 });

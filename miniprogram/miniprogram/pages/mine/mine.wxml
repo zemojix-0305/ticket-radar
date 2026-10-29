@@ -58,6 +58,7 @@
       <view class="quota-sw {{pushOn ? 'quota-sw-on' : ''}}" bindtap="togglePush" hover-class="press-hover">{{pushOn ? '暂停推送' : '恢复推送'}}</view>
     </view>
     <text class="quota-msg" wx:if="{{authMsg}}">{{authMsg}}</text>
+    <text class="quota-msg" wx:if="{{srvMsg}}">{{srvMsg}}</text>
   </view>
 
   <!-- 正在盯：入口按钮，点进独立页看列表 -->

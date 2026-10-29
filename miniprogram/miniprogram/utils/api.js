@@ -79,4 +79,49 @@ function request(params) {
   });
 }
 
-module.exports = { request, base, FWD_TOKEN_KEY, DM_COOKIE_KEY };
+/**
+ * 把「要盯哪些票」同步给服务端。
+ * ---------------------------------------------------------------------------
+ * 为什么必须同步：小程序关掉就停了，微信又不允许小程序后台常驻。想让提醒
+ * 真的进微信，只能由服务端一直查——服务端得先知道要查什么。
+ * 所以每次任务列表变化（加/删/改）都往这里推一份，服务端落盘后自己跑。
+ *
+ * 失败不抛错：同步不上不该挡住用户加监控这件正事，静默记一笔即可。
+ */
+function pushSync(tasks, pushOn) {
+  return request({ action: 'pushSync', tasks: tasks || [], pushOn: !!pushOn }).catch(() => null);
+}
+
+/** 服务端现在盯得怎么样（任务数 / 上次查询 / 上次报错 / openid 绑没绑） */
+function pushStatus() {
+  return request({ action: 'pushStatus' });
+}
+
+/** 立刻发一条测试消息，验证手机上到底能不能收到 */
+function pushTest(title) {
+  return request({ action: 'pushTest', title: title || '推送测试' });
+}
+
+/**
+ * 用 wx.login 的 code 换 openid 并存到服务端。
+ * 用户全程无感：不弹窗、不需要复制粘贴。
+ */
+function bindOpenId() {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: (res) => {
+        if (!res.code) {
+          reject(new Error('wx.login 没返回 code，检查 AppID 是否填对'));
+          return;
+        }
+        request({ action: 'login', code: res.code }).then(resolve, reject);
+      },
+      fail: (err) => reject(new Error('wx.login 失败：' + (err.errMsg || '未知'))),
+    });
+  });
+}
+
+module.exports = {
+  request, base, pushSync, pushStatus, pushTest, bindOpenId,
+  FWD_TOKEN_KEY, DM_COOKIE_KEY,
+};
