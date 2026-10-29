@@ -241,29 +241,38 @@
   text-decoration: underline;
 }
 
-/* ---------- 走势柱图（矮版：价格数字贴在柱顶，整块约 70px） ---------- */
+/* ---------- 走势柱图 ----------
+   高度写死 174rpx（≈87px）：价格数字 + 柱子 + 日期，刚好一摞。
+   以前没写 height，scroll-view 在模拟器里会被拉成一整屏高，
+   白卡下半截全是空的，看着像「一张很长的图」，其实是卡片自己在长个儿。
+   写死高度 + overflow:hidden，卡片就只包住柱子。 */
 .chart {
   display: flex;
+  align-items: flex-end;
   white-space: nowrap;
+  height: 174rpx;
+  box-sizing: border-box;
+  overflow: hidden;
   background: var(--card);
   border-radius: var(--r);
   box-shadow: var(--shadow);
-  padding: 8px 10px 6px;
+  padding: 12rpx 20rpx 14rpx;
 }
 .bar {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
+  height: 148rpx;
   width: 20px;
   margin: 0 1px;
   flex-shrink: 0;
 }
 .bar-p {
-  font-size: 8.5px;
+  font-size: 17rpx;
   line-height: 1.1;
   color: var(--ink3);
-  margin-bottom: 2px;
+  margin-bottom: 4rpx;
   transform: scale(0.9);
 }
 .bar-p-low {
@@ -280,10 +289,10 @@
   background: #2F6B3A;
 }
 .bar-x {
-  font-size: 8.5px;
+  font-size: 17rpx;
   line-height: 1.1;
   color: var(--ink3);
-  margin-top: 3px;
+  margin-top: 6rpx;
   transform: scale(0.88);
 }
 .bar-x-low {
