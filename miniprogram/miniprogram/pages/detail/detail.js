@@ -30,6 +30,8 @@ Page({
     price: '',
     // 预售/开售时间（纷玩岛匿名详情带入；形如「预售 10/15 13:00 · 开售 10/16 15:18」）
     saleNote: '',
+    // 开售倒计时（从 saleNote 里解析出最早开售时间，每秒刷新）
+    countdown: null,    // { targetMs, label } or null
     // 12306 查询上下文（shows 页跳转时带上；详情=单趟车次全席别余票必需）
     railFrom: '',
     railTo: '',
@@ -132,11 +134,13 @@ Page({
                 priceTiers: r.priceTiers || [],
                 degradeMsg: dm,
                 noTiers,
+                saleNote: r.saleNote || '',
               },
               rec,
               sessions.length ? {} : { subText: '盯整场（有动静就提醒）' },
             ),
           );
+          this.startCountdown();
           return;
         }
         this.setData(
@@ -159,6 +163,7 @@ Page({
             rec,
           ),
         );
+        this.startCountdown();
       })
       .catch((e) => {
         if (this._loadWatchdog) clearTimeout(this._loadWatchdog);
@@ -179,6 +184,50 @@ Page({
   /** 离开页面清掉兜底闹钟，别让它留着打空炮 */
   onUnload() {
     if (this._loadWatchdog) clearTimeout(this._loadWatchdog);
+    if (this._countdownTimer) clearInterval(this._countdownTimer);
+  },
+
+  /** 从 saleNote 解析开售时间，启动倒计时。形如「开售 10/16 15:18」→ 今年+解析时间 */
+  startCountdown() {
+    const note = String(this.data.saleNote || '').trim();
+    if (!note) return;
+    // 匹配「开售 YYYY/M/D HH:MM」或「开售 M/D HH:MM」（无年份=今年）
+    const m = note.match(/开售\s*(\d{1,4})[\/年\.](\d{1,2})[\/月\.]?(\d{1,2})[日]?[:\s]*(\d{1,2}):(\d{2})/);
+    if (!m) return;
+    const year = Number(m[1]) >= 2000 ? Number(m[1]) : new Date().getFullYear();
+    const month = Number(m[2]) - 1;
+    const day = Number(m[3]);
+    const hour = Number(m[4]);
+    const min = Number(m[5]);
+    const target = new Date(year, month, day, hour, min, 0, 0).getTime();
+    if (target <= Date.now()) return; // 已过开售时间，不倒计时
+    this.setData({ countdown: { targetMs: target, label: note } });
+    if (this._countdownTimer) clearInterval(this._countdownTimer);
+    this._countdownTimer = setInterval(() => this._tickCountdown(), 1000);
+    this._tickCountdown();
+  },
+
+  _tickCountdown() {
+    const c = this.data.countdown;
+    if (!c) return;
+    const remain = c.targetMs - Date.now();
+    if (remain <= 0) {
+      clearInterval(this._countdownTimer);
+      this.setData({ countdown: null });
+      Toast({ type: 'success', message: '🎉 已开售！快去官方渠道购票' });
+      // 自动刷新一次详情，看有没有票
+      this.loadDetail();
+      return;
+    }
+    const d = Math.floor(remain / 86400000);
+    const h = Math.floor((remain % 86400000) / 3600000);
+    const m = Math.floor((remain % 3600000) / 60000);
+    const s = Math.floor((remain % 60000) / 1000);
+    let label;
+    if (d > 0) label = d + '天' + h + '时' + m + '分';
+    else if (h > 0) label = h + '时' + m + '分' + s + '秒';
+    else label = m + '分' + s + '秒';
+    this.setData({ countdown: Object.assign({}, c, { label }) });
   },
 
   /** 服务端 sessions → 页面态。默认全选可用项（不可用的档位灰掉、不参与轮询）。 */
@@ -294,17 +343,6 @@ Page({
 
   /** 开始订阅：和演出页同一套建库逻辑，参数名按平台区分 */
   addMonitor() {
-    const credit = wx.getStorageSync(CREDIT_KEY) || 0;
-    if (credit <= 0) {
-      Dialog.confirm({
-        title: '先领一下推送额度',
-        message: '微信的订阅消息是「点一次允许换一条推送」。现在额度是 0，加了监控也收不到提醒。',
-        confirmButtonText: '去领额度',
-      }).then(() => {
-        wx.switchTab({ url: '/pages/mine/mine' });
-      }).catch(() => {});
-      return;
-    }
     const p = this.data.platform;
     let params = {};
     if (p === 'moretickets') params = { tour_id: this.data.id };

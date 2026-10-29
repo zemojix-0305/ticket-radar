@@ -12,14 +12,14 @@
   <view class="nickname-sheet-mask" wx:if="{{editingName}}" bindtap="toggleEditName"></view>
   <view class="nickname-sheet" wx:if="{{editingName}}">
     <view class="sheet-title">你的昵称</view>
+    <!-- 不用 type="nickname"：模拟器不支持，改用普通 text 输入 -->
     <input
       class="nickname-input"
-      type="nickname"
-      placeholder="微信昵称，或自己起一个"
+      type="text"
+      placeholder="给自己起个昵称"
       value="{{user.nickname}}"
       focus
       bindinput="onNicknameDraft"
-      bindconfirm="saveNickname"
     />
     <view class="acts">
       <view class="btn btn-ghost" bindtap="toggleEditName" hover-class="press-hover">取消</view>
@@ -29,12 +29,12 @@
 
   <!-- 用户资料 -->
   <view class="card profile">
-    <!-- 头像：button[open-type=chooseAvatar] 是官方唯一能拿到微信头像的入口。
-         它天生带 min-height / border / 圆角，必须全部重置掉，
-         否则在 flex 布局里会被撑成一个方块（这是踩过的坑）。 -->
-    <button class="avatar-wrap" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+    <!-- 头像：用 view 替代 button[open-type=chooseAvatar]，避免模拟器权限报错。
+         点上去可以引导用户去微信设置里改头像，或以后版本再加图片选择器。 -->
+    <view class="avatar-wrap press" bindtap="onChooseAvatar" hover-class="press-hover">
       <image class="avatar" src="{{user.avatar || '/images/avatar_fox.png'}}" mode="aspectFit" />
-    </button>
+      <view class="avatar-edit">✎</view>
+    </view>
     <view class="profile-info">
       <view wx:if="{{user.nickname}}" class="nickname-row">
         <text class="nickname">{{user.nickname}}</text>
@@ -49,17 +49,17 @@
     </view>
   </view>
 
-  <!-- 额度 -->
+  <!-- 推送状态（不再是「领额度」的柜台）：正常情况下全靠自动续，用户不用管 -->
   <view class="card quota">
     <view class="quota-v">
-      <text class="num quota-n">{{credit}}</text>
-      <text class="t2"> 条可收</text>
+      <text class="t1">{{credit > 0 ? '推送已开启' : '推送已暂停'}}</text>
+      <text class="t2">{{credit > 0 ? '有票会直接微信叫你 · 加监控时自动续，不用手动领' : '打开小程序照样能看到回流；点下面恢复推送'}}</text>
     </view>
 
     <view class="acts">
-      <view class="btn btn-primary" bindtap="requestSubscribe" hover-class="press-hover">领一条</view>
+      <view class="btn btn-primary" bindtap="requestSubscribe" hover-class="press-hover">恢复推送</view>
       <view class="btn btn-ghost" bindtap="requestSubscribeBatch" hover-class="press-hover">
-        {{batching ? batchGot + '/' + batchTotal : '一次领 5 条'}}
+        {{batching ? batchGot + '/' + batchTotal : '多领几条'}}
       </view>
     </view>
 
@@ -70,7 +70,7 @@
   <view class="card watched-entry" bindtap="goWatched" hover-class="press-hover">
     <view class="watched-entry-main">
       <view class="t1">正在盯的</view>
-      <view class="t3">{{watchedCount ? '正在盯 ' + watchedCount + ' 个演出/车次' : '还没在盯任何场次'}}</view>
+      <view class="t3">{{watchedCount ? '正在盯 ' + watchedCount + ' 个' : '还没在盯任何票'}}</view>
     </view>
     <text class="watched-entry-arrow">›</text>
   </view>
@@ -109,14 +109,74 @@
     <view wx:if="{{credOpen}}">
       <view class="t3" style="padding: 4px 0;">填一次存本机，盯票时自动带上。不填也能用，只是那些平台看不到票档明细。</view>
 
-      <view class="cred-label">纷玩岛 token（按票档盯必填）</view>
-      <input class="cred-input" password value="{{fwdToken}}" placeholder="抓纷玩岛小程序请求里的 authorization" bindinput="onFwdInput" />
+      <view class="cred-section">
+        <view class="cred-label">纷玩岛 token（按票档盯必填）</view>
+        <view class="cred-hint" wx:if="{{!fwdToken}}">🔑 未登录 → 点下方按钮，30秒搞定</view>
+        <view class="cred-hint" wx:elif="{{fwdToken}}">✓ 已登录</view>
 
-      <view class="cred-label">大麦 Cookie（过风控，可选）</view>
-      <input class="cred-input" value="{{dmCookie}}" placeholder="登录大麦网页版后粘 Cookie" bindinput="onDmInput" />
+        <!-- 一键获取流程 -->
+        <view class="fwd-guide" wx:if="{{!fwdToken}}">
+          <view class="fwd-big-btn press" bindtap="openFenwandao" hover-class="press-hover">
+            <text class="fwd-big-icon">🎫</text>
+            <text class="fwd-big-text">打开纷玩岛 → 获取 token</text>
+          </view>
+          <view class="fwd-steps">
+            <view class="fwd-step">
+              <text class="fwd-step-num">①</text>
+              <text class="fwd-step-desc">点上面按钮打开纷玩岛，确保已登录账号</text>
+            </view>
+            <view class="fwd-step">
+              <text class="fwd-step-num">②</text>
+              <text class="fwd-step-desc">在电脑上打开微信 → 右键电脑上的纷玩岛聊天窗口 → 打开调试</text>
+            </view>
+            <view class="fwd-step">
+              <text class="fwd-step-num">③</text>
+              <text class="fwd-step-desc">随便点一个演出 → Network 标签 → 找到 authorization 头 → 复制 Bearer 后面的值</text>
+            </view>
+            <view class="fwd-step">
+              <text class="fwd-step-num">④</text>
+              <text class="fwd-step-desc">粘贴到下方输入框 → 点「保存并使用」</text>
+            </view>
+          </view>
+          <input class="cred-input" password value="{{fwdTokenPending}}" placeholder="粘贴 authorization 里的 Bearer token" bindinput="onFwdTokenPendingInput" />
+          <view class="btn btn-primary full-btn" bindtap="saveFwdTokenPending" hover-class="press-hover" wx:if="{{fwdTokenPending}}">保存并使用</view>
+          <view class="btn btn-ghost full-btn" bindtap="clearFwdTokenPending" hover-class="press-hover" wx:else>清空</view>
+        </view>
 
-      <view class="cred-label">猫眼 token（看分档价格，可选）</view>
-      <input class="cred-input" password value="{{myToken}}" placeholder="抓猫眼小程序请求里的 token" bindinput="onMyTokenInput" />
+        <view class="cred-actions" wx:if="{{fwdToken}}">
+          <view class="btn btn-ghost" bindtap="testFwdToken" hover-class="press-hover">测试连通</view>
+          <view class="btn btn-ghost" bindtap="clearFwdToken" hover-class="press-hover">清除</view>
+        </view>
+      </view>
+
+      <view class="cred-label">大麦 Cookie（看票档必填）</view>
+      <view class="cred-hint" wx:if="{{!dmCookie}}">👇 点按钮，30秒获取</view>
+      <view class="cred-hint" wx:elif="{{dmCookie}}">✓ 已配置</view>
+      <view class="cred-guide" wx:if="{{!dmCookie}}">
+        <view class="guide-step">① 点「打开大麦」→ 登录账号</view>
+        <view class="guide-step">② 随便点一个演出</view>
+        <view class="guide-step">③ 右上角「···」→ 在浏览器中打开</view>
+        <view class="guide-step">④ 地址栏复制 URL 里的 itemId 值</view>
+        <view class="guide-step">⑤ 粘贴到下方 → 保存</view>
+      </view>
+      <view class="cred-actions" wx:if="{{!dmCookie}}">
+        <view class="btn btn-primary full-width" bindtap="openDamai" hover-class="press-hover">打开大麦</view>
+      </view>
+      <input class="cred-input" value="{{dmCookie}}" placeholder="粘贴大麦 URL 里的 itemId（形如 1086111708947）" bindinput="onDmInput" />
+
+      <view class="cred-label">猫眼 token（看票档必填）</view>
+      <view class="cred-hint" wx:if="{{!myToken}}">👇 点按钮，30秒获取</view>
+      <view class="cred-hint" wx:elif="{{myToken}}">✓ 已配置</view>
+      <view class="cred-guide" wx:if="{{!myToken}}">
+        <view class="guide-step">① 点「打开猫眼」→ 登录账号</view>
+        <view class="guide-step">② 随便点一个演出</view>
+        <view class="guide-step">③ 地址栏复制 performanceId 值</view>
+        <view class="guide-step">④ 粘贴到下方 → 保存</view>
+      </view>
+      <view class="cred-actions" wx:if="{{!myToken}}">
+        <view class="btn btn-primary full-width" bindtap="openMaoyan" hover-class="press-hover">打开猫眼</view>
+      </view>
+      <input class="cred-input" password value="{{myToken}}" placeholder="粘贴猫眼 URL 里的 performanceId" bindinput="onMyTokenInput" />
 
       <view class="acts">
         <view class="btn btn-primary" bindtap="saveCred" hover-class="press-hover">保存凭证</view>
@@ -158,4 +218,6 @@
   </view>
 
   <view class="safe"></view>
+
+  <van-toast id="van-toast" />
 </view>

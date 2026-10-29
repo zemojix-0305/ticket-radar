@@ -2,6 +2,11 @@
 import Toast from '../../vant/toast/toast';
 import { request } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
+import {
+  credit as pushCredit,
+  renew as pushRenew,
+  renewAfterAdd as pushRenewAfterAdd,
+} from '../../utils/push';
 import { loadTasks, removeTask } from '../../utils/tasks';
 //
 // 两条原则（跟 Python 那边保持一致）：
@@ -11,12 +16,12 @@ import { loadTasks, removeTask } from '../../utils/tasks';
 // 额度记账放在 storage：微信一次性订阅的额度后台查不到，
 // 只能让用户自己看得见「我还剩几条」，否则推送突然不响会毫无头绪。
 const PLATFORMS = [
-  { key: 'damai', label: '大麦', hint: '粘贴大麦分享链接；或去「搜演出」直接搜演出名', ph: '粘贴大麦分享链接' },
-  { key: 'taopiaopiao', label: '淘票票', hint: '粘贴淘票票演出链接（与大麦同一演出编号）；或去「搜演出」', ph: '粘贴淘票票演出链接' },
-  { key: 'bilibili', label: 'B站会员购', hint: '粘贴会员购演出链接；或去「搜演出」直接搜', ph: '粘贴会员购演出链接' },
+  { key: 'damai', label: '大麦', hint: '粘贴大麦分享链接；或去「找票」直接搜名字', ph: '粘贴大麦分享链接' },
+  { key: 'taopiaopiao', label: '淘票票', hint: '粘贴淘票票演出链接（与大麦同一演出编号）；或去「找票」', ph: '粘贴淘票票演出链接' },
+  { key: 'bilibili', label: 'B站会员购', hint: '粘贴会员购演出链接；或去「找票」直接搜', ph: '粘贴会员购演出链接' },
   { key: 'maoyan', label: '猫眼', hint: '演出的 performance_id，在猫眼演出页地址栏里', ph: '例：509862' },
   { key: 'moretickets', label: '摩天轮', hint: '巡演的 tour_id，在摩天轮演出页地址栏里', ph: '例：67357b7a…' },
-  { key: 'piaoxingqiu', label: '票星球', hint: '粘贴票星球分享链接；或去「搜演出」直接搜演出名', ph: '粘贴票星球演出链接' },
+  { key: 'piaoxingqiu', label: '票星球', hint: '粘贴票星球分享链接；或去「找票」直接搜名字', ph: '粘贴票星球演出链接' },
   { key: 'fenwandao', label: '纷玩岛', hint: '粘贴纷玩岛分享链接（能看信息；按票档盯要先去「我的」填凭证）', ph: '粘贴纷玩岛分享链接' },
   { key: 'rail12306', label: '12306', hint: '填两个站名，中间空格隔开就行', ph: '广州南 长沙南' },
 ];
@@ -33,19 +38,19 @@ const LAST_STATES_KEY = 'radar_last_states';   // 最近一轮结果（「我的
 const FAQ_LIST = [
   {
     q: '盯的是什么？会怎么提醒我？',
-    a: '盯的是「回流票」：售罄的场次因为退票、锁票释放、分批放库存，票会突然回来一瞬间。我们每五分钟查一次，一旦某个场次从「无票」翻回「有票」，立刻微信推消息喊你。用一次性订阅：点一次「允许通知」换一条推送额度。',
+    a: '盯的是「回流票」：售罄的场次因为退票、锁票释放、分批放库存，票会突然回来一瞬间。我们每五分钟查一次，一旦从「无票」翻回「有票」，立刻微信推消息喊你。你只需要在第一次授权时勾上「总是保持以上选择」，之后加监控会自动续期，不用再手动领。',
   },
   {
     q: '什么叫回流票？',
-    a: '演出票售罄 ≠ 再也没有票。平台会退票、释放锁座、分批放出库存，界面会从「无票」跳回「可购」——这就是回流票，通常持续几分钟到几小时，拼手速就是拼这个窗口。',
+    a: '票售罄 ≠ 再也没有票。平台会退票、释放锁座、分批放出库存，界面会从「无票」跳回「可购」——这就是回流票，通常持续几分钟到几小时，拼手速就是拼这个窗口。',
   },
   {
     q: '为什么有票了没收到推送？',
-    a: '两种最常见原因：① 推送额度用完了，去「我的」页再领；② 云开发定时器还没配好，监控没真正跑起来。每次回流都会消耗一条额度，盯热门场次建议多领几条。',
+    a: '最常见两个原因：① 推送额度断了——回到首页看那条状态「推送已开启」还是「暂时停了」，停了就点一下恢复，一次授权能用很久；② 监控本身没在跑（页面没打开过、或网络断了）。注意：就算推送断了，打开小程序也能看到哪个场次翻出了票，这个不消耗任何额度。',
   },
   {
     q: '大麦能监控吗？',
-    a: '能，而且在「搜演出」页直接搜演出名就行，和猫眼/摩天轮一样——不需要去大麦 App 翻链接（也支持粘贴分享链接）。盯的信号和别的工具一样：场次状态从「无票」翻回「可售」的回流瞬间，状态判定用大麦官方数据，不做假。',
+    a: '能，而且在「找票」页直接搜名字就行，和猫眼/摩天轮一样——不需要去大麦 App 翻链接（也支持粘贴分享链接）。盯的信号和别的工具一样：场次状态从「无票」翻回「可售」的回流瞬间，状态判定用大麦官方数据，不做假。',
   },
   {
     q: '票星球 / 纷玩岛呢？',
@@ -73,7 +78,7 @@ const LABEL = {
 };
 
 // 任务参数里哪个字段是这个平台的主 id。加监控弹层存的是 `url`（可能是链接），
-// 搜演出页存的是裸 id —— 详情页两样都收，链接由云函数负责抠 id。
+// 找票页存的是裸 id —— 详情页两样都收，链接由云函数负责抠 id。
 const ID_KEY = {
   maoyan: 'performance_id',
   moretickets: 'tour_id',
@@ -138,8 +143,8 @@ Page({
 
   onShow() {
     // 从「我的」页领完额度回来要能看到数字变了；
-    // 从「搜演出/详情」盯完回来要立刻刷出新任务
-    this.setData({ credit: wx.getStorageSync(CREDIT_KEY) || 0 });
+    // 从「找票/详情」盯完回来要立刻刷出新任务
+    this.setData({ credit: pushCredit() });
     if (typeof this.refreshedOnce !== 'undefined') this.refresh();
     this.refreshedOnce = true;
   },
@@ -197,7 +202,7 @@ Page({
         self.setData({
           states: list,
           okCount,
-          credit: wx.getStorageSync(CREDIT_KEY) || 0,
+          credit: pushCredit(),
           loading: false,
         });
         self.applyFilter();
@@ -247,6 +252,20 @@ Page({
     }
 
     const first = (s.items || [])[0] || {};
+    // 抢票时机建议：采样足够多时，基于历史数据给提示
+    const hist = (s.history || []).filter((h) => h && h.t);
+    let tip = '';
+    if (hist.length >= 5) {
+      const recent = hist.slice(-10);
+      const hadTicket = recent.some((h) => h.n > 0);
+      const drops = recent.filter((h) => h.n > 0).length;
+      if (hadTicket && drops >= 2) {
+        tip = '💡 近期有 ' + drops + ' 次回流，蹲守有机会';
+      } else if (hadTicket) {
+        tip = '💡 曾放过票，注意观察';
+      }
+    }
+
     return Object.assign({}, s, {
       head,
       headClass: cls,
@@ -259,6 +278,7 @@ Page({
       relTime: relTime(s.checked_at),
       show: items.slice(0, 5),          // 明细有上限：一次放票 39 趟不能全铺开
       more: items.length > 5 ? items.length - 5 : 0,
+      smartTip: tip,
     });
   },
 
@@ -433,6 +453,10 @@ Page({
     wx.switchTab({ url: '/pages/shows/shows' });
   },
 
+  goCompare() {
+    wx.navigateTo({ url: '/pages/compare/compare' });
+  },
+
   goHistory() {
     wx.switchTab({ url: '/pages/history/history' });
   },
@@ -443,6 +467,18 @@ Page({
   // 跳「我的」页：领订阅额度
   goMine() {
     wx.switchTab({ url: '/pages/mine/mine' });
+  },
+
+  // 点推送状态条：只有在额度见底时才拉一次授权，其余情况只说明状态。
+  // 这样「领额度」从日常动作变成了几乎不会碰到的兜底。
+  tapPush() {
+    if (this.data.credit > 0) {
+      Toast({ type: 'text', message: '推送是通的，加监控时会自动续，你不用管' });
+      return;
+    }
+    pushRenew({ silent: false, force: true }).then((ok) => {
+      if (ok) this.setData({ credit: pushCredit() });
+    });
   },
 
   // --- 首页新增：公告 / 使用说明 / FAQ / 扫一扫 ---------------------------
@@ -757,6 +793,13 @@ Page({
         form: { name: '', id: '', city: '', date: '' },
       });
       self._pending = null;
+      // 加监控成功后静默续一条推送额度。
+      // 用户首次授权时勾了「总是保持以上选择」的话，这里完全无感；
+      // 没勾的话会弹一次系统窗口——但这是在他刚点完加监控的时刻，
+      // 属于自然时机，而且之后系统会记住选择，不会再问。
+      pushRenewAfterAdd().then((ok) => {
+        if (ok) self.setData({ credit: pushCredit() });
+      });
       setTimeout(() => self.refresh(), 2500);
     } catch (e) {
       Dialog.alert({ title: '添加失败', message: String(e.message || e) });

@@ -1,0 +1,147 @@
+<!-- 机票：价格浮动 + 特价发现（数据来自同程价格日历，免登录） -->
+<view class="page">
+
+  <!-- 航线 -->
+  <view class="card route">
+    <view class="city-row">
+      <view class="city" bindtap="openCity" data-side="from" hover-class="press-hover">
+        <text class="city-name">{{from.name || '出发'}}</text>
+        <text class="city-code">{{from.code || '选择城市'}}</text>
+      </view>
+
+      <view class="swap press" bindtap="swap" hover-class="press-hover">⇄</view>
+
+      <view class="city city-r" bindtap="openCity" data-side="to" hover-class="press-hover">
+        <text class="city-name">{{to.name || '到达'}}</text>
+        <text class="city-code">{{to.code || '选择城市'}}</text>
+      </view>
+    </view>
+
+    <view class="meta-row">
+      <picker mode="date" value="{{startDate}}" start="{{today}}" bindchange="onDate">
+        <view class="pill">{{startDate}} 起</view>
+      </picker>
+      <view class="seg">
+        <view class="seg-i {{days === 30 ? 'on' : ''}}" data-d="30" bindtap="onDays">30 天</view>
+        <view class="seg-i {{days === 60 ? 'on' : ''}}" data-d="60" bindtap="onDays">60 天</view>
+      </view>
+    </view>
+
+    <view class="cta {{loading ? 'cta-off' : ''}}" bindtap="query" hover-class="press-hover">
+      {{loading ? '查询中…' : '看价格浮动'}}
+    </view>
+    <text class="hint">只查票价，不下单。目前支持国内航线，价格来自同程，购票请走官方渠道。</text>
+  </view>
+
+  <!-- 出错 -->
+  <view class="card err" wx:if="{{err}}">
+    <view class="err-t">没拿到价格</view>
+    <view class="err-d">{{err}}</view>
+  </view>
+
+  <!-- 概览 -->
+  <view class="card sum" wx:if="{{res}}">
+    <view class="sum-main">
+      <text class="sum-k">最低</text>
+      <text class="sum-v">¥{{res.stats.min}}</text>
+      <text class="sum-d">{{res.stats.cheapest.date}} {{res.stats.cheapest.week}}</text>
+    </view>
+    <view class="sum-sub">
+      <text class="t3">{{res.fromName}} → {{res.toName}}</text>
+      <text class="t3">均价 ¥{{res.stats.avg}} · 最高 ¥{{res.stats.max}} · 比均价省 {{savePct}}%</text>
+    </view>
+  </view>
+
+  <!-- 走势 -->
+  <view class="card" wx:if="{{res}}">
+    <view class="card-h">
+      <text class="card-t">价格走势</text>
+      <text class="card-s">未来 {{res.rows.length}} 天</text>
+    </view>
+    <scroll-view class="chart" scroll-x enable-flex>
+      <view class="bars">
+        <view class="bar-w" wx:for="{{bars}}" wx:key="date">
+          <text class="bar-p {{item.low ? 'bar-p-low' : ''}}">{{item.price}}</text>
+          <view class="bar {{item.low ? 'bar-low' : ''}}" style="height:{{item.h}}px"></view>
+          <text class="bar-d {{item.low ? 'bar-d-low' : ''}}">{{item.dd}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <text class="t3 chart-note">柱越高越贵。深色柱是全期最低价那天。</text>
+  </view>
+
+  <!-- 捡漏日 -->
+  <view class="card" wx:if="{{deals.length}}">
+    <view class="card-h">
+      <text class="card-t">捡漏日</text>
+      <text class="card-s">低于均价 20%</text>
+    </view>
+    <view class="deal" wx:for="{{deals}}" wx:key="date">
+      <view class="deal-l">
+        <text class="deal-date">{{item.date}}</text>
+        <text class="deal-meta">{{item.week}} · {{item.flightNo}} · {{item.depTime}}-{{item.arrTime}}</text>
+      </view>
+      <view class="deal-r">
+        <text class="deal-price">¥{{item.price}}</text>
+        <text class="deal-save">省 {{item.save}}%</text>
+      </view>
+    </view>
+    <view class="watch-btn" bindtap="addWatch" hover-class="press-hover">盯这条航线</view>
+  </view>
+
+  <!-- 每日最低价 -->
+  <view class="card" wx:if="{{res}}">
+    <view class="card-h">
+      <text class="card-t">每天最低价</text>
+      <text class="card-s">点日期看当天</text>
+    </view>
+    <view class="day" wx:for="{{res.rows}}" wx:key="date">
+      <view class="day-l">
+        <text class="day-date">{{item.date}}</text>
+        <text class="day-week">{{item.week}}</text>
+      </view>
+      <view class="day-m">
+        <text class="day-flight">{{item.flightNo}}</text>
+        <text class="day-time">{{item.depTime}} - {{item.arrTime}}</text>
+      </view>
+      <view class="day-r">
+        <text class="day-price {{item.price === res.stats.min ? 'day-price-low' : ''}}">¥{{item.price}}</text>
+        <text class="day-disc" wx:if="{{item.discount}}">{{item.discount / 10}} 折</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 已在盯 -->
+  <view class="card" wx:if="{{watches.length}}">
+    <view class="card-h">
+      <text class="card-t">在盯的航线</text>
+      <text class="card-s">{{watches.length}} 条</text>
+    </view>
+    <view class="wrow" wx:for="{{watches}}" wx:key="id">
+      <view class="wrow-main" data-w="{{item}}" bindtap="useWatch" hover-class="press-hover">
+        <text class="wrow-t">{{item.label}}</text>
+        <text class="wrow-s">上次最低 ¥{{item.best}} · {{item.bestDate}}</text>
+      </view>
+      <text class="wrow-del press" data-id="{{item.id}}" catchtap="removeWatch">移除</text>
+    </view>
+  </view>
+
+  <view class="safe"></view>
+
+  <!-- 城市选择弹层 -->
+  <view class="mask" wx:if="{{cityOpen}}" bindtap="closeCity"></view>
+  <view class="sheet" wx:if="{{cityOpen}}">
+    <view class="sheet-h">
+      <text class="sheet-t">{{citySide === 'from' ? '出发城市' : '到达城市'}}</text>
+      <text class="sheet-x" bindtap="closeCity">关闭</text>
+    </view>
+    <input class="sheet-input" value="{{cityKw}}" placeholder="城市名或拼音，如 上海 / shanghai" bindinput="onCityKw" />
+    <scroll-view class="sheet-list" scroll-y>
+      <view class="city-item" wx:for="{{cityList}}" wx:key="code" data-city="{{item}}" bindtap="pickCity" hover-class="press-hover">
+        <text class="city-item-n">{{item.name}}</text>
+        <text class="city-item-c">{{item.code}}</text>
+      </view>
+      <view class="city-empty" wx:if="{{!cityList.length}}">没找到这个城市，换个关键词试试</view>
+    </scroll-view>
+  </view>
+</view>

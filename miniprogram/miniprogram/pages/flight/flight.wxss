@@ -1,0 +1,347 @@
+/* 机票页：沿用全局令牌（白卡 / 近黑主色 / 大圆角），不引入新色 */
+.page {
+  min-height: 100vh;
+  background: var(--paper);
+  padding: 12px 12px 0;
+  box-sizing: border-box;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--r, 22px);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 20px rgba(20, 20, 30, 0.05);
+}
+
+/* ---------------- 航线 ---------------- */
+.route { padding: 18px 16px 14px; }
+
+.city-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.city {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.city-r { align-items: flex-end; }
+
+.city-name {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.city-code {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+}
+
+.swap {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-weak);
+  color: var(--ink);
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.pill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--card2, #F7F7F8);
+  color: var(--ink2);
+  font-size: 13px;
+}
+
+.seg {
+  display: flex;
+  background: var(--accent-weak);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.seg-i {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--ink3);
+  border-radius: 999px;
+}
+
+.seg-i.on {
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.cta {
+  margin-top: 16px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cta-off { opacity: 0.55; }
+
+.hint {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink3);
+  line-height: 1.5;
+}
+
+/* ---------------- 概览 ---------------- */
+.sum { padding: 16px; }
+
+.sum-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sum-k { font-size: 12px; color: var(--ink3); }
+
+.sum-v {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.sum-d { font-size: 13px; color: var(--ink2); }
+
+.sum-sub {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.t3 { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+
+/* ---------------- 走势 ---------------- */
+.card-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-t { font-size: 15px; font-weight: 600; color: var(--ink); }
+.card-s { font-size: 12px; color: var(--ink3); }
+
+.chart { width: 100%; }
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 4px 2px 0;
+  height: 140px;
+}
+
+.bar-w {
+  flex: 0 0 auto;
+  width: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.bar-p {
+  font-size: 9px;
+  color: var(--ink3);
+  margin-bottom: 3px;
+}
+
+.bar-p-low { color: var(--ink); font-weight: 600; }
+
+.bar {
+  width: 14px;
+  border-radius: 4px;
+  background: var(--line2, #E2E2E6);
+}
+
+.bar-low { background: var(--accent); }
+
+.bar-d {
+  margin-top: 4px;
+  font-size: 9px;
+  color: var(--ink3);
+}
+
+.bar-d-low { color: var(--ink); font-weight: 600; }
+
+.chart-note { display: block; margin-top: 8px; }
+
+/* ---------------- 捡漏 ---------------- */
+.deal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+}
+
+.deal:first-of-type { border-top: none; }
+
+.deal-l { display: flex; flex-direction: column; gap: 2px; }
+.deal-date { font-size: 14px; color: var(--ink); font-weight: 500; }
+.deal-meta { font-size: 11px; color: var(--ink3); }
+
+.deal-r { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.deal-price { font-size: 17px; color: var(--ink); font-weight: 600; }
+.deal-save { font-size: 10px; color: var(--warn, #8D6308); }
+
+.watch-btn {
+  margin-top: 12px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent-weak);
+  color: var(--ink);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------------- 每日 ---------------- */
+.day {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.day:first-of-type { border-top: none; }
+
+.day-l { width: 88px; display: flex; flex-direction: column; gap: 1px; }
+.day-date { font-size: 13px; color: var(--ink); }
+.day-week { font-size: 10px; color: var(--ink3); }
+
+.day-m { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.day-flight { font-size: 12px; color: var(--ink2); }
+.day-time { font-size: 11px; color: var(--ink3); }
+
+.day-r { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.day-price { font-size: 15px; color: var(--ink); font-weight: 500; }
+.day-price-low { font-weight: 700; }
+.day-disc { font-size: 10px; color: var(--ink3); }
+
+/* ---------------- 在盯 ---------------- */
+.wrow {
+  display: flex;
+  align-items: center;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+}
+
+.wrow:first-of-type { border-top: none; }
+
+.wrow-main { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.wrow-t { font-size: 14px; color: var(--ink); }
+.wrow-s { font-size: 11px; color: var(--ink3); }
+
+.wrow-del { font-size: 12px; color: var(--ink3); padding: 4px 2px 4px 12px; }
+
+/* ---------------- 错误 ---------------- */
+.err { background: #FFF7F5; }
+.err-t { font-size: 14px; color: var(--stamp, #C43C2C); font-weight: 500; }
+.err-d { margin-top: 4px; font-size: 12px; color: var(--ink2); line-height: 1.6; }
+
+/* ---------------- 城市弹层 ---------------- */
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 20;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  background: var(--card);
+  border-radius: 22px 22px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheet-t { font-size: 16px; font-weight: 600; color: var(--ink); }
+.sheet-x { font-size: 13px; color: var(--ink3); padding: 4px; }
+
+.sheet-input {
+  margin-top: 12px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--paper-deep, #F1F1F4);
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.sheet-list { margin-top: 8px; flex: 1; }
+
+.city-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 2px;
+  border-top: 1px solid var(--line);
+}
+
+.city-item-n { font-size: 15px; color: var(--ink); }
+.city-item-c { font-size: 12px; color: var(--ink3); letter-spacing: 0.06em; }
+
+.city-empty {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink3);
+}
+
+.safe { height: calc(24px + env(safe-area-inset-bottom)); }
+
+.press-hover { opacity: 0.62; }

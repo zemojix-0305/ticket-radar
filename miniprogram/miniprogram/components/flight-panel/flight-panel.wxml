@@ -1,0 +1,269 @@
+<!-- 机票面板：内联在 shows 页「机票」tab 下，不跳页 -->
+<view class="fp">
+
+  <!-- 降价横幅：同一航线这次比上次记录的低，进场就顶在最上面 -->
+  <view class="drop" wx:if="{{dropTip}}">
+    <view class="drop-l">
+      <view class="drop-t">降价了 · {{dropTip.code}}</view>
+      <view class="drop-b">比上次记录便宜 ¥{{dropTip.drop}}，现在 ¥{{dropTip.now}}{{dropTip.date ? ' · ' + dropTip.date : ''}}</view>
+    </view>
+    <view class="drop-x" bindtap="dismissDrop">✕</view>
+  </view>
+
+  <!-- 航线卡：出发 / 交换 / 到达 -->
+  <view class="route">
+    <view class="rc-city" bindtap="openCity" data-side="from" hover-class="rc-city-hover">
+      <view class="rc-cn">{{from.name}}</view>
+      <view class="rc-code">{{from.code}}</view>
+    </view>
+    <view class="rc-mid" bindtap="swap" hover-class="rc-mid-hover">
+      <view class="rc-swap">⇌</view>
+    </view>
+    <view class="rc-city rc-city-r" bindtap="openCity" data-side="to" hover-class="rc-city-hover">
+      <view class="rc-cn">{{to.name}}</view>
+      <view class="rc-code">{{to.code}}</view>
+    </view>
+  </view>
+
+  <!-- 时间：今天/明天/后天 + 自选 + 区间 -->
+  <view class="when">
+    <view class="daychips">
+      <view class="chip {{dayOff === 0 ? 'chip-on' : ''}}" data-off="0" bindtap="setDay">今天</view>
+      <view class="chip {{dayOff === 1 ? 'chip-on' : ''}}" data-off="1" bindtap="setDay">明天</view>
+      <view class="chip {{dayOff === 2 ? 'chip-on' : ''}}" data-off="2" bindtap="setDay">后天</view>
+      <picker mode="date" value="{{startDate}}" start="{{today}}" bindchange="onDate">
+        <view class="chip chip-date {{dayOff === -1 ? 'chip-on' : ''}}">{{startDate}}</view>
+      </picker>
+    </view>
+    <view class="seg">
+      <view class="seg-i {{days === 30 ? 'seg-on' : ''}}" data-d="30" bindtap="onDays">30天</view>
+      <view class="seg-i {{days === 60 ? 'seg-on' : ''}}" data-d="60" bindtap="onDays">60天</view>
+    </view>
+  </view>
+
+  <!-- 加载骨架 -->
+  <view class="sk" wx:if="{{loading && !res}}">
+    <view class="sk-bar" style="width:46%;height:26px"></view>
+    <view class="sk-bar" style="width:72%;height:12px;margin-top:14px"></view>
+    <view class="sk-bar" style="width:100%;height:64px;margin-top:16px"></view>
+  </view>
+
+  <!-- 失败 -->
+  <view class="err" wx:if="{{err && !loading}}">
+    <view class="err-t">{{errTitle}}</view>
+    <view class="err-b">{{err}}</view>
+    <view class="err-btn" bindtap="query" hover-class="press-hover">重试</view>
+  </view>
+
+  <block wx:if="{{res && !loading}}">
+    <!-- 概览：最低价 / 最便宜那天 / 均价 -->
+    <view class="sum">
+      <view class="sum-i">
+        <view class="sum-n sum-low">¥{{res.stats.min}}</view>
+        <view class="sum-l">最低价</view>
+      </view>
+      <view class="sum-i sum-mid">
+        <view class="sum-n">{{res.stats.cheapest.date}}</view>
+        <view class="sum-l">{{res.stats.cheapest.week}}最便宜</view>
+      </view>
+      <view class="sum-i">
+        <view class="sum-n">¥{{res.stats.avg}}</view>
+        <view class="sum-l">均价</view>
+      </view>
+    </view>
+    <view class="save" wx:if="{{savePct > 0}}">
+      挑对日子最多省 <text class="save-n">{{savePct}}%</text>（¥{{res.stats.max}} → ¥{{res.stats.min}}）
+    </view>
+
+    <!-- 价格走势：点柱子直接切到那天看航班 -->
+    <view class="sec-h">
+      <text class="sec-t">价格走势</text>
+      <text class="sec-s">{{bars.length}} 天 · 点柱子看那天航班</text>
+    </view>
+    <scroll-view class="chart" scroll-x enable-flex show-scrollbar="{{false}}">
+      <view
+        class="bar {{item.date === startDate ? 'bar-on' : ''}}"
+        wx:for="{{bars}}"
+        wx:key="date"
+        data-date="{{item.date}}"
+        bindtap="pickBar"
+      >
+        <view class="bar-p {{item.low ? 'bar-p-low' : ''}}">{{item.price}}</view>
+        <view class="bar-c {{item.low ? 'bar-c-low' : ''}}" style="height:{{item.h}}rpx"></view>
+        <view class="bar-x {{item.low ? 'bar-x-low' : ''}}">{{item.dd}}</view>
+      </view>
+    </scroll-view>
+
+    <!-- 捡漏日：横滑小卡，点一下同样切到那天（竖排会占掉大半屏） -->
+    <block wx:if="{{deals.length}}">
+      <view class="sec-h">
+        <text class="sec-t">捡漏日</text>
+        <text class="sec-s">比均价低 12% 以上</text>
+      </view>
+      <scroll-view class="deals" scroll-x show-scrollbar="{{false}}">
+        <view
+          class="deal {{item.date === startDate ? 'deal-on' : ''}}"
+          wx:for="{{deals}}"
+          wx:key="date"
+          data-date="{{item.date}}"
+          bindtap="pickBar"
+        >
+          <view class="deal-d">{{item.date}}</view>
+          <view class="deal-p">¥{{item.price}}</view>
+          <view class="deal-s">{{item.week}} · 省{{item.save}}%</view>
+        </view>
+      </scroll-view>
+    </block>
+
+    <!-- ============ 当天航班（航班号 / 航司 / 时刻 / 舱位）============ -->
+    <view class="sec-h">
+      <text class="sec-t">当天航班</text>
+      <text class="sec-s">{{flDate}} · 共 {{flView.length}} 班</text>
+    </view>
+
+    <view class="flbar">
+      <view class="fltabs">
+        <view class="fltab {{cabinFilter === 'all' ? 'on' : ''}}" data-v="all" bindtap="setCabin">全部</view>
+        <view class="fltab {{cabinFilter === '经济舱' ? 'on' : ''}}" data-v="经济舱" bindtap="setCabin">经济舱</view>
+        <view class="fltab {{cabinFilter === '公务舱' ? 'on' : ''}}" data-v="公务舱" bindtap="setCabin">公务舱</view>
+      </view>
+      <view class="flsort">
+        <text class="flsort-i {{sortBy === 'time' ? 'on' : ''}}" data-v="time" bindtap="setSort">时间</text>
+        <text class="flsort-s">·</text>
+        <text class="flsort-i {{sortBy === 'price' ? 'on' : ''}}" data-v="price" bindtap="setSort">价格</text>
+      </view>
+    </view>
+
+    <!-- 航班骨架 -->
+    <view class="flsk" wx:if="{{flLoading}}">
+      <view class="flsk-i" wx:for="{{[1, 2, 3]}}" wx:key="*this"></view>
+    </view>
+
+    <!-- 航班失败 -->
+    <view class="flerr" wx:if="{{!flLoading && flErr}}">
+      <text class="flerr-t">{{flErr}}</text>
+      <text class="flerr-b" bindtap="retryFlights">重试</text>
+    </view>
+
+    <!-- 航班卡片 -->
+    <view class="fl" wx:for="{{flShow}}" wx:key="no" wx:for-index="fi">
+      <view class="fl-top">
+        <view class="fl-end">
+          <text class="fl-hm">{{item.dep}}</text>
+          <text class="fl-ap">{{item.depAirport}}{{item.depTerminal}}</text>
+        </view>
+        <view class="fl-mid">
+          <text class="fl-span">{{item.span}}</text>
+          <view class="fl-line"><view class="fl-dot"></view><view class="fl-bar"></view><view class="fl-dot"></view></view>
+          <text class="fl-stop">{{item.stops > 0 ? '经停 ' + item.stops + ' 站' : '直飞'}}</text>
+        </view>
+        <view class="fl-end fl-end-r">
+          <text class="fl-hm">{{item.arr}}</text>
+          <text class="fl-ap">{{item.arrAirport}}{{item.arrTerminal}}</text>
+        </view>
+      </view>
+
+      <view class="fl-air">
+        <text class="fl-no">{{item.no}}</text>
+        <text class="fl-an">{{item.air}}</text>
+        <text class="fl-pl">{{item.plane}}</text>
+        <text class="fl-on" wx:if="{{item.ontime}}">{{item.ontime}}</text>
+      </view>
+
+      <view class="fl-cab">
+        <view
+          class="cab {{c.cls === '公务舱' || c.cls === '头等舱' ? 'cab-biz' : ''}}"
+          wx:for="{{item.cabOpen ? item.cabList : item.cabTop}}"
+          wx:for-item="c"
+          wx:key="code"
+        >
+          <text class="cab-c">{{c.cls}}</text>
+          <text class="cab-p">¥{{c.price}}</text>
+          <text class="cab-d" wx:if="{{c.discount}}">{{c.discount}}折</text>
+        </view>
+        <view class="cab-more" wx:if="{{item.cabMore && !item.cabOpen}}" data-i="{{fi}}" bindtap="toggleCabins">+{{item.cabMore}} 档</view>
+      </view>
+
+      <view class="fl-foot">
+        <text class="fl-meal" wx:if="{{item.meal}}">{{item.meal}}</text>
+        <text class="fl-wifi" wx:if="{{item.wifi}}">{{item.wifi}}</text>
+        <text class="fl-age" wx:if="{{item.age}}">{{item.age}}</text>
+      </view>
+    </view>
+
+    <!-- 只铺前 5 班，剩下的点开看，页面才不会长到滑不完 -->
+    <view class="flmore" wx:if="{{flMore}}" bindtap="toggleFlights" hover-class="flmore-hover">
+      {{flOpen ? '收起，只看前 5 班' : '还有 ' + flMore + ' 班 · 展开全部'}}
+    </view>
+
+    <!-- 每天最低价（默认收起，避免页面太长） -->
+    <view class="sec-h">
+      <text class="sec-t">每天最低价</text>
+      <text class="sec-more" bindtap="toggleList">{{listOpen ? '收起' : '展开 ' + rows.length + ' 天'}}</text>
+    </view>
+    <block wx:if="{{listOpen}}">
+      <view class="row-h">
+        <text class="rh-d">日期</text>
+        <text class="rh-f">航班</text>
+        <text class="rh-t">时刻</text>
+        <text class="rh-p">价格</text>
+      </view>
+      <view class="row" wx:for="{{rows}}" wx:key="date">
+        <text class="rw-d">{{item.date}}<text class="rw-w">{{item.week}}</text></text>
+        <text class="rw-f">{{item.flightNo}}</text>
+        <text class="rw-t">{{item.depTime}}-{{item.arrTime}}</text>
+        <text class="rw-p {{item.price === res.stats.min ? 'rw-p-low' : ''}}">¥{{item.price}}</text>
+      </view>
+    </block>
+
+    <!-- 平台核对：一行胶囊，不再占三张卡 -->
+    <view class="plat-h">
+      <text class="sec-t">去核对</text>
+      <view class="plat">
+        <view
+          class="plat-i"
+          wx:for="{{platforms}}"
+          wx:key="key"
+          data-url="{{item.url}}"
+          bindtap="copyLink"
+          hover-class="plat-i-hover"
+        >{{item.name}}</view>
+      </view>
+    </view>
+    <view class="tip">价格来自同程（匿名可查）。携程/去哪儿要登录才返价，所以给链接你自己核对，不做假比价。</view>
+
+    <!-- 在盯的航线 -->
+    <block wx:if="{{watches.length}}">
+      <view class="sec-h">
+        <text class="sec-t">在盯的航线</text>
+        <text class="sec-s">进来就自动比价</text>
+      </view>
+      <view class="watch" wx:for="{{watches}}" wx:key="id">
+        <view class="watch-main" data-w="{{item}}" bindtap="useWatch" hover-class="press-hover">
+          <view class="watch-n">{{item.fromName}} → {{item.toName}}</view>
+          <view class="watch-s">上次最低 ¥{{item.best}} · {{item.bestDate}}</view>
+        </view>
+        <view class="watch-x" data-id="{{item.id}}" catchtap="removeWatch">✕</view>
+      </view>
+    </block>
+
+    <view class="add" bindtap="addWatch" hover-class="press-hover">+ 盯这条航线（降价提示）</view>
+  </block>
+
+  <!-- 城市选择弹层 -->
+  <view class="mask" wx:if="{{cityOpen}}" bindtap="closeCity"></view>
+  <view class="sheet {{cityOpen ? 'sheet-on' : ''}}" catchtap="noop">
+    <view class="sheet-h">
+      <text class="sheet-t">选{{citySide === 'from' ? '出发' : '到达'}}城市</text>
+      <text class="sheet-x" bindtap="closeCity">✕</text>
+    </view>
+    <input class="sheet-inp" placeholder="中文 / 拼音 / 三字码，如 上海 或 sh" value="{{cityKw}}" bindinput="onCityKw" />
+    <scroll-view class="sheet-list" scroll-y>
+      <view class="city" wx:for="{{cityList}}" wx:key="code" data-city="{{item}}" bindtap="pickCity" hover-class="city-hover">
+        <text class="city-n">{{item.name}}</text>
+        <text class="city-c">{{item.code}}</text>
+      </view>
+      <view class="city-empty" wx:if="{{!cityList.length}}">没匹配到，试试拼音首字母</view>
+    </scroll-view>
+  </view>
+</view>

@@ -224,6 +224,24 @@ Page({
           enoughCount: rows.filter((r) => r.enough).length,
           loading: false,
         });
+        // 对有足够历史的任务，调用 predict 获取抢票时机建议
+        for (const row of rows) {
+          if (row.history && row.history.length >= 5) {
+            request({ action: 'predict', history: row.history })
+              .then((res2) => {
+                const p = (res2.result || {}).prediction;
+                if (p) {
+                  const idx = rows.findIndex((x) => x._id === row._id);
+                  if (idx >= 0) {
+                    const updated = self.data.rows.slice();
+                    updated[idx] = Object.assign({}, updated[idx], { predict: p });
+                    self.setData({ rows: updated });
+                  }
+                }
+              })
+              .catch(() => {});
+          }
+        }
       })
       .catch((e) => {
         self.setData({ loading: false, fail: String(e.message || e) });

@@ -169,3 +169,51 @@
   margin-top: 5px;
 }
 .act-txt { flex: 1; min-width: 0; }
+
+/* ---------- 抢票时机预测卡片 ---------- */
+.predict-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--warn-weak);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--warn);
+}
+.predict-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.predict-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+}
+.predict-samples {
+  font-size: 11px;
+  color: var(--ink3);
+}
+.predict-trend {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.predict-hours {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.predict-label {
+  font-size: 12px;
+  color: var(--ink3);
+}
+.predict-val {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--warn);
+  font-weight: 500;
+}

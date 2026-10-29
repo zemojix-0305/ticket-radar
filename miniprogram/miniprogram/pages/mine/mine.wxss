@@ -40,6 +40,23 @@
   border: 1px solid var(--line);
   border-radius: 50%;
 }
+/* 编辑提示角标 */
+.avatar-edit {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-brand);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 2px solid var(--card);
+}
 .profile-info { flex: 1; min-width: 0; }
 .nickname-row { display: flex; align-items: center; gap: 8px; }
 .nickname { font-size: 17px; font-weight: 500; color: var(--ink); }
@@ -81,6 +98,73 @@
 .bind-arrow-open { transform: rotate(180deg); }
 .code-box { background: var(--card2); border-radius: var(--r); padding: 11px 13px; margin-top: 12px; }
 .cred-label { font-size: 12px; color: var(--ink2); margin-top: 12px; }
+.cred-section { margin-top: 4px; }
+.cred-hint {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.cred-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.cred-guide {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--warn-weak);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--warn);
+}
+.guide-step {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.8;
+  padding-left: 4px;
+}
+.full-width {
+  width: 100%;
+}
+.fwd-guide {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--brand-weak, rgba(107, 79, 168, 0.06));
+  border-radius: var(--r-sm);
+}
+.fwd-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fwd-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand, #6B4FA8);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fwd-step-text {
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.fwd-arrow {
+  text-align: center;
+  color: var(--ink3);
+  font-size: 16px;
+  margin: 4px 0;
+}
+.fwd-link-input {
+  margin-top: 8px;
+}
 .cred-input {
   margin-top: 6px;
   background: var(--card2);

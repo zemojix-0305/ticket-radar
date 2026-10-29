@@ -12,7 +12,6 @@
 
   <!-- 顶部 hero -->
   <view class="hero">
-    <image class="hero-crane" src="/images/board2/cartoon5.png" mode="aspectFit" />
     <view class="hero-l">
       <view class="hero-title-row">
         <view class="hero-title title-strong">正在盯的票</view>
@@ -46,7 +45,11 @@
     </view>
     <view class="quick-item press-card" bindtap="goShows" hover-class="press-card-hover">
       <view class="quick-icon qi-search"><view class="search-mag"></view></view>
-      <text class="quick-t">搜演出</text>
+      <text class="quick-t">搜票</text>
+    </view>
+    <view class="quick-item press-card" bindtap="goCompare" hover-class="press-card-hover">
+      <view class="quick-icon qi-compare"><view class="compare-bars"><view></view><view></view><view></view></view></view>
+      <text class="quick-t">跨平台比价</text>
     </view>
     <view class="quick-item press-card" bindtap="goHistory" hover-class="press-card-hover">
       <view class="quick-icon qi-chart"><view class="chart-bars"><view></view><view></view><view></view></view></view>
@@ -67,13 +70,14 @@
     <view class="seg press {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{states.length - okCount}}</view>
   </view>
 
-  <!-- 额度条 -->
-  <view class="credit press-card {{credit > 0 ? '' : 'credit-empty'}}" bindtap="goMine" hover-class="press-card-hover">
+  <!-- 推送状态条：不再要求用户手动「去领」。
+       加监控时会自动续一条，用户感知不到；这里只告诉他现在是不是通的。 -->
+  <view class="credit press-card {{credit > 0 ? '' : 'credit-empty'}}" bindtap="tapPush" hover-class="press-card-hover">
     <view class="credit-l">
-      <text class="credit-t">还能收 <text class="credit-n">{{credit > 0 ? credit : 0}}</text> 条推送</text>
-      <text class="credit-s">{{credit > 0 ? '用完了点这领新的' : '去领额度，否则有票也收不到'}}</text>
+      <text class="credit-t">{{credit > 0 ? '推送已开启' : '推送暂时停了'}}</text>
+      <text class="credit-s">{{credit > 0 ? '有票直接微信叫你 · 加监控时自动续，不用管' : '打开小程序照样能看到回流；点这恢复推送'}}</text>
     </view>
-    <text class="credit-go">{{credit > 0 ? '领额度' : '去领'}}</text>
+    <text class="credit-go" wx:if="{{credit <= 0}}">恢复</text>
   </view>
 
   <!-- 失败卡片 -->
@@ -94,10 +98,10 @@
   <view class="card empty" wx:if="{{!loading && !states.length && !fail}}">
     <image class="empty-stk" src="/images/board2/collage15.png" mode="aspectFit" />
     <view class="empty-mark"></view>
-    <view class="empty-title">还没在盯任何场次</view>
-    <view class="empty-sub">去「搜演出」加一个。</view>
+    <view class="empty-title">还没在盯任何票</view>
+    <view class="empty-sub">去「找票」加一个。</view>
     <view class="empty-acts">
-      <button class="btn btn-primary press" bindtap="goShows" hover-class="press-hover">去找演出</button>
+      <button class="btn btn-primary press" bindtap="goShows" hover-class="press-hover">去找票</button>
     </view>
   </view>
 
@@ -127,6 +131,11 @@
             <text class="link press" bindtap="openDetail" data-id="{{item._id}}" hover-class="press-hover">详情 ›</text>
             <text class="link press" bindtap="toggle" data-id="{{item._id}}" wx:if="{{item.more}}" hover-class="press-hover">{{expanded[item._id] ? '收起' : '展开 ' + item.total + ' 项'}} ›</text>
           </view>
+        </view>
+
+        <!-- 抢票时机建议：采样足够时显示 -->
+        <view class="smart-tip" wx:if="{{item.smartTip}}">
+          <text class="smart-tip-text">{{item.smartTip}}</text>
         </view>
 
         <view class="items" wx:if="{{expanded[item._id]}}">

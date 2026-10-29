@@ -3,9 +3,10 @@
     "van-tabs": "/vant/tabs/index",
     "van-tab": "/vant/tab/index",
     "van-toast": "/vant/toast/index",
-    "van-dialog": "/vant/dialog/index"
+    "van-dialog": "/vant/dialog/index",
+    "flight-panel": "/components/flight-panel/flight-panel"
   },
-  "navigationBarTitleText": "找演出",
+  "navigationBarTitleText": "找票",
   "navigationBarBackgroundColor": "#F7F7FA",
   "navigationBarTextStyle": "black",
   "enablePullDownRefresh": true,

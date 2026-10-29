@@ -25,12 +25,13 @@ import Dialog from '../../vant/dialog/dialog';
 // 猫眼放第一位：它是唯一有热门列表的平台，进页面就有内容可逛。
 const PLATFORMS = [
   { key: 'rail12306', label: '12306' },
+  { key: 'amadeus', label: '机票' },
   { key: 'maoyan', label: '猫眼' },
   { key: 'moretickets', label: '摩天轮' },
   { key: 'damai', label: '大麦' },
   { key: 'bilibili', label: 'B站' },
-  { key: 'piaoxingqiu', label: '票星球', linkOnly: true },
-  { key: 'fenwandao', label: '纷玩岛', linkOnly: true },
+  { key: 'piaoxingqiu', label: '票星球' },
+  { key: 'fenwandao', label: '纷玩岛' },
   { key: 'taopiaopiao', label: '淘票票' },
 ];
 
@@ -108,6 +109,12 @@ Page({
   },
 
   onShow() {
+    // 机票 tab 现在是内联面板（不跳页）。回来时让它刷新一下已盯航线的价格，
+    // 有降价就能立刻弹横幅。
+    if (PLATFORMS[this.data.platformIndex].key === 'amadeus') {
+      const fp = this.selectComponent && this.selectComponent('#flightPanel');
+      if (fp && fp.onPageShow) fp.onPageShow();
+    }
     // 从「正在盯」页点 12306 任务跳过来：切到 12306 tab、预填站名并直接查
     const pre = wx.getStorageSync('shows_prefill_rail');
     if (pre && (pre.from || pre.to)) {
@@ -126,6 +133,13 @@ Page({
   // 不把用户搜出来的结果清掉——下拉的语义是「重新查一遍」，不是「重置」。
   onPullDownRefresh() {
     const p = PLATFORMS[this.data.platformIndex] || PLATFORMS[0];
+    // 机票：下拉就是让面板重查一次当前航线（它自己管状态）
+    if (p.key === 'amadeus') {
+      const fp = this.selectComponent && this.selectComponent('#flightPanel');
+      if (fp && fp.query) fp.query();
+      wx.stopPullDownRefresh();
+      return;
+    }
     const job = this.data.searched
       ? (p.key === 'rail12306' ? this.searchRail() : this.searchKeyword(p))
       : this.loadHot();
@@ -288,7 +302,14 @@ Page({
     const idx = e.detail && typeof e.detail.index === 'number'
       ? e.detail.index
       : Number(e.currentTarget.dataset.idx);
+    const p = PLATFORMS[idx];
+    // 机票就在本页内联展开（flight-panel 组件自己会去查价、渲染走势），
+    // 不跳页、不还原高亮 —— 用户要的是「像 12306 一样留在原地」。
     this.setData({ platformIndex: idx, rows: [], searched: false, fail: '', hot: [] });
+    if (p && p.key === 'amadeus') {
+      this.setData({ hotLoading: false, hot: [] });
+      return;
+    }
     // 切平台就换一批热卖（每平台都有自己的榜单）
     this.loadHot();
   },
@@ -351,20 +372,6 @@ Page({
   add(e) {
     const row = e.currentTarget.dataset.row;
     const id = row.platform + '-' + String(row.id).replace(/[^a-zA-Z0-9]/g, '').slice(-12);
-    const credit = wx.getStorageSync(CREDIT_KEY) || 0;
-
-    if (credit <= 0) {
-      Dialog.confirm({
-        title: '先领一下推送额度',
-        message: '微信的订阅消息是「点一次允许换一条推送」。现在额度是 0，加了监控也收不到提醒。',
-        confirmButtonText: '去领额度',
-      })
-        .then(() => {
-          wx.switchTab({ url: '/pages/mine/mine' });
-        })
-        .catch(() => {});
-      return;
-    }
 
     let adapter = row.platform;
     let params = {};

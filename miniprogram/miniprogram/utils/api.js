@@ -63,7 +63,17 @@ function request(params) {
         }
       },
       fail(err) {
-        reject(new Error((err && err.errMsg) || String(err)));
+        // 把 wx.request 的原始 errMsg（request:fail url not in domain list 之类）
+        // 翻成人话。最常见的坑就是「本机上 server 没跑」——以前一律显示
+        // 「拿不到价格」，看着像数据源挂了，其实只是 127.0.0.1:3000 没监听。
+        const raw = (err && err.errMsg) || String(err);
+        let msg = raw;
+        if (/fail|timeout|refused|abort/i.test(raw)) {
+          msg = API_BASE
+            ? '连不上服务器（' + base() + '）。确认域名已加到小程序后台「服务器域名」的 request 白名单。'
+            : '连不上本地服务（' + base() + '）。在电脑上先启动：cd server && node api.js';
+        }
+        reject(new Error(msg));
       },
     });
   });

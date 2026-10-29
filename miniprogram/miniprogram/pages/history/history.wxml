@@ -86,6 +86,19 @@
     </view>
 
     <view class="verdict {{item.tone}}">{{item.verdict}}</view>
+
+    <!-- 抢票时机预测 -->
+    <view class="predict-card" wx:if="{{item.predict}}">
+      <view class="predict-header">
+        <text class="predict-title">🎯 抢票时机建议</text>
+        <text class="predict-samples">{{item.predict.samples}} 次采样</text>
+      </view>
+      <view class="predict-trend">{{item.predict.trend}}</view>
+      <view class="predict-hours" wx:if="{{item.predict.topHours.length}}">
+        <text class="predict-label">高频放票时段：</text>
+        <text class="predict-val" wx:for="{{item.predict.topHours}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
   </view>
 
   <view class="safe"></view>

@@ -25,11 +25,14 @@ const filter = (() => {
   return i >= 0 ? process.argv[i + 1] : '';
 })();
 const mobile = !process.argv.includes('--desktop');
+const wi = process.argv.indexOf('--wait');
+const waitMs = wi >= 0 ? Number(process.argv[wi + 1]) || 3500 : 3500;
 
 const hits = [];
+const dumpHeaders = process.argv.includes('--headers');
 const browser = await chromium.launch({
   channel: 'msedge',
-  headless: true,
+  headless: !process.argv.includes('--headed'),
   args: ['--disable-blink-features=AutomationControlled'],
 });
 const ctx = await browser.newContext(
@@ -56,21 +59,28 @@ page.on('response', async (res) => {
   try {
     body = await res.text();
   } catch {}
-  hits.push({ u, m: res.request().method(), post: res.request().postData() || '', body });
+  hits.push({ u, m: res.request().method(), post: res.request().postData() || '', body, hdrs: res.request().headers(), ck: res.request().headers()['cookie'] || '' });
 });
 
 try {
-  await page.goto(target, { waitUntil: 'networkidle', timeout: 45000 });
+  const wu = process.argv.includes('--dc') ? 'domcontentloaded' : 'networkidle';
+  await page.goto(target, { waitUntil: wu, timeout: 45000 });
 } catch (e) {
   console.log('goto warn:', String(e.message).split('\n')[0]);
 }
-await page.waitForTimeout(3500);
+await page.waitForTimeout(waitMs);
 
 console.log('=== 标题:', await page.title());
 console.log('=== XHR 数:', hits.length);
 for (const h of hits) {
   console.log('\n---', h.m, h.u.slice(0, 400));
-  if (h.post) console.log('    POST:', h.post.slice(0, 300));
+  if (h.post) console.log('    POST:', h.post.slice(0, 600));
+  if (dumpHeaders) {
+    const hj = Object.assign({}, h.hdrs);
+    delete hj[':authority']; delete hj[':method']; delete hj[':path']; delete hj[':scheme'];
+    if (hj.cookie) hj.cookie = String(hj.cookie).slice(0, 300);
+    console.log('    HDRS:', JSON.stringify(hj));
+  }
   console.log('    RESP:', h.body.slice(0, 500));
 }
 const cks = await ctx.cookies();

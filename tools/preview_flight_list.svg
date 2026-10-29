@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 748" width="100%" role="img">
+<title>机票面板的当天航班列表</title>
+<desc>上海到北京 2026-11-10 共 10 班，每班显示时刻、机场航站楼、航班号、航司、机型与各舱位价格</desc>
+<rect width="680" height="748" fill="#FFFFFF"/>
+<text x="20" y="36" font-size="15" font-weight="500" fill="#2C2C2A">当天航班</text>
+<text x="660" y="36" font-size="11" fill="#888780" text-anchor="end">2026-11-10 · 共 10 班</text>
+<rect x="20" y="52" width="222" height="34" rx="17" fill="#F1EFE8"/>
+<rect x="20" y="55" width="62" height="28" rx="14" fill="#2C2C2A"/>
+<text x="51" y="74" font-size="12" font-weight="500" fill="#fff" text-anchor="middle">全部</text>
+<text x="121" y="74" font-size="12" fill="#5F5E5A" text-anchor="middle">经济舱</text>
+<text x="197" y="74" font-size="12" fill="#5F5E5A" text-anchor="middle">公务舱</text>
+<text x="660" y="74" font-size="11" fill="#888780" text-anchor="end">排序 时间 · 价格</text>
+<rect x="20" y="100" width="640" height="140" rx="14" fill="#FFFFFF" stroke="#E4E3DD" stroke-width="0.5"/>
+<text x="38" y="134" font-size="22" font-weight="500" fill="#2C2C2A">07:00</text>
+<text x="38" y="152" font-size="11" fill="#888780">虹桥T2</text>
+<text x="642" y="134" font-size="22" font-weight="500" fill="#2C2C2A" text-anchor="end">09:20</text>
+<text x="642" y="152" font-size="11" fill="#888780" text-anchor="end">首都T2</text>
+<text x="340" y="126" font-size="11" fill="#888780" text-anchor="middle">2h20m</text>
+<line x1="210" y1="136" x2="470" y2="136" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="3 3"/>
+<circle cx="210" cy="136" r="2.5" fill="#B4B2A9"/>
+<circle cx="470" cy="136" r="2.5" fill="#B4B2A9"/>
+<text x="340" y="152" font-size="11" fill="#888780" text-anchor="middle">直飞</text>
+<line x1="38" y1="164" x2="642" y2="164" stroke="#E4E3DD" stroke-width="0.5" stroke-dasharray="2 3"/>
+<text x="38" y="184" font-size="13" font-weight="500" fill="#2C2C2A">MU5099</text>
+<text x="102" y="184" font-size="12" fill="#5F5E5A">东方航空</text>
+<rect x="164" y="171" width="100" height="18" rx="4" fill="#F1EFE8"/>
+<text x="170" y="184" font-size="11" fill="#888780">空客332(宽)</text>
+<text x="642" y="184" font-size="11" fill="#888780" text-anchor="end">早餐 · 上网 · 机龄13.7年</text>
+<rect x="38" y="196" width="146" height="32" rx="8" fill="#F1EFE8"/>
+<text x="48" y="216" font-size="11" fill="#5F5E5A">经济舱</text>
+<text x="94" y="217" font-size="15" font-weight="500" fill="#2C2C2A">¥1040</text>
+<text x="174" y="216" font-size="11" fill="#5F5E5A" text-anchor="end">4.9折</text>
+<rect x="192" y="196" width="146" height="32" rx="8" fill="#FAEEDA"/>
+<text x="202" y="216" font-size="11" fill="#854F0B">公务舱</text>
+<text x="248" y="217" font-size="15" font-weight="500" fill="#2C2C2A">¥2280</text>
+<text x="328" y="216" font-size="11" fill="#854F0B" text-anchor="end">2.8折</text>
+<rect x="20" y="252" width="640" height="140" rx="14" fill="#FFFFFF" stroke="#E4E3DD" stroke-width="0.5"/>
+<text x="38" y="286" font-size="22" font-weight="500" fill="#2C2C2A">07:20</text>
+<text x="38" y="304" font-size="11" fill="#888780">浦东T2</text>
+<text x="642" y="286" font-size="22" font-weight="500" fill="#2C2C2A" text-anchor="end">09:40</text>
+<text x="642" y="304" font-size="11" fill="#888780" text-anchor="end">首都T2</text>
+<text x="340" y="278" font-size="11" fill="#888780" text-anchor="middle">2h20m</text>
+<line x1="210" y1="288" x2="470" y2="288" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="3 3"/>
+<circle cx="210" cy="288" r="2.5" fill="#B4B2A9"/>
+<circle cx="470" cy="288" r="2.5" fill="#B4B2A9"/>
+<text x="340" y="304" font-size="11" fill="#888780" text-anchor="middle">直飞</text>
+<line x1="38" y1="316" x2="642" y2="316" stroke="#E4E3DD" stroke-width="0.5" stroke-dasharray="2 3"/>
+<text x="38" y="336" font-size="13" font-weight="500" fill="#2C2C2A">HU7614</text>
+<text x="102" y="336" font-size="12" fill="#5F5E5A">海南航空</text>
+<rect x="164" y="323" width="144" height="18" rx="4" fill="#F1EFE8"/>
+<text x="170" y="336" font-size="11" fill="#888780">波音737-800(中)</text>
+<text x="642" y="336" font-size="11" fill="#888780" text-anchor="end">早餐 · 机龄13.2年</text>
+<rect x="38" y="348" width="146" height="32" rx="8" fill="#F1EFE8"/>
+<text x="48" y="368" font-size="11" fill="#5F5E5A">经济舱</text>
+<text x="94" y="369" font-size="15" font-weight="500" fill="#2C2C2A">¥500</text>
+<text x="174" y="368" font-size="11" fill="#5F5E5A" text-anchor="end">2.4折</text>
+<rect x="192" y="348" width="146" height="32" rx="8" fill="#FAEEDA"/>
+<text x="202" y="368" font-size="11" fill="#854F0B">公务舱</text>
+<text x="248" y="369" font-size="15" font-weight="500" fill="#2C2C2A">¥1300</text>
+<text x="328" y="368" font-size="11" fill="#854F0B" text-anchor="end">1.6折</text>
+<rect x="20" y="404" width="640" height="140" rx="14" fill="#FFFFFF" stroke="#E4E3DD" stroke-width="0.5"/>
+<text x="38" y="438" font-size="22" font-weight="500" fill="#2C2C2A">08:10</text>
+<text x="38" y="456" font-size="11" fill="#888780">虹桥T2</text>
+<text x="642" y="438" font-size="22" font-weight="500" fill="#2C2C2A" text-anchor="end">10:35</text>
+<text x="642" y="456" font-size="11" fill="#888780" text-anchor="end">大兴</text>
+<text x="340" y="430" font-size="11" fill="#888780" text-anchor="middle">2h25m</text>
+<line x1="210" y1="440" x2="470" y2="440" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="3 3"/>
+<circle cx="210" cy="440" r="2.5" fill="#B4B2A9"/>
+<circle cx="470" cy="440" r="2.5" fill="#B4B2A9"/>
+<text x="340" y="456" font-size="11" fill="#888780" text-anchor="middle">直飞</text>
+<line x1="38" y1="468" x2="642" y2="468" stroke="#E4E3DD" stroke-width="0.5" stroke-dasharray="2 3"/>
+<text x="38" y="488" font-size="13" font-weight="500" fill="#2C2C2A">CZ8890</text>
+<text x="102" y="488" font-size="12" fill="#5F5E5A">南方航空</text>
+<rect x="164" y="475" width="100" height="18" rx="4" fill="#F1EFE8"/>
+<text x="170" y="488" font-size="11" fill="#888780">空客330(大)</text>
+<text x="642" y="488" font-size="11" fill="#888780" text-anchor="end">餐食 · 机龄6.8年</text>
+<rect x="38" y="500" width="146" height="32" rx="8" fill="#F1EFE8"/>
+<text x="48" y="520" font-size="11" fill="#5F5E5A">经济舱</text>
+<text x="94" y="521" font-size="15" font-weight="500" fill="#2C2C2A">¥480</text>
+<text x="174" y="520" font-size="11" fill="#5F5E5A" text-anchor="end">3.0折</text>
+<rect x="192" y="500" width="146" height="32" rx="8" fill="#FAEEDA"/>
+<text x="202" y="520" font-size="11" fill="#854F0B">公务舱</text>
+<text x="248" y="521" font-size="15" font-weight="500" fill="#2C2C2A">¥2280</text>
+<text x="328" y="520" font-size="11" fill="#854F0B" text-anchor="end">6.9折</text>
+<rect x="20" y="556" width="640" height="140" rx="14" fill="#FFFFFF" stroke="#E4E3DD" stroke-width="0.5"/>
+<text x="38" y="590" font-size="22" font-weight="500" fill="#2C2C2A">08:30</text>
+<text x="38" y="608" font-size="11" fill="#888780">大兴</text>
+<text x="642" y="590" font-size="22" font-weight="500" fill="#2C2C2A" text-anchor="end">10:55</text>
+<text x="642" y="608" font-size="11" fill="#888780" text-anchor="end">首都T2</text>
+<text x="340" y="582" font-size="11" fill="#888780" text-anchor="middle">2h25m</text>
+<line x1="210" y1="592" x2="470" y2="592" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="3 3"/>
+<circle cx="210" cy="592" r="2.5" fill="#B4B2A9"/>
+<circle cx="470" cy="592" r="2.5" fill="#B4B2A9"/>
+<text x="340" y="608" font-size="11" fill="#888780" text-anchor="middle">直飞</text>
+<line x1="38" y1="620" x2="642" y2="620" stroke="#E4E3DD" stroke-width="0.5" stroke-dasharray="2 3"/>
+<text x="38" y="640" font-size="13" font-weight="500" fill="#2C2C2A">KN5978</text>
+<text x="102" y="640" font-size="12" fill="#5F5E5A">中国联合航空</text>
+<rect x="190" y="627" width="100" height="18" rx="4" fill="#F1EFE8"/>
+<text x="196" y="640" font-size="11" fill="#888780">波音737(中)</text>
+<text x="642" y="640" font-size="11" fill="#888780" text-anchor="end">机龄8.1年</text>
+<rect x="38" y="652" width="146" height="32" rx="8" fill="#F1EFE8"/>
+<text x="48" y="672" font-size="11" fill="#5F5E5A">经济舱</text>
+<text x="94" y="673" font-size="15" font-weight="500" fill="#2C2C2A">¥410</text>
+<text x="174" y="672" font-size="11" fill="#5F5E5A" text-anchor="end">2.6折</text>
+<text x="20" y="714" font-size="11" fill="#888780">价格来自同程（匿名可查），含机建燃油；以下单页为准。</text>
+</svg>

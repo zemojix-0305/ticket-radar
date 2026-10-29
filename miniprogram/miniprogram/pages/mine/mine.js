@@ -15,6 +15,7 @@ const USER_KEY = 'radar_user_profile';
 import Toast from '../../vant/toast/toast';
 import Dialog from '../../vant/dialog/dialog';
 import { request } from '../../utils/api';
+import { credit as pushCredit, renew as pushRenew } from '../../utils/push';
 import { loadTasks } from '../../utils/tasks';
 import { loadPosts, removePost } from '../../utils/posts';
 
@@ -45,6 +46,7 @@ Page({
     // 平台凭证（纷玩岛 token / 大麦 Cookie / 猫眼 token），存本地、随请求带上
     credOpen: false,
     fwdToken: '',
+    fwdTokenPending: '',  // 待确认的 token
     dmCookie: '',
     myToken: '',
   },
@@ -68,6 +70,27 @@ Page({
     this.setData({ credOpen: !this.data.credOpen });
   },
   onFwdInput(e) { this.setData({ fwdToken: e.detail.value }); },
+  onFwdTokenPendingInput(e) { this.setData({ fwdTokenPending: e.detail.value }); },
+
+  /** 打开纷玩岛小程序 */
+  openFenwandao() {
+    wx.navigateToMiniProgram({
+      appId: 'wx5a8f481d967649eb',
+      path: 'pages/index/index',
+      success: () => {
+        Toast('已打开纷玩岛，登录后按步骤获取 token');
+      },
+      fail: () => {
+        // 跳转失败，提示用户手动打开
+        Dialog.alert({
+          title: '打开纷玩岛',
+          message: '请在微信里搜索「纷玩岛」小程序并打开，确保已登录账号。',
+        });
+      },
+    });
+  },
+
+  /** 从纷玩岛分享链接中提取 token */
   onDmInput(e) { this.setData({ dmCookie: e.detail.value }); },
   onMyTokenInput(e) { this.setData({ myToken: e.detail.value }); },
   saveCred() {
@@ -75,6 +98,90 @@ Page({
     wx.setStorageSync('radar_dm_cookie', String(this.data.dmCookie || '').trim());
     wx.setStorageSync('radar_my_token', String(this.data.myToken || '').trim());
     Toast({ type: 'success', message: '凭证已保存' });
+  },
+
+  /** 测试纷玩岛 token 是否有效 */
+  testFwdToken() {
+    const token = this.data.fwdToken.trim();
+    if (!token) { Toast('请先填写 token'); return; }
+    Toast({ type: 'loading', message: '测试中…' });
+    request({ action: 'find', platform: 'fenwandao', keyword: '周杰伦', limit: 1, fwdToken: token })
+      .then((res) => {
+        const r = res.result || {};
+        if (r.ok && r.rows && r.rows.length > 0) {
+          Toast({ type: 'success', message: '✓ Token 有效！可搜索纷玩岛了' });
+        } else {
+          Toast('Token 可能已过期，请重新获取');
+        }
+      })
+      .catch((e) => {
+        Toast('Token 无效：' + String(e.message || e).slice(0, 40));
+      });
+  },
+
+  /** 清除纷玩岛 token */
+  clearFwdToken() {
+    wx.removeStorageSync('radar_fwd_token');
+    this.setData({ fwdToken: '' });
+    Toast('已清除');
+  },
+
+  /** 保存待确认的 token */
+  saveFwdTokenPending() {
+    const token = (this.data.fwdTokenPending || '').trim();
+    if (!token) { Toast('token 不能为空'); return; }
+    wx.setStorageSync('radar_fwd_token', token);
+    this.setData({ fwdToken: token, fwdTokenPending: '' });
+    Toast({ type: 'success', message: 'token 已保存' });
+  },
+
+  /** 清除待确认的 token */
+  clearFwdTokenPending() {
+    this.setData({ fwdTokenPending: '' });
+  },
+
+  /** 打开大麦网页版 */
+  openDamai() {
+    wx.navigateToMiniProgram({
+      appId: 'wxa75d61ff9e0c37e7', // 大麦小程序 appId
+      path: '/pages/home/index',
+      success: () => {
+        Toast('已打开大麦，登录后按提示获取 Cookie');
+      },
+      fail: () => {
+        // 跳转失败，打开 H5 版本
+        wx.openWebviewGroup?.({});
+        Dialog.alert({
+          title: '打开大麦',
+          message: '请在微信里搜索「大麦」小程序并打开，登录后：\n\n' +
+            '1. 电脑浏览器登录 damai.cn\n' +
+            '2. F12 → Network → 刷新页面\n' +
+            '3. 点任意请求 → 复制 Request Headers 里的 Cookie\n' +
+            '4. 粘贴到上方输入框',
+        });
+      },
+    });
+  },
+
+  /** 打开猫眼小程序 */
+  openMaoyan() {
+    wx.navigateToMiniProgram({
+      appId: 'wxe378d1f269e7b888', // 猫眼小程序 appId
+      path: '/pages/index/index',
+      success: () => {
+        Toast('已打开猫眼，登录后按提示获取 token');
+      },
+      fail: () => {
+        Dialog.alert({
+          title: '打开猫眼',
+          message: '请在微信里搜索「猫眼演出」小程序并打开，登录后：\n\n' +
+            '1. 电脑微信开发者工具打开猫眼小程序项目\n' +
+            '2. Network 标签 → F5 刷新\n' +
+            '3. 找到 wx.maoyan.com 的请求\n' +
+            '4. 复制 URL 里的 token= 参数值',
+        });
+      },
+    });
   },
 
   // --- 我的留言管理 ---------------------------------------------------------
@@ -134,10 +241,24 @@ Page({
   },
 
   onChooseAvatar(e) {
-    const url = e.detail.avatarUrl;
-    const u = Object.assign({}, this.data.user, { avatar: url });
-    this.setData({ user: u });
-    wx.setStorageSync(USER_KEY, u);
+    // 用 wx.chooseMedia 替代 open-type="chooseAvatar"（模拟器不支持后者）
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const url = res.tempFiles[0].tempFilePath;
+        const u = Object.assign({}, this.data.user, { avatar: url });
+        this.setData({ user: u });
+        wx.setStorageSync('radar_user_profile', u);
+      },
+      fail: (err) => {
+        // 用户取消或权限不足，静默处理
+        if (!err.errMsg || err.errMsg.indexOf('cancel') < 0) {
+          console.warn('[mine] chooseMedia failed:', err);
+        }
+      },
+    });
   },
 
   // 昵称走独立弹层：type="nickname" 的 input 必须在用户主动点击后
@@ -259,36 +380,19 @@ Page({
   // 一次性订阅：点一次「允许」= 换来一条推送额度。
   // 用完再发会报 43101，所以额度见底时回来再点一次就行。
   requestSubscribe() {
-    if (!wx.requestSubscribeMessage) {
-      this.setData({ authMsg: '微信版本过低，不支持订阅消息' });
-      return;
-    }
-    wx.requestSubscribeMessage({
-      tmplIds: [TMPL_ID],
-      success: (res) => {
-        const state = res[TMPL_ID];
-        if (state === 'accept') {
-          const n = (wx.getStorageSync(CREDIT_KEY) || 0) + 1;
-          wx.setStorageSync(CREDIT_KEY, n);
-          this.setData({
-            authorized: true,
-            credit: n,
-            authMsg: `已领到第 ${n} 条额度`,
-          });
-          this.syncQuotaToCloud(1);
-        } else if (state === 'reject') {
-          this.setData({ authMsg: '你拒绝了这次授权，不会收到推送' });
-        } else if (state === 'ban') {
-          this.setData({ authMsg: '该模板已被后台禁用' });
-        } else if (state === 'filter') {
-          this.setData({ authMsg: '该模板被后台过滤了' });
-        } else {
-          this.setData({ authMsg: `授权结果：${state}` });
-        }
-      },
-      fail: (err) => {
-        this.setData({ authMsg: `拉起授权失败：${err.errMsg || '未知错误'}` });
-      },
+    // 统一走 utils/push：同一份记账、同一套节流。
+    // force = 用户主动点的，不受「一天一次」限制。
+    pushRenew({ silent: false, force: true }).then((ok) => {
+      if (!ok) {
+        this.setData({ authMsg: '没开成。若之前点过拒绝，去微信「设置 → 隐私 → 授权管理」里重新允许。' });
+        return;
+      }
+      this.setData({
+        authorized: true,
+        credit: pushCredit(),
+        authMsg: '推送已恢复。勾了「总是保持以上选择」的话，以后加监控会自动续，你不用再点这里。',
+      });
+      this.syncQuotaToCloud(1);
     });
   },
 

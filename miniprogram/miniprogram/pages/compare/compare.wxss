@@ -1,0 +1,160 @@
+.page { padding-bottom: 24px; }
+
+/* ---------- 搜索栏 ---------- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--card);
+}
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper-deep);
+  border-radius: var(--r-pill);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+}
+.search-input {
+  flex: 1;
+  font-size: 15px;
+  color: var(--ink);
+  background: transparent;
+}
+.search-btn {
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-brand);
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.search-btn.clearing {
+  background: var(--bar-idle);
+  color: var(--ink2);
+}
+
+/* ---------- 快捷搜索标签 ---------- */
+.quick-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--card);
+  margin: 8px 0;
+}
+.quick-label {
+  font-size: 13px;
+  color: var(--ink3);
+}
+.quick-tag {
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--card2);
+  font-size: 13px;
+  color: var(--ink2);
+  border: 1px solid var(--line);
+}
+
+/* ---------- 演出组 ---------- */
+.group { margin: 8px 16px; }
+.group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 4px 8px;
+}
+.group-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.group-count {
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+/* ---------- 平台卡片行 ---------- */
+.platform-cards { padding: 4px 0; }
+.prow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.15s;
+}
+.prow:last-child { border-bottom: none; }
+/* 最低价行高亮 */
+.prow-best {
+  background: var(--ok-weak);
+  border-radius: var(--r-sm);
+  margin: 0 4px;
+  padding: 12px 10px;
+}
+.prow-platform .tag { font-size: 11px; padding: 2px 6px; }
+.prow-body { flex: 1; min-width: 0; }
+.prow-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prow-meta {
+  display: block;
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prow-date {
+  display: block;
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 1px;
+}
+.prow-right { flex-shrink: 0; text-align: right; }
+.prow-price {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* 最低价徽章 */
+.best-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--ok);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- 组脚加监控按钮 ---------- */
+.group-footer {
+  margin-top: 6px;
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  background: var(--accent-weak);
+}
+.footer-btn {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}

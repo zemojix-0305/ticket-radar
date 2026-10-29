@@ -2,7 +2,7 @@
 <view class="page">
   <view class="list">
     <view wx:if="{{!watched.length}}" class="empty">
-      <text class="t3">还没有在盯的演出或车票，去「搜演出」挑一个吧</text>
+      <text class="t3">还没有在盯的票，去「找票」挑一个吧</text>
     </view>
 
     <view wx:else class="watched-list">
@@ -31,4 +31,6 @@
     </view>
   </view>
   <view class="safe"></view>
+
+  <van-toast id="van-toast" />
 </view>

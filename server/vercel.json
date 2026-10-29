@@ -1,16 +1,15 @@
 {
-  "rewrites": [
-    { "source": "/api", "destination": "/api.js" },
-    { "source": "/api/(.*)", "destination": "/api.js" }
-  ],
-  "headers": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
-      ]
+      "src": "api.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api.js"
     }
   ]
 }

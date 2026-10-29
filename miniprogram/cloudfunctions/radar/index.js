@@ -21,6 +21,8 @@
 const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
+// 机票（同程价格日历）：独立模块，免 Cookie 免签名。
+const flightSvc = require('./flight');
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
@@ -1594,6 +1596,7 @@ async function pollDamai(params) {
 /**
  * 大麦入口：链接/纯数字 id → mtop 详情+票档；关键词 → mtop 无线搜索。
  * 和猫眼/摩天轮一样，用户直接打字就能搜——不再逼人去 App 翻链接。
+ * 新增：空关键词时走热卖榜（CMS 分类通道，匿名可用），失败时退回搜索。
  */
 async function findDamai(linkOrId, userCookie, cityId) {
   const raw = String(linkOrId || '').trim();
@@ -1859,22 +1862,61 @@ function pxqStatusCn(status) {
   return PXQ_STATUS_CN[s] || (status ? String(status) : '状态未知');
 }
 
-/** 关键词搜索（全国范围）→ 与 findMaoyan 同构的行结构。 */
+/** 关键词搜索（全国范围）→ 与 findMaoyan 同构的行结构。
+ * 票星球搜索 API 不工作（固定返回推荐结果），改用多端点聚合 + 本地过滤。 */
 async function findPiaoxingqiu(keyword, limit) {
   const kw = String(keyword || '').trim();
-  if (!kw) throw new Error('输入演出名搜索票星球');
-  const j = await getJson(
-    pxqUrl('/cyy_gatewayapi/home/pub/v3/show_list/search', {
-      keyword: kw,
-      pageType: 'SEARCH_PAGE',
-      offset: 0,
-      length: Math.min(Number(limit) || 20, 50),
+
+  // 并行获取多个数据源
+  const [recommendRes, hotRes] = await Promise.allSettled([
+    getJson(pxqUrl('/cyy_gatewayapi/home/pub/v3/show/recommend'), {
+      headers: pxqHeaders(), timeout: 15000,
     }),
-    { headers: pxqHeaders(), timeout: 15000 },
-  );
-  const d = pxqCheck(j, '搜索');
-  const rows = Array.isArray(d.searchData) ? d.searchData : [];
-  return rows.map((r) => ({
+    // 试不同分类的推荐
+    kw ? getJson(pxqUrl('/cyy_gatewayapi/home/pub/v3/show_list/search', {
+      kw: kw, pageType: 'SEARCH_PAGE', offset: 0, length: 50, src: 'H5', ver: '4.3.3-20240404095840'
+    }), { headers: pxqHeaders(), timeout: 15000 }).catch(() => null) : null,
+  ]);
+
+  // 合并所有结果
+  const allShows = new Map(); // 用 showId 去重
+
+  // 从 recommend 获取
+  if (recommendRes.status === 'fulfilled') {
+    const shows = pxqCheck(recommendRes.value, '推荐') || [];
+    for (const r of (Array.isArray(shows) ? shows : [])) {
+      const id = String(r.showId || '');
+      if (id && !allShows.has(id)) allShows.set(id, r);
+    }
+  }
+
+  // 从 search 获取（如果有效）
+  if (kw && hotRes && hotRes.status === 'fulfilled' && hotRes.value) {
+    const searchData = hotRes.value.data?.searchData || [];
+    for (const r of searchData) {
+      const id = String(r.showId || '');
+      if (id && !allShows.has(id)) allShows.set(id, r);
+    }
+  }
+
+  let shows = Array.from(allShows.values());
+
+  // 如果有关键词，本地过滤
+  if (kw && shows.length > 0) {
+    const k = kw.toLowerCase();
+    shows = shows.filter((r) => {
+      const name = (r.showName || '').toLowerCase();
+      const city = (r.cityName || '').toLowerCase();
+      return name.includes(k) || city.includes(k);
+    });
+  }
+
+  // 如果还是没结果，返回全部推荐
+  if (!shows.length) {
+    shows = Array.from(allShows.values());
+  }
+
+  return shows.slice(0, limit || 20).map((r) => ({
     performanceId: String(r.showId),
     showId: String(r.showId),
     stdShowId: r.stdShowId ? String(r.stdShowId) : '',
@@ -2588,7 +2630,7 @@ async function resolveShortLink(u) {
   return u;
 }
 
-/** 纷玩岛 find：链接/数字 id → 直取详情行（匿名即可）；关键词 → 搜分销接口（未公开验证，失败给指引）。 */
+/** 纷玩岛 find：链接/数字 id → 直取详情行（匿名即可）；关键词 → 先试搜索，失败用热卖榜兜底 */
 async function findFenwandao(keyword, limit, token) {
   let raw = String(keyword || '').trim();
   if (/^https?:\/\/t\.cn\//i.test(raw)) raw = await resolveShortLink(raw);
@@ -2628,7 +2670,8 @@ async function findFenwandao(keyword, limit, token) {
     }];
   }
   if (!raw) throw new Error('搜索词不能为空');
-  // 搜索端点未公开验证：先匿名试一次（万一放开就白赚），11004（要登录）再按有无 token 走
+
+  // 关键词搜索：先试搜索接口，失败用热卖榜兜底
   const searchOnce = async (hdrs) => {
     const j = await getJson(
       `${FWD_BASE}/performance/app/search/project?keyword=${encodeURIComponent(raw)}`,
@@ -2650,20 +2693,48 @@ async function findFenwandao(keyword, limit, token) {
     }
     throw new Error('code=' + ((j && j.code) || '?') + ' ' + ((j && j.msg) || ''));
   };
+
   let hasToken = !!String(token || '').trim();
   try {
     return await searchOnce(hasToken ? fwdHeaders(token) : fwdAnonHeaders());
   } catch (anonErr) {
+    // 搜索失败 → 用热卖榜兜底（匿名可用）
+    try {
+      const hotRows = await fwdHotList(limit);
+      if (hotRows.length) return hotRows;
+    } catch (e) {
+      /* 热卖榜也失败 */
+    }
+    // 最终报错
     if (!hasToken) {
       throw new Error(
-        '纷玩岛搜索要登录凭证——把演出的**分享链接**（微博分享的话 t.cn 短链也行）粘进来就能匿名盯；想按票档盯就在「我的」页填凭证'
+        '纷玩岛关键词搜索需要登录——请直接粘贴演出分享链接（从纷玩岛小程序「···」→ 分享 → 复制链接），或先在「我的」页填写 token'
       );
     }
-    // 有 token 还失败 → 带原始报错给指引
     throw new Error(
-      '纷玩岛搜索没通（' + String(anonErr.message || anonErr) + '）——先去纷玩岛小程序复制演出分享链接，粘到这里一样能盯'
+      '纷玩岛搜索没通（' + String(anonErr.message || anonErr) + '）——请粘贴演出分享链接'
     );
   }
+}
+
+/** 纷玩岛热卖榜（匿名可用）→ 返回演出列表 */
+async function fwdHotList(limit) {
+  const j = await getJson(
+    `${FWD_BASE}/appShow/app/homepage/projects?projectModuleId=1&pageNum=1&pageSize=${Math.min(Number(limit) || 20, 50)}`,
+    { headers: fwdAnonHeaders(), timeout: 15000 },
+  );
+  if (j.code !== 10000 || !j.data || !Array.isArray(j.data.list)) return [];
+  return j.data.list.slice(0, limit || 20).map((r) => ({
+    performanceId: String(r.projectId || r.id || ''),
+    projectId: String(r.projectId || r.id || ''),
+    name: r.projectName || r.name || '',
+    city: r.projectCity || r.cityName || '',
+    venue: (r.venueInfo && r.venueInfo.name) || '',
+    dateRange: r.timeDisplay || r.projectStartDate || '',
+    price: r.lowPrice != null ? '¥' + r.lowPrice + ' 起' : '',
+    status: '',
+    poster: r.projectImg || '',
+  }));
 }
 
 // ===========================================================================
@@ -2802,6 +2873,73 @@ async function takeSubQuota(db, openid) {
 }
 
 // ===========================================================================
+// 跨平台比价合并
+// ===========================================================================
+
+/** 从搜索关键词提取核心名字（去数字、年份、站名等噪音） */
+function normalizeCompareName(raw) {
+  return String(raw || '')
+    .replace(/\d{4}[\/年\.]\d{1,2}[\/月\.]?/g, '')   // 年份日期
+    .replace(/第?\s*\d+[代轮届]?巡回/g, '')           // 巡演描述
+    .replace(/[一-龥]{1,2}站/g, '')          // 站名
+    .trim();
+}
+
+/** 两个名字是否指向同一演出（模糊匹配） */
+function sameShow(a, b) {
+  const na = normalizeCompareName(a);
+  const nb = normalizeCompareName(b);
+  if (na === nb) return true;
+  if (na.length > 3 && nb.length > 3) {
+    // 互相包含且核心词一致
+    const short = na.length < nb.length ? na : nb;
+    const long = na.length < nb.length ? nb : na;
+    if (long.indexOf(short) >= 0 && short.length >= 4) return true;
+  }
+  return false;
+}
+
+/** 合并多平台搜索结果：同名演出归一组，组内按价格排序 */
+function mergeCompareResults(platforms, keyword) {
+  // 1. 把所有平台的行 flattened，带 platform 标记
+  const all = [];
+  for (const [p, r] of Object.entries(platforms)) {
+    if (!r.ok || !Array.isArray(r.rows)) continue;
+    for (const row of r.rows) {
+      all.push(Object.assign({}, row, { _cmpPlatform: p }));
+    }
+  }
+  // 2. 按名字分组：同演出的放一起
+  const groups = [];
+  for (const row of all) {
+    const name = row.name || row.title || row.showName || '';
+    let placed = false;
+    for (const g of groups) {
+      if (sameShow(g.name, name)) { g.rows.push(row); g.name = g.name.length > name.length ? g.name : name; placed = true; break; }
+    }
+    if (!placed) groups.push({ name, rows: [row] });
+  }
+  // 3. 每组按最低价排序（有 priceRange 的优先）
+  for (const g of groups) {
+    g.rows.sort((a, b) => {
+      const pa = extractPriceMin(a.price);
+      const pb = extractPriceMin(b.price);
+      if (pa && pb) return pa - pb;
+      if (pa) return -1;
+      if (pb) return 1;
+      return 0;
+    });
+  }
+  // 4. 过滤掉只搜到 1 行且其他平台完全没命中的（可能是噪音）
+  return groups.filter((g) => g.rows.length >= 1).slice(0, 8);
+}
+
+function extractPriceMin(priceStr) {
+  const m = String(priceStr || '').match(/(\d+)/);
+  return m ? Number(m[1]) : null;
+}
+
+// ===========================================================================
 // 入口
 // ===========================================================================
 
@@ -2853,8 +2991,13 @@ async function handleAction(event, action, db) {
       }
       const prevStates = (event.prevStates && typeof event.prevStates === 'object') ? event.prevStates : null;
       const now = new Date().toISOString();
+
+      // 并发轮询：每个任务独立请求，总耗时 = 最慢的那个而非累加
+      // 限制并发数避免触发平台限频（最多同时 6 个）
+      const CONCURRENCY = 6;
       const results = [];
-      for (const task of tasks || []) {
+
+      async function pollOne(task) {
         // 先读上一轮状态再覆盖写：回流判定、history 曲线都要拿它当基线。
         // 无状态模式下基线来自 event.prevStates[task._id]；云函数模式读数据库。
         let prev = null;
@@ -2966,6 +3109,15 @@ async function handleAction(event, action, db) {
           full: rec,
         });
       }
+
+      // 并发执行所有任务（限制 CONCURRENCY 同时跑，避免平台限频）
+      const taskPromises = (tasks || []).map((task) => pollOne(task));
+      const batches = [];
+      for (let i = 0; i < taskPromises.length; i += CONCURRENCY) {
+        batches.push(Promise.all(taskPromises.slice(i, i + CONCURRENCY)));
+      }
+      await Promise.all(batches.flat());
+
       return { ok: true, at: now, tasks: results.length, results: results };
     }
 
@@ -3022,18 +3174,14 @@ async function handleAction(event, action, db) {
           return { ok: true, keyword: '', platform, rows };
         }
         if (platform === 'fenwandao') {
-          // 纷玩岛搜索/热卖榜都要登录（无匿名通道）。token 由「我的」页凭证或服务端注入；
-          // 没有凭证时用户仍可把分享链接（含 t.cn 短链）粘进搜索框——那条路匿名通。
-          const tk = String((event && event.fwdToken) || '').trim();
-          if (!tk) {
-            return { ok: false, error: '纷玩岛没有公开热卖榜（接口要登录）——把演出的分享链接粘到搜索框就能盯，t.cn 短链也行' };
-          }
+          // 纷玩岛：先试匿名热卖榜，失败再提示粘贴链接
           try {
-            const rows = await findFenwandao('演唱会', limit, tk);
-            return { ok: true, keyword: '', platform, rows };
+            const rows = await fwdHotList(limit);
+            if (rows.length) return { ok: true, keyword: '', platform, rows };
           } catch (e) {
-            return { ok: false, error: String((e && e.message) || e) };
+            /* 热卖榜失败 */
           }
+          return { ok: false, error: '纷玩岛热门演出暂时拿不到——请直接粘贴演出分享链接（从纷玩岛小程序「···」→ 分享 → 复制链接），或先在「我的」页填写 token 后搜关键词' };
         }
         return { ok: false, error: '12306 是查两站之间的余票，没有「热卖榜」——填上出发地和目的地就能查' };
       }
@@ -3103,6 +3251,42 @@ async function handleAction(event, action, db) {
       return { ok: false, error: '暂不支持平台 ' + platform };
     }
 
+    // --- 机票：同程价格日历（价格浮动 / 特价发现）------------------------
+    // 全程匿名，不碰任何 Cookie / token：用户只需要选「从哪到哪」。
+    if (action === 'flight') {
+      try {
+        const data = await flightSvc.calendar(
+          event && event.from,
+          event && event.to,
+          event && event.date,
+          event && event.days,
+        );
+        return Object.assign({ ok: true, platform: 'flight' }, data);
+      } catch (e) {
+        return { ok: false, error: String((e && e.message) || e) };
+      }
+    }
+
+    // --- 机票：某天全部航班 + 每个航班的多档舱位 ------------------------
+    // 走同程列表页的 Nuxt SSR 内嵌状态（见 flight.js bookList）
+    if (action === 'flightList') {
+      try {
+        const data = await flightSvc.bookList(
+          event && event.from,
+          event && event.to,
+          event && event.date,
+        );
+        return Object.assign({ ok: true, platform: 'flight' }, data);
+      } catch (e) {
+        return { ok: false, error: String((e && e.message) || e) };
+      }
+    }
+
+    // --- 机票城市检索（本地表，不走网络）------------------------------
+    if (action === 'flightCities') {
+      return { ok: true, cities: flightSvc.citySearch(event && event.keyword) };
+    }
+
     // --- 演出详情：场次 × 票档 全展开（详情页用）------------------------
     if (action === 'detail') {
       const platform = String((event && event.platform) || '').trim();
@@ -3114,6 +3298,85 @@ async function handleAction(event, action, db) {
       } catch (e) {
         return { ok: false, error: String((e && e.message) || e) };
       }
+    }
+
+    // --- 跨平台比价：同关键词打所有平台，返回合并结果 -------------------
+    // 用户想看"这场演出在不同平台什么价、有没有票"，不用切来切去。
+    // 并发请求各平台 find，超时/失败的只记 error 不阻断整体。
+    if (action === 'compare') {
+      const keyword = String((event && event.keyword) || '').trim();
+      const limit = Math.min(10, Math.max(1, Number((event && event.limit) || 5)));
+      if (!keyword) return { ok: false, error: '需要搜索关键词' };
+      const platforms = ['damai', 'maoyan', 'moretickets', 'bilibili', 'piaoxingqiu'];
+      const results = {};
+      await Promise.all(
+        platforms.map(async (p) => {
+          try {
+            const r = await handleAction(
+              Object.assign({}, event, { action: 'find', platform: p, keyword, limit }),
+              'find', db,
+            );
+            results[p] = r.ok ? { ok: true, rows: (r.rows || []).slice(0, limit) } : { ok: false, error: r.error || '未知错误' };
+          } catch (e) {
+            results[p] = { ok: false, error: String((e && e.message) || e) };
+          }
+        }),
+      );
+      // 合并：按名字 fuzzy 匹配归并同一演出
+      const merged = mergeCompareResults(results, keyword);
+      return { ok: true, at: new Date().toISOString(), platforms: results, merged };
+    }
+
+    // --- 智能预测：基于历史数据预测最佳抢票时间 -------------------------
+    // 分析最近 N 次采样，找出「从无票变有票」的时间规律，给用户建议。
+    // 不需要数据库——客户端把 history 数组传上来，服务端算。
+    if (action === 'predict') {
+      const history = Array.isArray(event.history) ? event.history : [];
+      if (history.length < 3) {
+        return { ok: true, prediction: null, note: '采样数据不足 3 条，无法预测' };
+      }
+      const pts = history.slice(-50).filter((h) => h && h.t && h.n != null);
+      if (pts.length < 3) {
+        return { ok: true, prediction: null, note: '有效采样不足 3 条' };
+      }
+      // 找出所有「从 0 变正」的转折点
+      const drops = [];
+      for (let i = 1; i < pts.length; i++) {
+        if (pts[i - 1].n === 0 && pts[i].n > 0) {
+          drops.push(new Date(pts[i].t).getHours() + pts[i].t.slice(14, 16));
+        }
+      }
+      // 统计各时段的放票频率
+      const hourCounts = {};
+      for (const d of drops) {
+        const h = d.slice(0, 2);
+        hourCounts[h] = (hourCounts[h] || 0) + 1;
+      }
+      const topHours = Object.entries(hourCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([h, c]) => h + '时（' + c + '次）');
+
+      // 判断当前趋势：最近 5 次采样里有多少次有票
+      const recent = pts.slice(-5);
+      const recentHas = recent.filter((p) => p.n > 0).length;
+      const last = pts[pts.length - 1];
+      let trend = '无明显规律';
+      if (recentHas >= 4) trend = '近期频繁放票，建议持续关注';
+      else if (recentHas === 0 && drops.length > 0) trend = ' historically 有回流记录，建议蹲守';
+      else if (recentHas === 0) trend = '连续售罄，可能是未开售或真的没票';
+
+      return {
+        ok: true,
+        prediction: {
+          trend,
+          topHours: topHours.length ? topHours : ['暂无历史放票规律'],
+          totalDrops: drops.length,
+          samples: pts.length,
+          lastCount: last.n,
+          lastTime: last.t,
+        },
+      };
     }
 
     // --- 讨论区帖子列表 ---------------------------------------------

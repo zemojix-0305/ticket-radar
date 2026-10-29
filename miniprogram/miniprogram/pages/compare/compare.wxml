@@ -1,0 +1,91 @@
+<!-- 跨平台比价：同一演出，各平台价格/余票一屏对比 -->
+<view class="page">
+  <!-- 搜索区 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <view class="search-mag"></view>
+      <input class="search-input" placeholder="输入演出名或艺人名，跨平台比价" value="{{kw}}" bindinput="onInput" confirm-type="search" bindconfirm="onSearch" />
+    </view>
+    <view class="search-btn press" bindtap="onSearch" hover-class="press-hover" wx:if="{{!loading}}">搜</view>
+    <view class="search-btn press clearing" bindtap="clear" hover-class="press-hover" wx:elif="{{kw}}">清</view>
+  </view>
+
+  <!-- 搜索建议：常用艺人快速入口 -->
+  <view class="quick-tags" wx:if="{{!loading && !groups.length && !error && !kw}}">
+    <text class="quick-label">热门搜索：</text>
+    <text class="quick-tag press" bindtap="quickSearch" data-kw="周杰伦" hover-class="press-hover">周杰伦</text>
+    <text class="quick-tag press" bindtap="quickSearch" data-kw="陈奕迅" hover-class="press-hover">陈奕迅</text>
+    <text class="quick-tag press" bindtap="quickSearch" data-kw="林俊杰" hover-class="press-hover">林俊杰</text>
+    <text class="quick-tag press" bindtap="quickSearch" data-kw="Taylor Swift" hover-class="press-hover">Taylor Swift</text>
+    <text class="quick-tag press" bindtap="quickSearch" data-kw="五月天" hover-class="press-hover">五月天</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="card sk-card" wx:if="{{loading}}">
+    <view class="sk sk-t" style="width:60%"></view>
+    <view class="sk" style="width:100%;height:80px;margin-top:14px;border-radius:12px"></view>
+    <view class="sk" style="width:100%;height:80px;margin-top:8px;border-radius:12px"></view>
+  </view>
+
+  <!-- 失败 -->
+  <view class="card empty" wx:if="{{!loading && error}}">
+    <view class="empty-mark"></view>
+    <view class="empty-title">搜索失败</view>
+    <view class="empty-sub">{{error}}</view>
+  </view>
+
+  <!-- 空态 -->
+  <view class="card empty" wx:if="{{!loading && !groups.length && !error && !kw}}">
+    <image class="empty-stk" src="/images/board2/collage15.png" mode="aspectFit" />
+    <view class="empty-title">跨平台比价</view>
+    <view class="empty-sub">输入演出名或艺人名，同时查大麦 / 猫眼 / 摩天轮 / B站 / 票星球，一眼看出哪里最便宜、哪里还有票。</view>
+  </view>
+
+  <!-- 结果组 -->
+  <block wx:if="{{!loading && groups.length}}">
+    <view class="group" wx:for="{{groups}}" wx:key="name" wx:for-item="g">
+      <!-- 演出名 header -->
+      <view class="group-head">
+        <text class="group-name">{{g.name}}</text>
+        <text class="group-count">{{g.rows.length}} 个平台</text>
+      </view>
+
+      <!-- 各平台行 -->
+      <view class="card platform-cards">
+        <view
+          class="prow press {{isBestPrice(g, index) ? 'prow-best' : ''}}"
+          wx:for="{{g.rows}}"
+          wx:key="_cmpPlatform"
+          wx:for-item="row"
+          wx:for-index="index"
+          data-row="{{row}}"
+          bindtap="goDetail"
+          hover-class="press-hover"
+        >
+          <view class="prow-platform">
+            <text class="tag tag-brand">{{row._cmpPlatform}}</text>
+            <text class="best-badge" wx:if="{{isBestPrice(g, index)}}">最低</text>
+          </view>
+          <view class="prow-body">
+            <text class="prow-name">{{row.name}}</text>
+            <text class="prow-meta" wx:if="{{row.city}}">{{row.city}} · {{row.venue}}</text>
+            <text class="prow-date" wx:if="{{row.dateRange}}">{{row.dateRange}}</text>
+          </view>
+          <view class="prow-right">
+            <text class="prow-price" wx:if="{{row.price}}">{{row.price}}</text>
+            <text class="tag {{statusCls(row)}}" wx:if="{{row.status}}">{{row.status}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 加监控按钮 -->
+      <view class="group-footer press" bindtap="addMonitor" data-group="{{g}}" hover-class="press-hover">
+        <text class="footer-btn">盯这场演出</text>
+      </view>
+    </view>
+  </block>
+
+  <view class="safe"></view>
+</view>
+
+<van-toast id="van-toast" />

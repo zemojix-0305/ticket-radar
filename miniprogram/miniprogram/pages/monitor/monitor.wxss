@@ -159,6 +159,21 @@
 .chart-bars view:nth-child(2) { height: 13px; }
 .chart-bars view:nth-child(3) { height: 10px; }
 
+.compare-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+.compare-bars view {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ink2);
+}
+.compare-bars view:nth-child(1) { width: 14px; }
+.compare-bars view:nth-child(2) { width: 10px; }
+.compare-bars view:nth-child(3) { width: 12px; }
+
 /* ---------- 筛选：药丸容器，选中 accent 实心 ---------- */
 .segs {
   display: flex;
@@ -381,7 +396,9 @@
   opacity: 0.9;
 }
 
-/* ---------- hero 千纸鹤（用户点名要回来的那只） ---------- */
+/* ---------- hero 千纸鹤（2026-10-29 用户要求移除：挡在「加监控」按钮上方那只）----------
+   样式先留着，将来想放回来，在 hero 里加回
+   <image class="hero-crane" src="/images/board2/cartoon5.png" mode="aspectFit" /> 即可 */
 .hero-crane {
   position: absolute;
   top: 6px;
@@ -488,3 +505,17 @@
 }
 /* 三个操作链接挤在一行时把间距收一点，避免换行 */
 .task-foot-r { gap: 10px; }
+
+/* ---------- 抢票时机智能提示 ---------- */
+.smart-tip {
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: var(--warn-weak);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--warn);
+}
+.smart-tip-text {
+  font-size: 12px;
+  color: var(--warn);
+  line-height: 1.5;
+}

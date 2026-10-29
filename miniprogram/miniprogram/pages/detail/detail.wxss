@@ -59,6 +59,24 @@
   color: var(--accent);
 }
 
+/* ---------- 开售倒计时 ---------- */
+.info-countdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink2);
+}
+.countdown-icon { font-size: 14px; }
+.countdown-label { color: var(--ink3); }
+.countdown-num {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- 分区标题 ---------- */
 .sec {
   display: flex;

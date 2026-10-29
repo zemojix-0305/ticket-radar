@@ -1,0 +1,753 @@
+/* 机票面板：跟随全局「白色灵动」语言
+   白卡 + 22px 大圆角 + 柔和双阴影；彩色只给语义（低价绿 / 失败红） */
+.fp {
+  padding: 4px 16px 12px;
+}
+
+/* ---------- 降价横幅 ---------- */
+.drop {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--r-sm);
+  background: #EAF4EC;
+  border: 1px solid #CFE5D4;
+}
+.drop-l { flex: 1; min-width: 0; }
+.drop-t {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2F6B3A;
+}
+.drop-b {
+  font-size: 12px;
+  color: #3E6B48;
+  margin-top: 3px;
+}
+.drop-x {
+  width: 28px;
+  text-align: right;
+  color: #6F8F76;
+  font-size: 13px;
+}
+
+/* ---------- 航线卡 ---------- */
+.route {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 22px 20px;
+}
+.rc-city { flex: 1; min-width: 0; }
+.rc-city-r { text-align: right; }
+.rc-city-hover { opacity: 0.7; }
+.rc-cn {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+.rc-code {
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 2px;
+  margin-top: 6px;
+}
+.rc-mid {
+  width: 56px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.rc-mid-hover { opacity: 0.6; }
+.rc-swap {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--paper-deep);
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+/* ---------- 时间条 ---------- */
+.when {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 4px;
+}
+.daychips {
+  display: flex;
+  align-items: center;
+}
+.chip {
+  padding: 7px 12px;
+  margin-right: 8px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink2);
+  font-size: 12px;
+  box-shadow: var(--shadow);
+}
+.chip-on {
+  background: var(--ink);
+  color: #fff;
+}
+.chip-date {
+  letter-spacing: 0.4px;
+}
+.seg {
+  display: flex;
+  background: var(--paper-deep);
+  border-radius: var(--r-pill);
+  padding: 3px;
+}
+.seg-i {
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--ink3);
+  border-radius: var(--r-pill);
+}
+.seg-on {
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- 骨架 / 失败 ---------- */
+.sk {
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-top: 14px;
+  box-shadow: var(--shadow);
+}
+.sk-bar {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #F1F1F4 25%, #E8E8EC 37%, #F1F1F4 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.3s ease infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.err {
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 22px 20px;
+  margin-top: 14px;
+  box-shadow: var(--shadow);
+}
+.err-t { font-size: 15px; font-weight: 600; color: var(--ink); }
+.err-b {
+  font-size: 12px;
+  color: var(--ink3);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.err-btn {
+  margin-top: 14px;
+  display: inline-block;
+  padding: 8px 22px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+}
+
+/* ---------- 概览 ---------- */
+.sum {
+  display: flex;
+  background: var(--card);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  margin-top: 12px;
+  padding: 14px 4px;
+}
+.sum-i {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+.sum-mid::before,
+.sum-mid::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--line);
+}
+.sum-mid::before { left: 0; }
+.sum-mid::after { right: 0; }
+.sum-n {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.sum-mid .sum-n {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.sum-low { color: #2F6B3A; }
+.sum-l {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 6px;
+}
+.save {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: #EAF4EC;
+  font-size: 12px;
+  color: #3E6B48;
+}
+.save-n {
+  font-weight: 600;
+  color: #2F6B3A;
+}
+
+/* ---------- 区块标题 ---------- */
+.sec-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 18px 2px 10px;
+}
+.sec-t {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.4px;
+}
+.sec-s {
+  font-size: 11px;
+  color: var(--ink3);
+}
+.sec-more {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* ---------- 走势柱图（压缩版：只求看出哪天便宜，不求高柱） ---------- */
+.chart {
+  display: flex;
+  white-space: nowrap;
+  background: var(--card);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 10px 10px 8px;
+}
+.bar {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 22px;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.bar-p {
+  font-size: 8.5px;
+  color: var(--ink3);
+  margin-bottom: 3px;
+  transform: scale(0.9);
+}
+.bar-p-low {
+  color: #2F6B3A;
+  font-weight: 600;
+}
+.bar-c {
+  width: 11px;
+  border-radius: 6px 6px 2px 2px;
+  background: #DDDDE2;
+  transition: height 0.25s ease;
+}
+.bar-c-low {
+  background: #2F6B3A;
+}
+.bar-x {
+  font-size: 8.5px;
+  color: var(--ink3);
+  margin-top: 4px;
+  transform: scale(0.88);
+}
+.bar-x-low {
+  color: #2F6B3A;
+  font-weight: 600;
+}
+/* 当前选中的那天（点柱子会切「当天航班」） */
+.bar-on .bar-c {
+  box-shadow: 0 0 0 2px rgba(47, 107, 58, 0.25);
+  background: #2F6B3A;
+}
+
+/* ---------- 捡漏日（横滑小卡） ---------- */
+.deals {
+  display: flex;
+  white-space: nowrap;
+}
+.deal {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 92px;
+  margin-right: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: 1px solid transparent;
+}
+.deal-on {
+  border-color: #2F6B3A;
+}
+.deal-d {
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 0.2px;
+}
+.deal-p {
+  font-size: 17px;
+  font-weight: 600;
+  color: #2F6B3A;
+  margin-top: 3px;
+}
+.deal-s {
+  font-size: 10px;
+  color: var(--ink3);
+  margin-top: 3px;
+}
+
+/* ---------- 每日最低价表 ---------- */
+.row-h {
+  display: flex;
+  padding: 0 16px 8px;
+  font-size: 10px;
+  color: var(--ink3);
+}
+.rh-d { flex: 1.5; }
+.rh-f { flex: 1; }
+.rh-t { flex: 1.4; }
+.rh-p { flex: 0.9; text-align: right; }
+
+.row {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--ink2);
+}
+.rw-d { flex: 1.5; color: var(--ink); }
+.rw-w {
+  font-size: 10px;
+  color: var(--ink3);
+  margin-left: 5px;
+}
+.rw-f { flex: 1; letter-spacing: 0.4px; }
+.rw-t { flex: 1.4; color: var(--ink3); }
+.rw-p {
+  flex: 0.9;
+  text-align: right;
+  color: var(--ink);
+  font-weight: 600;
+}
+.rw-p-low { color: #2F6B3A; }
+
+/* ---------- 平台核对（一行胶囊） ---------- */
+.plat-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 2px 10px;
+}
+.plat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plat-i {
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  color: var(--ink2);
+}
+.plat-i-hover { opacity: 0.6; }
+.tip {
+  font-size: 11px;
+  color: var(--ink3);
+  line-height: 1.6;
+  padding: 0 2px;
+}
+
+/* ---------- 在盯的航线 ---------- */
+.watch {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.watch-main { flex: 1; min-width: 0; }
+.watch-n {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.watch-s {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+.watch-x {
+  width: 34px;
+  text-align: right;
+  color: #BFBFC6;
+  font-size: 13px;
+}
+
+.add {
+  margin-top: 16px;
+  padding: 14px;
+  text-align: center;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---------- 城市弹层 ---------- */
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 60;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  background: var(--paper);
+  border-radius: 24px 24px 0 0;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  transform: translateY(102%);
+  transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+}
+.sheet-on { transform: translateY(0); }
+.sheet-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sheet-t {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sheet-x {
+  color: var(--ink3);
+  font-size: 14px;
+  padding: 4px 6px;
+}
+.sheet-inp {
+  background: var(--card);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.sheet-list {
+  margin-top: 12px;
+  max-height: 46vh;
+}
+.city {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.city-hover { background: var(--paper-deep); }
+.city-n {
+  font-size: 15px;
+  color: var(--ink);
+}
+.city-c {
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 1.5px;
+}
+.city-empty {
+  padding: 26px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+/* ===========================================================================
+   当天航班（航班号 / 航司 / 时刻 / 舱位）
+   白卡 + 虚线航线 + 舱位胶囊；公务舱用淡金区分，经济舱保持中性灰
+   =========================================================================== */
+.flbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2px 2px 10px;
+}
+.fltabs {
+  display: flex;
+  align-items: center;
+  background: #F1F1F4;
+  border-radius: 999px;
+  padding: 3px;
+}
+.fltab {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--ink2);
+  border-radius: 999px;
+  line-height: 1.2;
+}
+.fltab.on {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+}
+.flsort {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink3);
+}
+.flsort-i { padding: 3px 2px; }
+.flsort-i.on { color: var(--ink); font-weight: 600; }
+.flsort-s { color: #D8D8DE; }
+
+/* 骨架 */
+.flsk-i {
+  height: 92px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, #F4F4F7 25%, #FAFAFC 37%, #F4F4F7 63%);
+  background-size: 400% 100%;
+  animation: flshimmer 1.4s ease infinite;
+  margin-bottom: 10px;
+}
+@keyframes flshimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* 失败 */
+.flerr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: var(--r-sm);
+  background: #FDF2F2;
+  border: 1px solid #F3D6D6;
+  margin-bottom: 10px;
+}
+.flerr-t {
+  flex: 1;
+  font-size: 12px;
+  color: #8C3B3B;
+  padding-right: 10px;
+}
+.flerr-b {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8C3B3B;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+/* 航班卡 */
+.fl {
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 14px 15px 12px;
+  margin-bottom: 10px;
+}
+.fl-top {
+  display: flex;
+  align-items: flex-start;
+}
+.fl-end {
+  width: 108px;
+  display: flex;
+  flex-direction: column;
+}
+.fl-end-r { align-items: flex-end; text-align: right; }
+.fl-hm {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+.fl-ap {
+  font-size: 10px;
+  color: var(--ink3);
+  margin-top: 4px;
+  line-height: 1.35;
+  word-break: break-all;
+}
+.fl-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 6px;
+}
+.fl-span {
+  font-size: 10px;
+  color: var(--ink3);
+  margin-bottom: 4px;
+}
+.fl-line {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.fl-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #C9C9D2;
+  flex-shrink: 0;
+}
+.fl-bar {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, #D6D6DE 0 3px, transparent 3px 6px);
+}
+.fl-stop {
+  font-size: 9px;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* 航班号 / 航司 / 机型 */
+.fl-air {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #EEEEF2;
+}
+.fl-no {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.4px;
+}
+.fl-an {
+  font-size: 12px;
+  color: var(--ink2);
+}
+.fl-pl {
+  font-size: 10px;
+  color: var(--ink3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #F4F4F7;
+}
+.fl-on {
+  font-size: 10px;
+  color: #2F6B3A;
+  margin-left: auto;
+}
+
+/* 舱位胶囊 */
+.fl-cab {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.cab {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #F4F4F7;
+}
+.cab-biz { background: #FAF3E4; }
+.cab-c {
+  font-size: 10px;
+  color: var(--ink2);
+}
+.cab-biz .cab-c { color: #8A6A2A; }
+.cab-p {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.cab-d {
+  font-size: 9px;
+  color: var(--ink3);
+}
+.cab-more {
+  font-size: 11px;
+  color: var(--ink2);
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px dashed #DCDCE4;
+}
+
+/* 餐食 / wifi / 机龄 */
+.fl-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+/* 展开剩余航班 */
+.flmore {
+  margin: 2px 0 4px;
+  padding: 11px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink2);
+  background: var(--card);
+  border-radius: var(--r-sm);
+  border: 1px dashed #DCDCE4;
+}
+.flmore-hover { opacity: 0.6; }

@@ -45,32 +45,59 @@
     <van-tab wx:for="{{platforms}}" wx:key="key" title="{{item.label}}"></van-tab>
   </van-tabs>
 
-  <!-- 搜索栏 / 链接粘贴 / 12306 线路表单 -->
-  <view class="searchbar" wx:if="{{platforms[platformIndex].key !== 'rail12306'}}">
-    <view class="search-box">
-      <text class="search-ico"></text>
-      <input
-        class="search-inp"
-        placeholder="{{platforms[platformIndex].linkOnly ? '粘贴该平台的演出分享链接' : '搜索演出、巡演、场馆'}}"
-        placeholder-class="search-ph"
-        value="{{kw}}"
-        confirm-type="search"
-        bindinput="onInput"
-        bindconfirm="onSearch"
-      />
-      <text class="search-clear press" wx:if="{{kw}}" bindtap="clearAll" hover-class="press-hover">清除</text>
-    </view>
-    <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
-      {{searching ? '搜着' : (platforms[platformIndex].linkOnly ? '识别' : '搜索')}}
-    </view>
+  <!-- 搜索栏 / 链接粘贴 / 12306 线路表单（机票不走搜索：它有自己的航线表单） -->
+  <view class="searchbar" wx:if="{{platforms[platformIndex].key !== 'rail12306' && platforms[platformIndex].key !== 'amadeus'}}">
+    <!-- 支持直接搜索的平台：输入框 + 搜索按钮 -->
+    <block wx:if="{{!platforms[platformIndex].linkOnly}}">
+      <view class="search-box">
+        <text class="search-ico"></text>
+        <input
+          class="search-inp"
+          placeholder="搜演出、交通票、场馆"
+          placeholder-class="search-ph"
+          value="{{kw}}"
+          confirm-type="search"
+          bindinput="onInput"
+          bindconfirm="onSearch"
+        />
+        <text class="search-clear press" wx:if="{{kw}}" bindtap="clearAll" hover-class="press-hover">清除</text>
+      </view>
+      <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
+        {{searching ? '搜着' : '搜索'}}
+      </view>
+    </block>
+    <!-- 只支持粘贴链接的平台：大输入区 + 识别按钮 -->
+    <block wx:else>
+      <view class="paste-area">
+        <view class="paste-label">
+          <text class="paste-platform">{{platforms[platformIndex].label}}</text>
+          <text class="paste-note">粘贴演出分享链接</text>
+        </view>
+        <textarea
+          class="paste-input"
+          placeholder="从{{platforms[platformIndex].label}} App 分享 → 复制链接 → 粘在这里"
+          value="{{kw}}"
+          bindinput="onInput"
+          auto-height
+          maxlength="500"
+        />
+        <view class="search-btn wide {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="press-hover">
+          {{searching ? '识别中' : '识别链接'}}
+        </view>
+      </view>
+    </block>
   </view>
 
-  <!-- 贴链接模式说明（票星球 / 纷玩岛） -->
-  <view class="link-hint" wx:if="{{platforms[platformIndex].linkOnly}}">
-    这个平台不让小程序自动搜索。去 App 打开想盯的演出 → 分享 → 复制链接，粘到这里就能<text wx:if="{{platforms[platformIndex].key === 'fenwandao'}}">看到演出信息</text><text wx:else>盯它的回流票——状态从「无票」翻回「可售」的第一时间推给你</text>。
-  </view>
-  <view class="link-hint" wx:if="{{platforms[platformIndex].key === 'fenwandao'}}">
-    想按具体票档盯票，在「我的」页填一次纷玩岛凭证即可。
+  <!-- 平台模式说明卡片 -->
+  <view class="mode-hint" wx:if="{{!searched && !searching && platforms[platformIndex].key !== 'amadeus'}}">
+    <view class="mode-hint-inner" wx:if="{{platforms[platformIndex].linkOnly}}">
+      <text class="mode-icon">🔗</text>
+      <text class="mode-text">{{platforms[platformIndex].label}} 需要粘贴分享链接才能搜索。从 App 分享页面，复制链接粘进来即可。</text>
+    </view>
+    <view class="mode-hint-inner" wx:elif="{{platforms[platformIndex].key === 'damai' || platforms[platformIndex].key === 'taopiaopiao'}}">
+      <text class="mode-icon">💡</text>
+      <text class="mode-text">关键词搜索偶发被风控（平台限频）。搜不到时切到热卖榜，或填一次大麦 Cookie 更稳。</text>
+    </view>
   </view>
 
   <!-- 12306：携程式表单 —— 起点终点两大块 + 交换 + 日期 -->
@@ -102,6 +129,12 @@
       </view>
     </view>
   </view>
+
+  <!-- 机票：内联面板（不跳页）。价格走势 / 捡漏日 / 逐日最低价 / 盯价 -->
+  <flight-panel
+    wx:if="{{platforms[platformIndex].key === 'amadeus'}}"
+    id="flightPanel"
+  ></flight-panel>
 
   <!-- ============ 使用教程 / 常见问题 ============ -->
   <view class="card faq">
@@ -135,7 +168,7 @@
   </view>
 
   <!-- ============ 正在热卖（每个平台都有自己的榜；12306 是查票没有榜） ============ -->
-  <block wx:if="{{platforms[platformIndex].key !== 'rail12306' && !searched && !searching}}">
+  <block wx:if="{{platforms[platformIndex].key !== 'rail12306' && platforms[platformIndex].key !== 'amadeus' && !searched && !searching}}">
 
     <view class="sec">
       <view class="sec-title title-strong">正在热卖</view>
@@ -233,7 +266,7 @@
   </block>
 
   <!-- 搜索历史 -->
-  <view class="card hist" wx:if="{{history.length && !rows.length && !searching && platforms[platformIndex].key !== 'rail12306'}}">
+  <view class="card hist" wx:if="{{history.length && !rows.length && !searching && platforms[platformIndex].key !== 'rail12306' && platforms[platformIndex].key !== 'amadeus'}}">
     <view class="hist-head">
       <text class="hist-title">最近搜过</text>
       <text class="hist-clear press" bindtap="clearHistory" hover-class="press-hover">清空</text>

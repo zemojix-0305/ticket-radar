@@ -40,6 +40,11 @@
       <view class="info-row" wx:if="{{venue}}">场馆 · {{venue}}</view>
       <view class="info-row" wx:if="{{date}}">时间 · {{date}}</view>
       <view class="info-row" wx:if="{{saleNote}}">{{saleNote}}</view>
+      <view class="info-row info-countdown" wx:if="{{countdown}}">
+        <text class="countdown-icon">⏰</text>
+        <text class="countdown-label">开售倒计时</text>
+        <text class="countdown-num">{{countdown.label}}</text>
+      </view>
       <view class="info-row info-price" wx:if="{{price}}">{{price}}</view>
       <!-- 票档价格标签：只展示不勾选（猫眼匿名能读档位，逐档库存要凭证）。
            别做成可点按钮——点了不能按它过滤就是骗人。 -->

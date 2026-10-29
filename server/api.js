@@ -168,6 +168,10 @@ async function apiHandler(req, res) {
         event[k] = v;
       });
       event.limit = Number(event.limit) || 20;
+    } else if (req.body !== undefined && req.body !== null) {
+      // Vercel / 部分 Node 托管会预解析 body 挂到 req.body；这时 req 流已经读完，
+      // 再去 for-await 会永远挂住，必须优先用它。
+      event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     } else {
       const chunks = [];
       for await (const c of req) chunks.push(c);

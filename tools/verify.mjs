@@ -124,7 +124,7 @@ const EXPECT = [
   // 淘票票与大麦同一套 itemId/通道；flakyFind：关键词搜索有滑块风控，限频归 WARN
   { platform: 'taopiaopiao', find: 'ok', flakyFind: true, detailId: '1086111708947', detail: 'ok-or-degraded' },
   { platform: 'fenwandao', find: 'ok', findKw: FWD_LINK, detailId: decodeURIComponent(FWD_LINK.match(/id=([^&]+)/)[1]), detail: 'ok' },
-  { platform: 'rail12306', find: 'ok', findKw: '广州南 长沙南', findDate: '2026-10-20', detail: 'ok', rail: true },
+  { platform: 'rail12306', find: 'ok', findKw: '广州南 长沙南', findDate: new Date(Date.now() + 8*3600000 + 3*86400000).toISOString().slice(0, 10), detail: 'ok', rail: true },
 ];
 
 function idOf(row) {

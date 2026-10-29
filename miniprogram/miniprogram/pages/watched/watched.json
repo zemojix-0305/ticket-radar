@@ -3,5 +3,7 @@
   "enablePullDownRefresh": true,
   "backgroundColor": "#F7F7FA",
   "backgroundTextStyle": "dark",
-  "usingComponents": {}
+  "usingComponents": {
+    "van-toast": "/vant/toast/index"
+  }
 }
