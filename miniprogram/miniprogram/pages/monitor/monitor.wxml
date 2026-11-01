@@ -57,6 +57,24 @@
     </view>
   </view>
 
+  <!-- 温馨提示：必看。收起后标题条和一行摘要仍在，不会彻底消失 -->
+  <view class="notice">
+    <view class="notice-hd press" bindtap="toggleTips" hover-class="press-hover">
+      <text class="notice-ic">!</text>
+      <text class="notice-t">温馨提示 · 必看</text>
+      <text class="notice-free">免费</text>
+      <text class="notice-arrow {{tipsOpen ? 'open' : ''}}">▾</text>
+    </view>
+    <view class="notice-bd" wx:if="{{tipsOpen}}">
+      <view class="notice-item" wx:for="{{tips}}" wx:key="t">
+        <text class="notice-i-t">{{index + 1}}. {{item.t}}</text>
+        <text class="notice-i-d">{{item.d}}</text>
+        <text class="notice-i-hi" wx:if="{{item.hi}}">{{item.hi}}</text>
+      </view>
+    </view>
+    <text class="notice-mini" wx:else>免费 · 机票走邮箱不占额度 · 微信一天最多 20 条 · 点开看 6 条</text>
+  </view>
+
   <!-- 公告 banner -->
   <view class="banner" wx:if="{{!bannerClosed}}">
     <text class="banner-t">{{bannerText}}</text>
@@ -67,13 +85,19 @@
   <view class="segs" wx:if="{{states.length > 1}}">
     <view class="seg press {{filter === 'all' ? 'seg-on' : ''}}" data-f="all" bindtap="onFilter" hover-class="seg-hover">全部 {{states.length}}</view>
     <view class="seg press {{filter === 'ok' ? 'seg-on' : ''}}" data-f="ok" bindtap="onFilter" hover-class="seg-hover">有票 {{okCount}}</view>
-    <view class="seg press {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{states.length - okCount}}</view>
+    <view class="seg press {{filter === 'none' ? 'seg-on' : ''}}" data-f="none" bindtap="onFilter" hover-class="seg-hover">无票 {{noneCount}}</view>
   </view>
 
   <!-- 推送开关：只有开 / 关，点一下切换 -->
   <view class="credit press-card {{pushOn ? '' : 'credit-empty'}}" bindtap="tapPush" hover-class="press-card-hover">
     <text class="credit-t">{{pushOn ? '推送已开启' : '推送已暂停'}}</text>
     <text class="credit-go">{{pushOn ? '暂停推送' : '恢复推送'}}</text>
+  </view>
+
+  <!-- 机票没绑邮箱提示：机票本来该走邮箱（不限条数），没绑就退回微信那点额度 -->
+  <view class="mail-hint press" wx:if="{{flightNoMail}}" bindtap="goMine" hover-class="press-hover">
+    <text class="mail-hint-t">机票提醒还在走微信额度</text>
+    <text class="mail-hint-d">去「我的 → 外部提醒」绑个邮箱，机票就不限条数了 ›</text>
   </view>
 
   <!-- 失败卡片 -->
@@ -103,7 +127,7 @@
 
   <!-- 任务列表 -->
   <view class="task-list" wx:if="{{filtered.length}}">
-    <view class="task-card press-card" wx:for="{{filtered}}" wx:key="_id" hover-class="press-card-hover" hover-stay-time="80">
+    <view class="task-card press-card {{item.enabled === false ? 'task-paused' : ''}}" wx:for="{{filtered}}" wx:key="_id" hover-class="press-card-hover" hover-stay-time="80">
       <view class="task-topline {{item.barClass}}"></view>
       <view class="task-body">
         <view class="task-top press" bindtap="openDetail" data-id="{{item._id}}" hover-class="press-hover">
@@ -123,6 +147,7 @@
         <view class="task-foot">
           <text class="t3">{{item.relTime}}</text>
           <view class="task-foot-r">
+            <text class="link press" bindtap="toggleTask" data-id="{{item._id}}" hover-class="press-hover">{{item.enabled === false ? '继续盯' : '暂停'}}</text>
             <text class="link press" bindtap="shareTask" data-id="{{item._id}}" hover-class="press-hover">分享</text>
             <text class="link press" bindtap="openDetail" data-id="{{item._id}}" hover-class="press-hover">详情 ›</text>
             <text class="link press" bindtap="toggle" data-id="{{item._id}}" wx:if="{{item.more}}" hover-class="press-hover">{{expanded[item._id] ? '收起' : '展开 ' + item.total + ' 项'}} ›</text>
@@ -272,6 +297,30 @@
       bindtap="submitAdd"
       hover-class="press-hover"
     >{{dLoading ? '取场次…' : '下一步'}}</button>
+  </view>
+</view>
+
+<!-- 首次进入的三句话弹窗：只弹一次（radar_intro_v1），关掉就不再出现。
+     存在的理由见 utils/notice.js 的 INTRO：很多人第一眼看到「推送已暂停」
+     就判定这工具难用，得在他下判断之前先把容易误会的事说掉。 -->
+<view class="intro-mask" wx:if="{{introOpen}}" catchtouchmove="noop">
+  <view class="intro-card">
+    <text class="intro-t">{{intro.title}}</text>
+    <text class="intro-sub">{{intro.sub}}</text>
+    <view class="intro-list">
+      <view class="intro-item" wx:for="{{intro.items}}" wx:key="t">
+        <text class="intro-n">{{index + 1}}</text>
+        <view class="intro-b">
+          <text class="intro-i-t">{{item.t}}</text>
+          <text class="intro-i-d">{{item.d}}</text>
+        </view>
+      </view>
+    </view>
+    <text class="intro-foot">{{intro.foot}}</text>
+    <text class="intro-note">{{intro.note}}</text>
+    <view class="intro-acts">
+      <view class="intro-btn intro-main press" bindtap="closeIntro" hover-class="press-hover">{{intro.ok}}</view>
+    </view>
   </view>
 </view>
 

@@ -525,6 +525,10 @@ async function calendarMulti(depCode, arrCode, startDate, days) {
 
   const plats = settled.map((s) => {
     const inWin = s.rows.filter((r) => r.date >= beg && r.date <= end);
+    // 这家自己最便宜的那一天。只给一个「最低 ¥330」用户没法判断：
+    // 是同程今天 330 还是下周三 330？差一天就可能白跑一趟。
+    let best = null;
+    for (const r of inWin) if (!best || r.total < best.total) best = r;
     return {
       plat: s.plat,
       ok: s.ok,
@@ -533,7 +537,11 @@ async function calendarMulti(depCode, arrCode, startDate, days) {
       // 不写出来用户会以为「三家都比了」，那是骗人。
       span: inWin.length ? Math.round((new Date(inWin[inWin.length - 1].date) - new Date(inWin[0].date)) / 86400000) + 1 : 0,
       err: s.err || '',
-      min: inWin.length ? Math.min.apply(null, inWin.map((r) => r.total)) : 0,
+      min: best ? best.total : 0,
+      date: best ? best.date : '',
+      // 途牛只给裸票价（不含机建+燃油），同程/飞猪是含税价。
+      // 三家混排时必须在界面上说清，否则「途牛 ¥300 最便宜」会把人骗过去。
+      taxIncluded: s.plat !== '途牛',
     };
   });
   const alive = settled.filter((s) => s.ok && s.rows.length);
@@ -701,7 +709,11 @@ function shapeFlight(f) {
   });
 
   const sts = f.sts || {};
-  const low = num(f.lcp) || (cabins.length ? cabins[0].price : 0);
+  // low = 这班「现在真能买到的最低价」。别再直接用 lcp：
+  // 同程的 lcp 是**原价口径**（对应 cfts.ap），不是实售价（cfts.cp）。
+  // 2026-11-08 实测 CZ3101：lcp=2060、cp=1530，卡片上就会一边写「同程 ¥2060」
+  // 一边写「经济舱 ¥1530」，看着像两个不同的价。优先取舱位实售价。
+  const low = cabins.length ? cabins[0].price : num(f.lcp);
 
   return {
     no: String(f.flightNo || '').trim(),

@@ -17,9 +17,17 @@
  */
 const TMPL_ID = 'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4';
 
-// 一次 requestSubscribeMessage 可以同时勾多个模板，每个模板各 +1 次下发机会。
-// 现在后台只有这一个模板；以后加了新的，把 ID 加到数组里就行，代码不用改。
-const TMPL_IDS = [TMPL_ID];
+// 一次 requestSubscribeMessage 最多能带 5 个模板，每个模板各 +1 次下发机会。
+// 所以「5 个模板 × 一天最多补 4 次 = 20 条/天」，这是个人主体零操作能到的天花板。
+// 注意：**标题相同的模板会被微信过滤，只保留一个**，所以这里的 5 个必须标题互不相同。
+// 新增/替换模板时，云函数 index.js 的 TMPL_IDS + TMPL_MAP 要一起改，字段映射在那边。
+const TMPL_IDS = [
+  TMPL_ID, // 余票提醒
+  '9w9j3Po1BnAGkoJQj6Xfql-wcRaRbyuXccxr7plsjdI', // 演出开票提醒
+  'PB9i3a7YZGOh-kvWKZ4Ey_tB5unlgHuI6U1ng8eCeOY', // 回流票提醒
+  'V0Cau9DqnX6xpflWxF50X7mdYZKd99TdeKoaELzM55M', // 最新演出信息提醒
+  'dLZJDaUZi-1u1nSlQ2EZqYqWNlu3QjtbAcD8XUqRFnw', // 出行提醒（机票 / 火车）
+];
 
 const ON_KEY = 'radar_push_on';
 const PAUSED_KEY = 'radar_push_paused'; // 用户自己按过「暂停推送」
@@ -115,6 +123,15 @@ function renew(opt) {
         if (ok) {
           wx.removeStorageSync(REJECT_AT);
           setOn(true);
+          // 云端记账：一次授权 = 云端多一次下发机会。
+          // 不记这一笔的话云函数那边 quota 恒为 0，推送永远发不出去，
+          // 而小程序上还理直气壮显示「推送已开启」——最难查的一种错。
+          try {
+            const g = require('./api').grantSub(accepted.length);
+            if (g && g.catch) g.catch(() => {});
+          } catch (e) {
+            /* 记账失败不影响本地开关 */
+          }
         } else if (!o.silent) {
           const rejected = TMPL_IDS.some((id) => res && res[id] === 'reject');
           const why = rejected ? '你选了拒绝，所以不会收到推送' : '没开成，稍后再点一次';

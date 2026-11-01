@@ -44,7 +44,7 @@ const FAQ_LIST = [
   },
   {
     q: '点「盯」之后发生了什么？',
-    a: '云函数每 5 分钟查一次这个演出的状态并记入历史。你不用一直开着小程序，该推的时候会推。',
+    a: '云函数每分钟查一次这个演出的状态并记入历史。你不用一直开着小程序、也不用开电脑，该推的时候会推。',
   },
   {
     q: '回流票是什么？',
@@ -60,7 +60,7 @@ const FAQ_LIST = [
   },
   {
     q: '数据多久刷新？',
-    a: '监控 5 分钟一轮；首页热门每次进入刷新；搜索是实时的。',
+    a: '监控每分钟一轮（合规下限，再快就会被平台判成刷票）；首页热门每次进入刷新；搜索是实时的。',
   },
 ];
 
@@ -417,7 +417,10 @@ Page({
 
     this.setData({ adding: id });
     try {
-      saveTasks([...loadTasks(), { _id: id, adapter, name, params, enabled: true, poster: row.poster || '' }]);
+      // 同一条重复点要覆盖，不能 push 出两条同 _id 的任务
+      const list = loadTasks().filter((t) => t && t._id !== id);
+      list.push({ _id: id, adapter, name, params, enabled: true, poster: row.poster || '' });
+      saveTasks(list);
       Toast({ type: 'success', message: '已开始盯' });
       // 顺手换一条订阅额度：微信一次性订阅是「授权一次收一条」，额度只能靠
       // 用户点击时这次请求攒。这里正处在点击的调用栈里，请求才会生效。

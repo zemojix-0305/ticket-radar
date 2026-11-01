@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "van-toast": "/vant/toast/index"
+    "van-toast": "/vant/toast/index",
+    "van-dialog": "/vant/dialog/index"
   },
   "navigationBarTitleText": "我的",
   "navigationBarBackgroundColor": "#F7F7FA",

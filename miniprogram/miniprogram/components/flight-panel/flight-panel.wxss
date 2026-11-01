@@ -287,6 +287,30 @@
 .plat-low .plat-p {
   color: var(--ok);
 }
+/* 哪一天、比最低贵多少：这两行是「三家各是多少」看懂的关键 */
+.plat-d {
+  font-size: 10px;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+}
+.plat-g {
+  font-size: 10px;
+  color: var(--ink3);
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+.plat-g-best {
+  color: var(--ok);
+  background: var(--ok-weak);
+}
+/* 一句话结论：省得用户自己横着比 */
+.plat-concl {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink2);
+  padding-left: 2px;
+}
 .sec-more {
   font-size: 12px;
   color: var(--accent);

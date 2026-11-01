@@ -1,17 +1,20 @@
 // 「我的」页：推送开关 + 微信绑定 + 我们不做什么。
 //
-// openid 现在是自动绑的：小程序启动时用 wx.login 拿 code 发给服务端，服务端用
-// AppSecret 换 openid 存下来（AppSecret 绝不能打进小程序包，任何人反编译都能拿到）。
-// 下面那个手填 code 的入口只是万一自动绑定失败时的兜底，正常用不到。
+// openid 现在是全自动的：云函数每次被调用，微信都在上下文里塞好 OPENID，
+// 不需要 wx.login 换 code，也不需要 AppSecret（那玩意儿绝不能打进小程序包，
+// 任何人反编译都能拿到）。下面那个手填 code 的入口只是旧版本的兜底，正常用不到。
 const USER_KEY = 'radar_user_profile';
 
 // vant 函数式反馈（纸感主题，见 app.wxss 的 van-* 覆盖）
 import Toast from '../../vant/toast/toast';
 import Dialog from '../../vant/dialog/dialog';
-import { request, pushTest, pushStatus } from '../../utils/api';
+import { request, pushTest, pushStatus, extGet, extSet, extClear } from '../../utils/api';
 import { isOn, renew as pushRenew, off as pushOff, topUp as pushTopUp } from '../../utils/push';
 import { loadTasks } from '../../utils/tasks';
-import { loadPosts, removePost } from '../../utils/posts';
+import { TIPS } from '../../utils/notice';
+
+const NOTICE_KEY = 'home_notice_open';
+import { fetchPosts, removePost, normalizeType } from '../../utils/posts';
 
 function makeUid() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -32,6 +35,17 @@ Page({
     pushOn: false,
     authMsg: '',
     srvMsg: '',
+    // 外部提醒：企业微信机器人 / Server酱 / ntfy。不占微信额度、不限条数，
+    // 是「有变化就提醒」真正的底座（微信那条一天只有 4 条）。
+    extOpen: false,
+    extInput: '',
+    extKind: '',
+    extLabel: '',
+    extMasked: '',
+    extBusy: false,
+    // 温馨提示：和首页同一份文案（utils/notice.js），这里主要给「机票走邮箱」做解释
+    tips: TIPS,
+    tipsOpen: true,
     bindOpen: false,
     user: { uid: '', nickname: '', avatar: '' },
     editingName: false,
@@ -49,7 +63,11 @@ Page({
 
   onLoad() {
     this.refreshCode();
-    this.setData({ pushOn: isOn() });
+    this.setData({
+      pushOn: isOn(),
+      // 跟首页共用同一个开关状态：首页收起来了，这里也收起来，别两边打架
+      tipsOpen: wx.getStorageSync(NOTICE_KEY) === false ? false : true,
+    });
     this.loadUser();
     this.loadWatched();
     this.setData({
@@ -59,11 +77,23 @@ Page({
     });
   },
 
-  // --- 平台凭证 -------------------------------------------------------------
-  // 纷玩岛票档级库存、猫眼分档价格、大麦风控，都只有登录通道能给。
+  // --- 平台凭证 -------------------------------------------------------------  // 纷玩岛票档级库存、猫眼分档价格、大麦风控，都只有登录通道能给。
   // 凭证只存本机 storage，随 find/detail/poll 请求带上，服务端不落库。
   toggleCred() {
     this.setData({ credOpen: !this.data.credOpen });
+  },
+
+  /** 温馨提示展开/收起。状态与首页共用，一处收起两处都收 */
+  toggleTips() {
+    const open = !this.data.tipsOpen;
+    wx.setStorageSync(NOTICE_KEY, open);
+    this.setData({ tipsOpen: open });
+  },
+
+  /** 重看首次进入的三句话弹窗：清掉标记再跳首页。弹窗只做了一份，不在这页重复实现 */
+  replayIntro() {
+    wx.removeStorageSync('radar_intro_v1');
+    wx.switchTab({ url: '/pages/monitor/monitor' });
   },
   onFwdInput(e) { this.setData({ fwdToken: e.detail.value }); },
   onFwdTokenPendingInput(e) { this.setData({ fwdTokenPending: e.detail.value }); },
@@ -188,26 +218,47 @@ Page({
   },
 
   loadMyPosts() {
-    // 本机留言墙全量在本地 storage；发帖时带 uid 的才算本机发的（历史帖一律算）
-    const list = (loadPosts() || []).map((p) => ({
-      _id: p._id,
-      content: p.content || '',
-      type: p.type || '',
-      time: this.fmtTime(p.createdAt),
-    }));
-    this.setData({ myPosts: list });
+    // 只拉自己发的。云端按 openid 过滤，比本机 uid 判定可靠得多：
+    // 换手机、清缓存都不会把「我的帖子」弄丢。
+    fetchPosts({ mine: true, limit: 50 })
+      .then((list) => {
+        this.setData({
+          myPosts: list.map((p) => ({
+            _id: p._id,
+            content: p.content || '',
+            type: normalizeType(p.type),
+            time: this.fmtTime(p.createdAt),
+          })),
+        });
+      })
+      .catch((e) => {
+        this.setData({ myPosts: [] });
+        Toast({ message: String((e && e.message) || '拉取失败'), type: 'none' });
+      });
   },
 
   deleteMyPost(e) {
     const id = e.currentTarget.dataset.id || '';
     if (!id) return;
-    Dialog.confirm({ title: '删除这条留言', message: '删了就找不回来了，确定？' })
-      .then(() => {
-        removePost(id);
-        this.loadMyPosts();
-        Toast({ message: '已删除', type: 'success' });
-      })
-      .catch(() => {});
+    // 用原生 wx.showModal：这页此前 Dialog.confirm 弹不出来（组件没挂载），
+    // 点了等于没点。原生弹窗永远在最顶层，不会再出现「删除按钮点不动」。
+    wx.showModal({
+      title: '删除这条帖子',
+      content: '删了就找不回来了，确定？',
+      confirmText: '删除',
+      confirmColor: '#C0655A',
+      success: (r) => {
+        if (!r.confirm) return;
+        removePost(id)
+          .then(() => {
+            this.loadMyPosts();
+            Toast({ message: '已删除', type: 'success' });
+          })
+          .catch((e) => {
+            Toast({ message: String((e && e.message) || '删除失败'), type: 'none' });
+          });
+      },
+    });
   },
 
   /** 以留言墙的方式看自己的留言：带标志切到讨论区，那边 onShow 接管 */
@@ -301,6 +352,7 @@ Page({
     // 别的页面可能刚把推送开关切过（首页那条），回来对齐一下
     this.setData({ pushOn: isOn() });
     this.loadWatched();
+    this.loadExt();
     if (isOn()) this.loadSrvStatus();
   },
 
@@ -383,29 +435,132 @@ Page({
             this.setData({ authMsg: '', srvMsg: '' });
             Toast({ type: 'success', message: '已发到微信，去「服务通知」看' });
           } else {
-            const why =
-              r.error ||
-              ((r.failed && r.failed[0] && r.failed[0].error) || '发不出去，检查电脑上的服务有没有开');
+            const why = r.error || '发不出去，稍后再试';
             this.setData({ authMsg: '', srvMsg: why });
           }
         })
-        .catch(() => this.setData({ authMsg: '', srvMsg: '连不上电脑上的服务，推送发不出去' }));
+        .catch((e) =>
+          this.setData({ authMsg: '', srvMsg: String((e && e.message) || '云端连不上') })
+        );
     });
   },
 
-  // 服务端是不是真的在盯、真的能发。不查这一下，用户看到「推送已开启」
+  // ---- 外部提醒通道（企业微信机器人 / Server酱 / ntfy）------------------
+  // 微信一次性订阅是「授权一次只能发一条」，一天最多攒 4 条；个人主体又拿不到
+  // 长期订阅。所以「有变化就提醒」只能靠外面这三个。它们不占微信额度、
+  // 不限条数，绑一个地址就生效——这是整个推送方案真正的底座。
+  toggleExt() {
+    const open = !this.data.extOpen;
+    this.setData({ extOpen: open });
+    if (open) this.loadExt();
+  },
+
+  loadExt() {
+    extGet()
+      .then((res) => {
+        const r = (res && res.result) || {};
+        if (!r.ok) return;
+        // 首页要按这个判断「机票是不是还在走微信额度」，本地留一份免得每次多打一次云函数
+        wx.setStorageSync('radar_ext_kind', r.kind || '');
+        const patch = {
+          extKind: r.kind || '',
+          extLabel: r.label || '',
+          extMasked: r.masked || '',
+        };
+        // 没绑任何通道时默认展开一次：收起态只有一个标题，用户根本不知道里面能填邮箱。
+        // 只自动展开一次，之后用户自己收起了就不再强开。
+        // mine_ext_force_open 是首页「机票还在走微信额度」那条提示带过来的一次性指令。
+        if (!r.kind) {
+          const forced = wx.getStorageSync('mine_ext_force_open');
+          if (forced) wx.removeStorageSync('mine_ext_force_open');
+          if (forced || !wx.getStorageSync('radar_ext_autoshow')) {
+            wx.setStorageSync('radar_ext_autoshow', 1);
+            patch.extOpen = true;
+          }
+        } else {
+          // 已绑定时把残留标记清掉，不然下次解绑会莫名自动弹开
+          wx.removeStorageSync('mine_ext_force_open');
+        }
+        this.setData(patch);
+      })
+      .catch(() => {});
+  },
+
+  onExtInput(e) {
+    this.setData({ extInput: (e && e.detail && e.detail.value) || '' });
+  },
+
+  saveExt() {
+    const v = String(this.data.extInput || '').trim();
+    if (!v) {
+      Toast({ type: 'text', message: '先粘一个地址进来' });
+      return;
+    }
+    this.setData({ extBusy: true });
+    extSet(v)
+      .then((res) => {
+        const r = (res && res.result) || {};
+        this.setData({ extBusy: false });
+        if (!r.ok) {
+          Toast({ type: 'text', message: r.error || '没绑上' });
+          return;
+        }
+        this.setData({
+          extKind: r.kind || '',
+          extLabel: r.label || '',
+          extMasked: r.masked || '',
+          extInput: '',
+        });
+        // 云函数存完会立刻发一条测试。收到了就是真通了，不用等下一次降价验证。
+        if (r.tested) {
+          Toast({ type: 'success', message: '已绑 ' + (r.label || '') + '，测试消息已发出' });
+        } else {
+          Toast({ type: 'text', message: '已保存，但测试没发出去：' + (r.testError || '查地址') });
+        }
+        this.loadSrvStatus();
+      })
+      .catch((e) => {
+        this.setData({ extBusy: false });
+        Toast({ type: 'text', message: String((e && e.message) || '云端连不上') });
+      });
+  },
+
+  // 用原生 showModal：这页没挂 van-dialog，Dialog.confirm 会静默失败（踩过）
+  clearExt() {
+    wx.showModal({
+      title: '解绑外部提醒？',
+      content: '解绑后只剩微信订阅消息：靠打开小程序攒额度，一天最多 20 条。演出够用，机票会很紧。',
+      confirmText: '解绑',
+      confirmColor: '#c0392b',
+      success: (m) => {
+        if (!m.confirm) return;
+        extClear()
+          .then(() => {
+            wx.setStorageSync('radar_ext_kind', '');
+            this.setData({ extKind: '', extLabel: '', extMasked: '' });
+            Toast({ type: 'text', message: '已解绑' });
+            this.loadSrvStatus();
+          })
+          .catch(() => Toast({ type: 'text', message: '云端连不上' }));
+      },
+    });
+  },
+
+  // 云端是不是真的在盯、真的能发。不查这一下，用户看到「推送已开启」
   // 却永远收不到消息，还以为是自己手机的问题。
   loadSrvStatus() {
     pushStatus()
       .then((res) => {
         const r = (res && res.result) || {};
-        if (!r.ok) return this.setData({ srvMsg: '服务端没响应' });
+        if (!r.ok) return this.setData({ srvMsg: '云端没响应' });
         let msg = '';
-        if (r.wx && !r.wx.ready) msg = '微信推送没配好：缺 ' + (r.wx.missing || []).join('/');
-        else if (r.lastError && /43101/.test(r.lastError)) msg = '该续期了：微信一次授权只能收一条，点一次「恢复推送」';
-        else if (r.lastError) msg = '上次发送失败：' + r.lastError;
+        if (!r.pushOn) msg = '云端没在盯：上面的推送开关没开，开了才会一直查';
+        else if (!r.tasks) msg = '还没有监控任务，加一个才会开始盯';
+        // 绑了外部通道就不存在「额度用完」这回事了，别再吓用户
+        else if (!r.quota && !r.extKind)
+          msg = '微信额度用完了：点一次「恢复推送」会一次性补 5 条（5 个模板各 1 条）。';
         this.setData({ srvMsg: msg });
       })
-      .catch(() => this.setData({ srvMsg: '连不上电脑上的服务，推送发不出去' }));
+      .catch((e) => this.setData({ srvMsg: String((e && e.message) || '云端连不上') }));
   },
 });

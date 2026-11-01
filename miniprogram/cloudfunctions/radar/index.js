@@ -24,6 +24,30 @@ const crypto = require('crypto');
 // 机票（同程价格日历）：独立模块，免 Cookie 免签名。
 const flightSvc = require('./flight');
 
+// ---------------------------------------------------------------------------
+// 云开发运行时
+// ---------------------------------------------------------------------------
+// 这份 index.js 同时跑在三个地方：
+//   1. 微信云函数（wx-server-sdk 存在）      —— 生产
+//   2. 本地 server/api.js（用 global.cloud 顶上）—— 调试
+//   3. 本地单元测试（同上）
+// 所以不能直接 require('wx-server-sdk') 然后就用：本地没装这个包会抛
+// MODULE_NOT_FOUND，整个云函数连加载都失败（表现是所有接口一起 500）。
+// 用 try/catch 兜住，拿不到真 SDK 就退回 global.cloud 这个 mock。
+let cloud = null;
+try {
+  const sdk = require('wx-server-sdk');
+  if (sdk && typeof sdk.init === 'function') {
+    // DYNAMIC_CURRENT_ENV：跟着部署所在的云环境走，不用写死 env id。
+    // 旧版 SDK 常量叫 SYMBOL_CURRENT_ENV，两个都试一遍。
+    sdk.init({ env: sdk.DYNAMIC_CURRENT_ENV || sdk.SYMBOL_CURRENT_ENV || undefined });
+    cloud = sdk;
+  }
+} catch (e) {
+  /* 本地调试环境没有这个包，正常 */
+}
+if (!cloud) cloud = global.cloud || null;
+
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -34,10 +58,83 @@ const DB_POSTS = 'radar_posts';
 // 订阅额度云端记账：小程序端只记本地 storage 的话，云函数查不到额度，
 // 推送永远发不出去（这就是「明明有票却收不到提醒」的根因）。
 const DB_SUBS = 'radar_subs';
-// 订阅消息模板 ID——与小程序端 mine.js 的 TMPL_ID 是同一个，改记得两边改。
-// 字段（后台模板实际配置，2026-10 查证）：
-//   thing6=演出名称  thing8=场次名称  time7=放票时间  thing5=放票机构  thing4=温馨提示
-const NOTIFY_TMPL = 'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4';
+// 杂项缓存（12306 站名表这类大块静态数据），一个 key 一条文档
+const DB_CACHE = 'radar_cache';
+
+// ---------------------------------------------------------------------------
+// 集合初始化
+// ---------------------------------------------------------------------------
+// 云数据库和 MongoDB 不一样：往里写一条数据，集合不存在就直接报错
+// （errCode -502005 collection not exist），不会自动创建。
+// 用户第一次跑起来时一个集合都没有，所以每次冷启动先补一遍。
+const ALL_COLLECTIONS = [DB_TASKS, DB_STATE, DB_POSTS, DB_SUBS, DB_CACHE];
+let collectionsEnsured = false;
+
+async function ensureCollections(db) {
+  if (collectionsEnsured) return;
+  for (const name of ALL_COLLECTIONS) {
+    try {
+      await db.createCollection(name);
+    } catch (e) {
+      // 已存在 / 本地 mock 没有这个方法 / 没权限，都跳过
+    }
+  }
+  collectionsEnsured = true;
+}
+// ---- 订阅消息模板（2026-11-01 扩到 5 个）----------------------------------
+// 用户一次授权最多能勾 5 个模板，每个模板各换 1 条下发机会 → 4 次/天 × 5 = 20 条/天。
+// 微信要求 data 的 key 必须与该模板**实际定义的字段**一一对应，而各模板字段名打架
+// （thing5 在「余票提醒」是放票机构，在「回流票提醒」是价格类型），所以只能按模板 ID
+// 分别映射，绝不能按字段名猜。字段来源：/wxaapi/newtmpl/gettemplate 实测。
+const TMPL_IDS = [
+  'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4', // 余票提醒（原有）
+  '9w9j3Po1BnAGkoJQj6Xfql-wcRaRbyuXccxr7plsjdI', // 演出开票提醒
+  'PB9i3a7YZGOh-kvWKZ4Ey_tB5unlgHuI6U1ng8eCeOY', // 回流票提醒
+  'V0Cau9DqnX6xpflWxF50X7mdYZKd99TdeKoaELzM55M', // 最新演出信息提醒
+  'dLZJDaUZi-1u1nSlQ2EZqYqWNlu3QjtbAcD8XUqRFnw', // 出行提醒（机票 / 火车）
+];
+
+// 语义位 → 该模板的字段名。语义位见 tmplData() 里的 v 表。
+const TMPL_MAP = {
+  'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4': {
+    name: 'thing6', session: 'thing8', when: 'time7', org: 'thing5', tip: 'thing4',
+  },
+  '9w9j3Po1BnAGkoJQj6Xfql-wcRaRbyuXccxr7plsjdI': {
+    name: 'thing1', org: 'thing4', when: 'time2', tip: 'thing5',
+  },
+  'PB9i3a7YZGOh-kvWKZ4Ey_tB5unlgHuI6U1ng8eCeOY': {
+    name: 'thing1', session: 'thing2', org: 'thing3', tip: 'thing4', price: 'thing5',
+  },
+  'V0Cau9DqnX6xpflWxF50X7mdYZKd99TdeKoaELzM55M': {
+    name: 'thing1', when: 'time2', session: 'thing6',
+  },
+  // 出行提醒：服务名称 / 备注 / 目的地 / 出行日期 —— 这是唯一一个能好好装下
+  // 车票类信息的模板（其余全是「演出名称 + 场次」的口径，硬塞只会显示成
+  // 「演出名称：广州 → 东京」，用户根本看不懂）。
+  'dLZJDaUZi-1u1nSlQ2EZqYqWNlu3QjtbAcD8XUqRFnw': {
+    svc: 'thing1', dest: 'thing8', when: 'time2', tip: 'thing4',
+  },
+};
+
+// 模板优先级：同一类提醒有多个可用模板时，先试最贴切的那个，没授权（43101）
+// 再按 TMPL_IDS 顺序逐个退——绝不能因为第一个模板没勾上就整条消息丢掉。
+// cat 由 poll 那一侧写进 alert：机票 / 火车 = travel，其余 = show。
+const TMPL_PREF = {
+  travel: ['dLZJDaUZi-1u1nSlQ2EZqYqWNlu3QjtbAcD8XUqRFnw'],
+  show: [
+    'YnMbqU_UqlWb1eUOSMOp1RwxfGJozlrlXYtSaXFnsF4',
+    'PB9i3a7YZGOh-kvWKZ4Ey_tB5unlgHuI6U1ng8eCeOY',
+    '9w9j3Po1BnAGkoJQj6Xfql-wcRaRbyuXccxr7plsjdI',
+    'V0Cau9DqnX6xpflWxF50X7mdYZKd99TdeKoaELzM55M',
+  ],
+};
+
+/** 按提醒类别给模板排序：贴切的在前，其余的跟在后面当兜底。 */
+function tmplOrder(alert) {
+  const pref = TMPL_PREF[(alert && alert.cat) || 'show'] || [];
+  return pref.concat(TMPL_IDS.filter((id) => pref.indexOf(id) < 0));
+}
+
 const CFG_KEY = 'radar_config';
 
 // ===========================================================================
@@ -640,12 +737,28 @@ async function warmUpRail() {
   return raw.map((c) => c.split(';')[0]).join('; ');
 }
 
+// 站名表内存缓存：同一个云函数实例被反复调用时不用每次查库。
+// 冷启动后清空，所以还要往数据库里存一份（见下面 fetchStationMap）。
+let stationLatch = null;
+
 async function fetchStationMap() {
-  // 站名表很大（几千行），缓存在云存储里，一天取一次就够
-  const cached = await cloud.getStorage(CFG_KEY + '_stations');
-  if (cached && cached.ts && Date.now() - cached.ts < 86400000) {
+  // 站名表很大（几千行），一天取一次就够。以前用 cloud.getStorage 存，
+  // 那是旧版云开发 API，wx-server-sdk 里根本没有这个函数——真上云会直接
+  // 抛 TypeError。改成「实例内存 + 数据库文档」两级缓存。
+  if (stationLatch && Date.now() - stationLatch.ts < 86400000) return stationLatch.map;
+
+  let cached = null;
+  try {
+    const r = await cloud.database().collection(DB_CACHE).doc('railStations').get();
+    cached = r && r.data;
+  } catch (e) {
+    cached = null; // 文档不存在 / 没建集合，都当没缓存
+  }
+  if (cached && cached.ts && cached.map && Date.now() - cached.ts < 86400000) {
+    stationLatch = { ts: cached.ts, map: cached.map };
     return cached.map;
   }
+
   const r = await request(RAIL_STATION_JS, { headers: railHeaders(), timeout: 20000 });
   // 每段形如：bjb|北京北|VAP|beijingbei|bjb|0|0357|北京|||
   //   索引 0 = 电报码（bjb）　索引 1 = 中文站名　索引 2 = 站码（VAP）
@@ -660,7 +773,14 @@ async function fetchStationMap() {
     if (parts[2]) map[parts[2]] = parts[1];
   }
   if (Object.keys(map).length > 100) {
-    await cloud.setStorage({ key: CFG_KEY + '_stations', value: { ts: Date.now(), map: map } });
+    stationLatch = { ts: Date.now(), map: map };
+    try {
+      await cloud.database().collection(DB_CACHE).doc('railStations').set({
+        data: { ts: Date.now(), map: map },
+      });
+    } catch (e) {
+      /* 缓存写失败不影响查票 */
+    }
   }
   return map;
 }
@@ -2738,15 +2858,18 @@ async function fwdHotList(limit) {
 }
 
 /**
- * 机票航线：查同程逐日最低价，把「最低价 ≤ 你设的目标价」当成一次「有票」。
+ * 机票航线：查三家逐日最低价。机票没有「有票/无票」的概念，只有价格，
+ * 所以这里的 available 借用来表示「已经跌进用户设的心理价（params.budget）」；
+ * 真正的推送判定在 flightAlert 里，分「降价」和「到心理价」两条线。
  *
- * 为什么复用 available 字段：整套监控判的就是「某条 items 从不可用变成可用」
- * （diffRestock → 回流 → 推送）。机票没有余票这回事，但「跌到你的心理价」
- * 和「回流出一张票」对用户是同一件事——都值得喊一声。这样机票不用单开一条
- * 推送链路，monitor 页的卡片、历史曲线、筛选也全都能直接用。
+ * 为什么复用 available 字段：monitor 页的卡片标签、历史曲线、筛选都认它，
+ * 机票借它表示「已经跌进心理价」。但**推送判定不走 diffRestock**——
+ * 机票有两条独立的提醒线（降价 / 到心理价），在 flightAlert 里算，
+ * 文案也各写各的，别混成一个「回流」。
  *
  * params: { from: 'SHA', to: 'BJS', days: 30, budget: 600 }
- *   budget = 0 表示只看不提醒（记价格、画曲线，但不判「到价」）
+ *   budget = 用户心里的价位（**不是当前价**）。
+ *   budget = 0 表示不设心理价：不发「到价」消息，但「比上次便宜」照发。
  */
 async function pollFlight(params) {
   const from = String(params.from || '').toUpperCase();
@@ -2772,7 +2895,7 @@ async function pollFlight(params) {
     if (!price) throw new Error(params.flightNo + ' 这一天没有可售舱位');
     const hit = target > 0 && price <= target;
     const bits = ['¥' + price, f.dep + '-' + f.arr];
-    bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');
+    bits.push(target > 0 ? (hit ? '已到心理价 ¥' + target : '心理价 ¥' + target) : '只盯降价');
     return [
       {
         // label 必须稳定：diffRestock 靠它配对前后两轮
@@ -2805,7 +2928,7 @@ async function pollFlight(params) {
       const bits = ['¥' + p.min];
       if (own.date) bits.push(own.date.slice(5) + ' 出发');
       if (p.min === min) bits.push('全平台最低');
-      bits.push(target > 0 ? (hit ? '已到 ¥' + target : '目标 ¥' + target) : '没设目标价');
+      bits.push(target > 0 ? (hit ? '已到心理价 ¥' + target : '心理价 ¥' + target) : '只盯降价');
       return {
         // label 带平台名，**必须稳定**：diffRestock 靠 label 配对前后两轮，
         // 平台名不会随价格漂移，所以「同程降价」只会在同程那条上触发。
@@ -2948,6 +3071,134 @@ function diffRestock(prev, next) {
   return back;
 }
 
+// ---------------------------------------------------------------------------
+// 机票的两种提醒（和演出的「回流」是三条不同的语义线，别混在一个 transition 里）
+// ---------------------------------------------------------------------------
+//
+// 用户 2026-10-30 把需求说死了：
+//   ① 降价就提醒 —— 跟上一次查到的价比，便宜了就告诉我（不需要设心理价）
+//   ② 跌破心理价也提醒 —— 这个数是我心里的价位，跌进去就说
+//   ③ **两种提醒要能看出是不同的事**，所以文案分开写
+//
+// 到价优先：同一轮既降价又到价，只发到价那一条（一次性订阅一轮只够发一条），
+// 另一个信息并进正文里。
+
+/** 降价要够这个幅度才算「降价」，否则平台几十块的正常抖动会把用户吵醒 */
+const DROP_MIN_ABS = 20;      // 元
+const DROP_MIN_RATIO = 0.02;  // 2%
+
+/**
+ * 价格判定逻辑的版本号。
+ * 只要「本轮价格跟上一轮怎么比」的语义变了（比如取价口径从原价改成实售价），
+ * 就把这个号 +1——老基线是按老口径存的，直接比会凭空多出一条「暴跌」提醒。
+ * 版本号对不上时这一轮只当新基线，不判定。
+ */
+const PRICE_LOGIC_V = 2;
+
+/**
+ * 这一轮该不该提醒、提醒哪一类。
+ * 返回 null = 不提醒；否则 {kind:'target'|'drop', title, status, org, tip, page}
+ *   kind=target  第一次跌进心理价
+ *   kind=drop    比上一轮便宜（还没进心理价）
+ */
+function flightAlert(prev, rec, params, taskName) {
+  // 首轮没有基线不判定：用户刚建任务时页面上已经看见当前价了，
+  // 这时候再说「降价了」纯属噪音。
+  if (!prev || !prev.ok || !rec || !rec.ok) return null;
+  // 基线是上一版口径存的（v 缺失或不等）→ 这一轮只沉淀基线，别拿它比
+  if (Number(prev.logicV) !== PRICE_LOGIC_V) return null;
+  const budget = Number((params && params.budget) || 0) || 0;
+  // 提醒模式由用户选：both=降价和到价都要（默认）/ drop=只报降价 / target=只报到价。
+  // 老任务没有这个字段 → 走 both，跟以前行为一致，不会突然静音。
+  const mode = String((params && params.alert_mode) || 'both');
+  const wantTarget = mode !== 'drop' && budget > 0;
+  const wantDrop = mode !== 'target';
+  const before = {};
+  for (const it of prev.items || []) {
+    if (it && it.label != null) before[it.label] = Number(it.price) || 0;
+  }
+
+  let hit = null;   // 到心理价
+  let drop = null;  // 单纯降价
+  for (const it of rec.items || []) {
+    const now = Number(it.price) || 0;
+    const old = before[it.label] || 0;
+    if (!now) continue;
+
+    if (wantTarget && now <= budget && !(old > 0 && old <= budget)) {
+      // 上一轮「没有价」也算没到过，所以 old=0 时这里会命中。
+      // 多个平台同时进价内时取**最便宜**那家——三家比价的意义就在这。
+      if (!hit || now < hit.now) hit = { label: it.label, now: now, old: old, place: it.place || '', when: it.when || '' };
+      continue;
+    }
+    if (wantDrop && old > 0 && now < old) {
+      const diff = old - now;
+      if (diff >= DROP_MIN_ABS && diff / old >= DROP_MIN_RATIO) {
+        const cand = {
+          label: it.label, now: now, old: old, diff: diff,
+          pct: Math.round((diff / old) * 100),
+          place: it.place || '', when: it.when || '',
+        };
+        if (!drop || cand.diff > drop.diff) drop = cand;
+      }
+    }
+  }
+
+  const p = hit || drop;
+  if (!p) return null;
+  const isTarget = !!hit;
+  const org = p.place || '同程';
+  // 航班级任务的 name 是「广州 → 北京 · CZ3101」，航线级是「广州 → 北京 · 同程」，
+  // 两者都直接当微信第一行，不超过模板的 20 字
+  const title = String(taskName || p.label || '你盯的机票').slice(0, 20);
+
+  // 两种消息从「正文」到「温馨提示」都不一样，用户一眼能分出是降价还是到价。
+  // 模板 thing 类字段限 20 字，国际线五位数的价会把「心理价 ¥7500」这句撑爆，
+  // 所以超长时退成更短的说法，别让它被硬截成「心理价 ¥7」这种误导。
+  const full = isTarget
+    ? '现价 ¥' + p.now + ' · 心理价 ¥' + budget
+    : '¥' + p.old + '→¥' + p.now + ' · 省' + p.diff;
+  const short = isTarget
+    ? '现价 ¥' + p.now + ' 已到心理价'
+    : '¥' + p.now + ' 比上次便宜';
+  const status = full.length <= 20 ? full : short;
+
+  let tip;
+  if (isTarget) {
+    tip = '已跌进你的心理价，可以下手了';
+  } else if (budget > 0) {
+    tip = '比上次便宜，还没到你的心理价';
+  } else {
+    tip = '比上次便宜了，去官方渠道看看';
+  }
+
+  return {
+    kind: isTarget ? 'target' : 'drop',
+    // chan=mail：机票走邮件通道（省微信额度给演出）。绑了邮箱的用户，
+    // sendAlert 发完邮件就不再扣微信额度；没绑则照旧走微信。
+    chan: 'mail',
+    // cat=travel：微信兜底时优先用「出行提醒」模板（目的地 / 出行日期各占一格），
+    // 而不是硬塞进「演出名称」。见 TMPL_PREF。
+    cat: 'travel',
+    title: title,
+    status: status.slice(0, 20),
+    org: org,
+    tip: tip.slice(0, 20),
+    when: p.when,
+    // 新模板的语义位：航班没有「场馆」，place 放平台名；price 单独给一个
+    session: status.slice(0, 20),
+    place: org,
+    price: '¥' + p.now,
+    alertMode: mode,
+    // 任务名形如「广州 → 东京 · 同程」/「广州 → 东京 · CZ3101」，
+    // 取箭头右边、平台名左边那段当目的地；取不到就交给 tmplData 兜底
+    dest: (String(title).split('→')[1] || '').split('·')[0].trim().slice(0, 20),
+    svc: ('机票盯价 · ' + org).slice(0, 20),
+    page: 'pages/monitor/monitor',
+  };
+}
+
+
 /** 给某个 openid 扣一次订阅额度。扣成功（有额度）返回 true。 */
 async function takeSubQuota(db, openid) {
   const { data } = await db.collection(DB_SUBS).where({ openid: openid }).limit(1).get();
@@ -2955,6 +3206,14 @@ async function takeSubQuota(db, openid) {
   if (!sub || !(sub.quota > 0)) return false;
   await db.collection(DB_SUBS).doc(sub._id).update({ data: { quota: sub.quota - 1 } });
   return true;
+}
+
+/** 发失败时把刚扣的额度还回去——用户不该为一次没发出去的消息买单 */
+async function addSubQuota(db, openid, n) {
+  const { data } = await db.collection(DB_SUBS).where({ openid: openid }).limit(1).get();
+  const sub = (data || [])[0];
+  if (!sub) return;
+  await db.collection(DB_SUBS).doc(sub._id).update({ data: { quota: (sub.quota || 0) + n } });
 }
 
 // ===========================================================================
@@ -3028,6 +3287,631 @@ function extractPriceMin(priceStr) {
 // 入口
 // ===========================================================================
 
+// ===========================================================================
+// 定时盯票（云函数版的 server/watcher.js）
+// ===========================================================================
+// 本地版靠 setInterval 常驻进程，云函数没有常驻能力，只能由定时触发器
+// 每分钟叫醒一次。于是三件事必须换做法：
+//   1. 任务不再从内存拿，从 DB_TASKS 读（小程序 pushSync 上来的）
+//   2. 基线不存文件，poll 自己会写进 DB_STATE（doc id = 任务 id 的哈希）
+//   3. 一轮只能查有限个任务，否则撞上 20 秒执行上限 → 按用户 + 任务双轮转
+
+/** 单次触发最多处理几个用户。剩下的下一分钟再查，靠 lastWatchAt 排公平。 */
+const WATCH_MAX_USERS = 3;
+/** 每个用户单次最多查几个任务（任务多时按 cursor 轮着来） */
+const WATCH_MAX_TASKS = 6;
+/** 降价提醒冷却：平台几十块的抖动不该把人吵醒 */
+const COOL_DROP = 10 * 60 * 1000;
+/** 到心理价冷却：价格会在心理价上下反复穿线，不挡会把额度瞬间烧光 */
+const COOL_TARGET = 6 * 60 * 60 * 1000;
+/** 演出回流票冷却 */
+const COOL_RESTOCK = 10 * 60 * 1000;
+
+function shortHash(s) {
+  return crypto.createHash('md5').update(String(s)).digest('hex').slice(0, 24);
+}
+
+/**
+ * 格式化成北京时间 yyyy-MM-dd HH:mm:ss。
+ * 云函数运行环境的 TZ 是 UTC，直接 toLocaleString 会差 8 小时，
+ * 用户在通知里看到的时间会莫名其妙早半天。
+ */
+function fmtTimeCST() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  const p = (n) => (n < 10 ? '0' + n : '' + n);
+  return (
+    d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) + ' ' +
+    p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':' + p(d.getUTCSeconds())
+  );
+}
+
+/**
+ * time 类型字段只吃 `yyyy-MM-dd HH:mm:ss`。平台给的场次时间是
+ * 「2026-11-07 周六 19:00」这种带星期的串，直接塞会 47003（字段格式错误），
+ * 所以能抽出年月日时分的就规整，抽不出就退回当前时间。
+ */
+function normTime(s) {
+  const str = String(s || '').trim();
+  // 只有日期（机票 / 火车的出行日期就是这种）→ 补 00:00:00。
+  // 别退回「当前时间」：那会把「出行日期」显示成推送时刻，比空着更误导。
+  const dOnly = str.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
+  if (dOnly) {
+    const p0 = (n) => (String(n).length < 2 ? '0' + n : String(n));
+    return dOnly[1] + '-' + p0(dOnly[2]) + '-' + p0(dOnly[3]) + ' 00:00:00';
+  }
+  // 中间可能夹「周六」「（周五）」这类中文，用 [^\d] 放行；但别贪太多，防止把
+  // 别的数字误当小时（比如「2026-11-07 场次3 19:00」中间的 3）。
+  const m = str.match(/(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?[^\d]{0,8}(\d{1,2})[:：](\d{2})/);
+  if (!m) return fmtTimeCST();
+  const p = (n) => (String(n).length < 2 ? '0' + n : String(n));
+  return m[1] + '-' + p(m[2]) + '-' + p(m[3]) + ' ' + p(m[4]) + ':' + m[5] + ':00';
+}
+
+/**
+ * 按模板 ID 把一条 alert 摊成该模板要的 data。
+ * 语义位固定这几个，模板没有的字段自动跳过：
+ *   name 项目名（演出名 / 航线） · session 场次或票档 · when 时间
+ *   org 平台名 · tip 提示语 · place 场馆 · price 价格
+ * thing 类字段限 20 字，超了微信直接报错，必须在这里截断。
+ */
+function tmplData(id, a) {
+  const map = TMPL_MAP[id] || TMPL_MAP[TMPL_IDS[0]];
+  const v = {
+    name: a.title || '你盯的项目',
+    session: a.session || a.status || '有变化',
+    when: a.when || '',
+    org: a.org || 'ticket-radar',
+    tip: a.tip || '有变化，点开看看',
+    place: a.place || a.org || '线上',
+    price: a.price || a.status || '',
+    // 出行提醒专用两格：服务名称写成「机票盯价 · 同程」，目的地单独一格。
+    // 车票类没有这两格就只能塞进「演出名称」，那才是真的看不懂。
+    svc: a.svc || (a.cat === 'travel' ? '出行盯价 · ' + (a.org || '') : '票务盯票'),
+    dest: a.dest || a.place || a.org || '—',
+  };
+  const out = {};
+  for (const k of Object.keys(map)) {
+    const f = map[k];
+    const raw = String(v[k] == null ? '' : v[k]);
+    // thing 类不能为空，空了微信拒收
+    out[f] = { value: f.slice(0, 4) === 'time' ? normTime(raw) : raw.slice(0, 20) || '—' };
+  }
+  return out;
+}
+
+// ===========================================================================
+// 外部推送通道（企业微信机器人 / Server酱 / ntfy）
+// ===========================================================================
+// 为什么要有这一层：微信一次性订阅是「授权一次 = 只能发一条」，个人主体又
+// 拿不到长期订阅（只对企业主体+民生类目开放）。所以真正能做到「有变化就提醒」
+// 的只能是外面这几种通道。
+//
+// 关键约定：**外部通道不占微信额度**。微信那条发不出去（额度用完）时，
+// 这里照发——两条腿走路，任何一条断了提醒都还在。
+//
+// 三种都是纯 HTTP POST，不引第三方包：云函数冷启动本来就慢，能不加依赖就不加。
+// 用户只要在「我的 → 外部提醒」里粘一个地址，云函数自己认格式。
+const EXT_LABELS = { wecom: '企业微信机器人', sct: 'Server酱', ntfy: 'ntfy', pushplus: 'PushPlus', mail: '邮件' };
+
+/** 宽松解析 JSON，失败给 null。推送通道回的都是小 JSON，不值得为它写一套容错。 */
+function tryJson(s) {
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 把用户粘进来的东西认成 {kind, target}。认不出返回 null。
+ *
+ * 认的顺序有讲究：企业微信和 Server酱 都是"完整 URL"，必须先匹配掉，
+ * 否则会被 ntfy 那条「任意 http 地址」的通吃规则抢走。
+ */
+function parseExt(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+
+  // 邮箱：必须是「有 @ 有域名」的裸地址。放最前面认——最后那条 PushPlus 兜底
+  // 规则是「长得像 token 就认」，宽松得会把残缺地址也吞掉。
+  if (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(s)) {
+    return { kind: 'mail', target: s.toLowerCase() };
+  }
+
+  // 企业微信机器人：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
+  if (/qyapi\.weixin\.qq\.com\/cgi-bin\/webhook\/send/i.test(s)) {
+    const k = (s.match(/[?&]key=([^&\s]+)/) || [])[1] || '';
+    return k ? { kind: 'wecom', target: k } : null;
+  }
+
+  // Server酱：SCT 开头的 SendKey，或者完整地址 sctapi.ftqq.com/<key>.send
+  const sct =
+    s.match(/sctapi\.ftqq\.com\/([A-Za-z0-9]+)\.send/i) ||
+    s.match(/^(SCT[A-Za-z0-9_-]+)$/);
+  if (sct) return { kind: 'sct', target: sct[1] };
+
+  // ntfy：任意 http(s) 地址（含自建服务器）。纯邮箱地址不在此列。
+  if (/^https?:\/\/[^\s/]+\/\S+/i.test(s) && s.indexOf('@') < 0) {
+    return { kind: 'ntfy', target: s.replace(/\/+$/, '') };
+  }
+
+  // PushPlus：一串没有前缀的 token（32 位十六进制）。免费额度 200 条/天，
+  // 是这几家里最宽松的，所以放在最后兜——只要长得像 token 就认它。
+  if (/^[A-Za-z0-9]{20,64}$/.test(s)) {
+    return { kind: 'pushplus', target: s };
+  }
+  return null;
+}
+
+/** 外部通道的标题：把「降价」和「到心理价」在推送栏里就分开，不用点进去看 */
+function extTitle(alert) {
+  const t = String((alert && alert.title) || '票盯提醒');
+  const k = alert && alert.kind;
+  if (k === 'target') return '【到心理价】' + t;
+  if (k === 'drop') return '【降价】' + t;
+  if (k === 'test') return '【测试】' + t;
+  return t;
+}
+
+function extBody(alert) {
+  const lines = [];
+  if (alert && alert.status) lines.push(String(alert.status));
+  if (alert && alert.tip) lines.push(String(alert.tip));
+  lines.push('时间 ' + fmtTimeCST());
+  return lines.join('\n');
+}
+
+async function sendWecom(key, alert) {
+  const body = JSON.stringify({
+    msgtype: 'text',
+    text: { content: extTitle(alert) + '\n' + extBody(alert) },
+  });
+  const r = await request(
+    'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=' + encodeURIComponent(key),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+      },
+      body: body,
+      timeout: 8000,
+    },
+  );
+  const j = tryJson(r.body) || {};
+  if (r.status !== 200 || (j.errcode && j.errcode !== 0)) {
+    throw new Error('企业微信 ' + (j.errmsg || ('HTTP ' + r.status)));
+  }
+  return true;
+}
+
+async function sendSct(key, alert) {
+  const form =
+    'title=' + encodeURIComponent(extTitle(alert)) +
+    '&desp=' + encodeURIComponent(extBody(alert));
+  const r = await request('https://sctapi.ftqq.com/' + encodeURIComponent(key) + '.send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+      'Content-Length': Buffer.byteLength(form),
+    },
+    body: form,
+    timeout: 8000,
+  });
+  const j = tryJson(r.body) || {};
+  if (r.status !== 200 || (j.code && j.code !== 0)) {
+    throw new Error('Server酱 ' + (j.message || ('HTTP ' + r.status)));
+  }
+  return true;
+}
+
+async function sendNtfy(base, alert) {
+  // 标题必须走 query 参数：ntfy 的 Title 请求头只收 ASCII，
+  // 中文塞进 header 会被 Node 的 http 模块直接拒掉（ERR_INVALID_CHAR）。
+  const url = base + '?title=' + encodeURIComponent(extTitle(alert)) + '&tags=incoming_envelope';
+  const body = Buffer.from(extBody(alert), 'utf8');
+  const r = await request(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Length': body.length,
+    },
+    body: body,
+    timeout: 8000,
+  });
+  if (r.status < 200 || r.status >= 300) {
+    throw new Error('ntfy HTTP ' + r.status);
+  }
+  return true;
+}
+
+async function sendPushplus(token, alert) {
+  const body = JSON.stringify({
+    token: token,
+    title: extTitle(alert),
+    content: extBody(alert).replace(/\n/g, '<br/>'),
+    template: 'html',
+  });
+  const r = await request('https://www.pushplus.plus/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Length': Buffer.byteLength(body),
+    },
+    body: body,
+    timeout: 8000,
+  });
+  const j = tryJson(r.body) || {};
+  if (r.status !== 200 || (j.code && j.code !== 200)) {
+    throw new Error('PushPlus ' + (j.msg || ('HTTP ' + r.status)));
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// 邮件通道（机票专用）
+// ---------------------------------------------------------------------------
+// 为什么单独给机票开一条：微信一次授权只能发一条，额度得全省给演唱会回流票；
+// 机票降价是慢变量，晚 1~2 分钟知道完全无所谓，扔进邮箱正好。
+//
+// 发件账号有两个来源，先环境变量后 secret.js：
+//   1) 控制台「函数配置 → 环境变量」配 SMTP_USER / SMTP_PASS（推荐，不进代码包）
+//   2) 同目录 secret.js 里写 module.exports = { SMTP_USER, SMTP_PASS, SMTP_HOST }
+//      ——开发者工具内嵌控制台不一定给改环境变量，这是给那条路兜底的。
+//      secret.js 在 .gitignore 里，不会进仓库；但会随云函数上传到云环境。
+//   SMTP_HOST 可选，默认按域名推（smtp.126.com / smtp.qq.com / smtp.163.com）
+//
+// nodemailer 用 try/catch 引：依赖没装成（云端安装依赖失败）时不能让整个云函数崩，
+// 退回「没配邮件」的状态，机票提醒会自动回落到微信那条。
+let _mailer; // undefined=没试过；null=配置不全/依赖缺失；其它=transport
+
+/** 配置来源：环境变量优先，其次同目录 secret.js。缺任何一项都返回 null。 */
+function smtpCfg() {
+  let user = String(process.env.SMTP_USER || '').trim();
+  let pass = String(process.env.SMTP_PASS || '').trim();
+  let host = String(process.env.SMTP_HOST || '').trim();
+  let port = String(process.env.SMTP_PORT || '').trim();
+  if (!user || !pass) {
+    try {
+      const s = require('./secret.js') || {};
+      user = user || String(s.SMTP_USER || '').trim();
+      pass = pass || String(s.SMTP_PASS || '').trim();
+      host = host || String(s.SMTP_HOST || '').trim();
+      port = port || String(s.SMTP_PORT || '').trim();
+    } catch (e) {
+      /* 没有 secret.js 是最常见的情况，不是错 */
+    }
+  }
+  if (!user || !pass) return null;
+  return { user: user, pass: pass, host: host, port: port };
+}
+
+function mailer() {
+  if (_mailer !== undefined) return _mailer;
+  const cfg = smtpCfg();
+  if (!cfg) {
+    _mailer = null;
+    return null;
+  }
+  let nodemailer;
+  try {
+    nodemailer = require('nodemailer');
+  } catch (e) {
+    _mailer = null;
+    return null;
+  }
+  const host = cfg.host || 'smtp.' + cfg.user.split('@')[1];
+  const port = Number(cfg.port || 465);
+  _mailer = nodemailer.createTransport({
+    host: host,
+    port: port,
+    // 465 是「连上就 TLS」，587/其它是「明文起手再升级」，判断错了会一直握手失败
+    secure: port === 465,
+    auth: { user: cfg.user, pass: cfg.pass },
+    // 云函数总超时 60s，这里留够余量又不至于卡到把整轮盯票拖垮
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 12000,
+  });
+  return _mailer;
+}
+
+function mailHtml(alert) {
+  const esc = (s) =>
+    String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  const rows = [
+    ['项目', alert && alert.title],
+    ['情况', alert && alert.status],
+    ['来源', alert && alert.org],
+    ['建议', alert && alert.tip],
+    ['时间', fmtTimeCST()],
+  ].filter((r) => r[1]);
+  return (
+    '<div style="font:15px/1.7 -apple-system,BlinkMacSystemFont,\'PingFang SC\',sans-serif;color:#222;max-width:520px">' +
+    '<h2 style="font-size:17px;margin:0 0 12px">' + esc(extTitle(alert)) + '</h2>' +
+    '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse">' +
+    rows
+      .map(
+        (r) =>
+          '<tr><td style="color:#888;padding:2px 14px 2px 0;vertical-align:top">' +
+          esc(r[0]) + '</td><td style="padding:2px 0">' + esc(r[1]) + '</td></tr>'
+      )
+      .join('') +
+    '</table>' +
+    '<p style="color:#999;font-size:12px;margin-top:18px">票盯 · 自动提醒，请勿回复</p>' +
+    '</div>'
+  );
+}
+
+async function sendMail(to, alert) {
+  const t = mailer();
+  const cfg = smtpCfg();
+  if (!t || !cfg) throw new Error('邮件通道没配（缺 SMTP_USER / SMTP_PASS）');
+  await t.sendMail({
+    // from 必须等于登录账号：126/163 会用登录名覆盖伪造的 from，写别的反而可能被判垃圾邮件
+    from: '"票盯提醒" <' + cfg.user + '>',
+    to: to,
+    subject: extTitle(alert),
+    text: extBody(alert),
+    html: mailHtml(alert),
+  });
+  return true;
+}
+
+/** 只留头尾，页面上不回显完整凭证（webhook key 泄露 = 别人能往你手机推垃圾） */function maskTarget(t) {  const s = String(t || '');
+  if (s.length <= 12) return s.slice(0, 4) + '****';
+  return s.slice(0, 8) + '****' + s.slice(-4);
+}
+
+/** upsert 一条 subs 记录。extSet 和 grantSub 都会用到，避免各写一份。 */
+async function saveSub(db, openid, patch) {
+  const nowIso = new Date().toISOString();
+  const { data } = await db.collection(DB_SUBS).where({ openid: openid }).limit(1).get();
+  if (data && data.length) {
+    await db.collection(DB_SUBS).doc(data[0]._id).update({
+      data: Object.assign({ updatedAt: nowIso }, patch),
+    });
+    return data[0].quota || 0;
+  }
+  await db.collection(DB_SUBS).add({
+    data: Object.assign({ openid: openid, quota: 0, updatedAt: nowIso }, patch),
+  });
+  return 0;
+}
+
+/** 读某个用户绑的外部通道。没绑返回 null。 */
+async function getExt(db, openid) {  try {
+    const { data } = await db.collection(DB_SUBS).where({ openid: openid }).limit(1).get();
+    const row = (data || [])[0] || {};
+    const ext = row.ext || null;
+    if (!ext || !ext.kind || !ext.target) return null;
+    return ext;
+  } catch (e) {
+    return null; // 集合没建 / 读失败都当没绑，不能因此把微信那条也拦了
+  }
+}
+
+/**
+ * 发外部通道。返回 [{kind, ok, error}]。
+ * 永远不抛：外部通道挂了不能连累微信那条，反过来也一样。
+ */
+async function sendExternal(db, openid, alert) {
+  const ext = await getExt(db, openid);
+  if (!ext) return [];
+  // 邮件是机票专用通道：演出类提醒不往邮箱发，否则邮箱就变成第二个骚扰源，
+  // 而且用户绑邮箱的本意就是「把机票挪出微信额度」，不是「所有提醒再来一份」。
+  if (ext.kind === 'mail' && !(alert && alert.chan === 'mail')) return [];
+  try {
+    if (ext.kind === 'wecom') await sendWecom(ext.target, alert);
+    else if (ext.kind === 'sct') await sendSct(ext.target, alert);
+    else if (ext.kind === 'ntfy') await sendNtfy(ext.target, alert);
+    else if (ext.kind === 'pushplus') await sendPushplus(ext.target, alert);
+    else if (ext.kind === 'mail') await sendMail(ext.target, alert);
+    else return [];
+    return [{ kind: ext.kind, ok: true }];
+  } catch (e) {
+    return [{ kind: ext.kind, ok: false, error: String((e && e.message) || e) }];
+  }
+}
+
+/**
+ * 发一条提醒 = 外部通道 + 微信订阅消息，两条路互不干扰。
+ *
+ * noQuota=true 时不扣微信额度——测试消息要是扣掉用户唯一那一份额度，
+ * 他会以为「点了就没了」，然后永远不开推送。
+ *
+ * 返回 {wx, ext}。只有**两条路都失败**才 throw，这样配了外部通道的用户
+ * 不会再因为「微信额度用完」而漏掉提醒——那正是这次改动的全部意义。
+ */
+async function sendAlert(openid, alert, db, noQuota) {
+  const out = { wx: 'skip', ext: [] };
+
+  // 先发外部通道：它不占额度、响应快，微信那条挂了它是唯一指望
+  try {
+    out.ext = await sendExternal(db, openid, alert);
+  } catch (e) {
+    out.ext = [{ kind: 'unknown', ok: false, error: String((e && e.message) || e) }];
+  }
+  const extOk = out.ext.some((x) => x.ok);
+
+  // 分流：机票绑了邮箱且邮件已经发出去了，就不再动微信额度——微信那 4 条
+  // 要全留给演唱会回流票，那才是真正需要秒到、且一天可能响好几次的场景。
+  // 邮件失败则不在这里返回，继续走下面的微信兜底，绝不因为邮件挂了而丢消息。
+  if (alert && alert.chan === 'mail' && out.ext.some((x) => x.kind === 'mail' && x.ok)) {
+    out.wx = 'skip';
+    return out;
+  }
+
+  let wxErr = '';
+  try {
+    if (!noQuota && !(await takeSubQuota(db, openid))) {
+      out.wx = 'no_quota';
+    } else {
+      // 逐个模板试。用户不一定 5 个都授权了（同标题的会被微信过滤掉一个），
+      // 没授权的模板会回 43101，换下一个就行——不能因为第一个发不出去就整条丢失。
+      // 顺序按类别排（见 TMPL_PREF）：车票先试「出行提醒」，演出先试「余票提醒」。
+      let sentId = '';
+      let lastErr = null;
+      for (const id of tmplOrder(alert)) {
+        try {
+          await cloud.openapi.subscribeMessage.send({
+            touser: openid,
+            templateId: id,
+            page: (alert && alert.page) || 'pages/monitor/monitor',
+            data: tmplData(id, alert || {}),
+          });
+          sentId = id;
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (sentId) {
+        out.wx = 'ok';
+        out.tmpl = sentId;
+      } else {
+        if (!noQuota) await addSubQuota(db, openid, 1).catch(() => {});
+        throw lastErr || new Error('5 个模板都没发出去');
+      }
+    }
+  } catch (e) {
+    out.wx = 'fail';
+    wxErr = String((e && e.errMsg) || (e && e.message) || e);
+  }
+
+  if (out.wx !== 'ok' && !extOk) {
+    const e = new Error(
+      wxErr || (out.wx === 'no_quota' ? '微信额度用完，且没绑外部提醒' : '推送失败'),
+    );
+    e.errMsg = e.message;
+    throw e;
+  }
+  return out;
+}
+
+/**
+ * 跑一轮：读任务 → 轮询 → 判定 → 按冷却发订阅消息 → 写回基线。
+ * 返回的统计会打进云函数日志，出问题时在控制台能直接看到。
+ */
+async function runWatch(db, opts) {
+  const t0 = Date.now();
+  const stat = { users: 0, tasks: 0, pushed: 0, cooled: 0, failed: 0, errors: [] };
+
+  let owners = [];
+  try {
+    const r = await db.collection(DB_TASKS).where({ pushOn: true }).limit(50).get();
+    owners = (r.data || []).filter(
+      (o) => o && o.openid && Array.isArray(o.tasks) && o.tasks.length
+    );
+  } catch (e) {
+    return { ok: false, error: '读任务失败：' + String((e && e.message) || e) };
+  }
+  if (opts && opts.openid) owners = owners.filter((o) => o.openid === opts.openid);
+  if (!owners.length) return Object.assign({ ok: true, ms: Date.now() - t0 }, stat);
+
+  // 最久没查过的先查：用户数超过单次容量时，谁都不会被饿死
+  owners.sort((a, b) => Number(a.lastWatchAt || 0) - Number(b.lastWatchAt || 0));
+
+  for (const owner of owners.slice(0, WATCH_MAX_USERS)) {
+    const openid = owner.openid;
+    const list = owner.tasks;
+    const cursor = Math.abs(Number(owner.cursor) || 0) % list.length;
+
+    const batch = [];
+    for (let i = 0; i < Math.min(WATCH_MAX_TASKS, list.length); i++) {
+      batch.push(list[(cursor + i) % list.length]);
+    }
+    const nextCursor = (cursor + batch.length) % list.length;
+
+    // 任务 _id 会跨用户重名（两个人都盯同一场），而 poll 拿 _id 当基线文档
+    // 的键。不隔离的话，B 的基线会覆盖 A 的，两个人的「降价」判定全乱。
+    // 顺带把 _openid 置空：poll 里那段「有 alert 就自己发」的旧逻辑不生效，
+    // 冷却和扣额度统一在下面处理，否则同一张票会被连推好几条。
+    const scoped = batch
+      .filter((t) => t && t._id && t.enabled !== false && PLATFORMS[t.adapter])
+      .map((t) =>
+        Object.assign({}, t, {
+          _id: 'w' + shortHash(openid + '|' + t._id),
+          _openid: '',
+        })
+      );
+
+    if (scoped.length) {
+      let out = null;
+      try {
+        // 注意：这里不传 damaiCookie / fwdToken / myToken。
+        // 项目的底线是「不把用户登录凭证存进云库」，所以定时器只走匿名通道
+        // （大麦详情/热卖榜、猫眼场次、摩天轮、12306、机票全都匿名可用）。
+        // 需要登录态才拿得到的票档级库存，等用户自己打开小程序刷新时才查——
+        // 那是前端 poll 走本地凭证，和这里无关。
+        out = await handleAction({ action: 'poll', tasks: scoped }, 'poll', db);
+      } catch (e) {
+        stat.errors.push('poll: ' + String((e && e.message) || e));
+      }
+      const results = (out && out.results) || [];
+      stat.users++;
+      stat.tasks += results.length;
+
+      const coolId = 'cool_' + shortHash(openid);
+      let pushLog = {};
+      try {
+        const d = await db.collection(DB_STATE).doc(coolId).get();
+        pushLog = (d && d.data && d.data.log) || {};
+      } catch (e) {
+        pushLog = {}; // 没推过，正常
+      }
+
+      for (const r of results) {
+        const full = r.full || r;
+        const alert = (full && full.alert) || r.alert;
+        if (!alert) continue;
+
+        const kind = alert.kind || 'restock';
+        const cool =
+          kind === 'target' ? COOL_TARGET : kind === 'restock' ? COOL_RESTOCK : COOL_DROP;
+        const key = r._id + ':' + kind;
+        if (Date.now() - Number(pushLog[key] || 0) < cool) {
+          stat.cooled++;
+          continue;
+        }
+        try {
+          await sendAlert(openid, alert, db, false);
+          pushLog[key] = Date.now();
+          stat.pushed++;
+        } catch (e) {
+          stat.failed++;
+          stat.errors.push(String((e && e.errMsg) || (e && e.message) || e));
+        }
+      }
+
+      // 清掉一天前的冷却记录，别让这条文档一直变长
+      const cut = Date.now() - 24 * 3600 * 1000;
+      for (const k of Object.keys(pushLog)) {
+        if (Number(pushLog[k]) < cut) delete pushLog[k];
+      }
+      try {
+        await db.collection(DB_STATE).doc(coolId).set({ data: { log: pushLog, at: Date.now() } });
+      } catch (e) {
+        /* 冷却表写失败只会多推一条，不致命 */
+      }
+    }
+
+    try {
+      await db.collection(DB_TASKS).doc(owner._id).update({
+        data: { cursor: nextCursor, lastWatchAt: Date.now() },
+      });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  stat.errors = stat.errors.slice(0, 5);
+  return Object.assign({ ok: true, ms: Date.now() - t0 }, stat);
+}
+
 // 主逻辑（原 exports.main 主体）。海报 URL 的规范化在新 exports.main
 // 的出口统一做，各 adapter 只管把平台返回的字段掏出来。
 async function handleAction(event, action, db) {
@@ -3099,6 +3983,8 @@ async function handleAction(event, action, db) {
           _id: task._id, platform: task.adapter, name: task.name || task._id,
           // 海报 URL 建任务时存在 radar_tasks 里，这里透传给前端渲染监控卡缩略图
           poster: task.poster || '',
+          // 这一轮的取价/判定口径版本，下一轮比价前先核对（见 PRICE_LOGIC_V）
+          logicV: PRICE_LOGIC_V,
           checked_at: now, ok: false, error: '', error_kind: '', items: [],
         };
         if (!fn) {
@@ -3142,11 +4028,50 @@ async function handleAction(event, action, db) {
           }
         }
 
-        // 回流判定：无 → 有 的场次
-        const back = diffRestock(prev, rec);
-        if (back.length) {
-          rec.transition = 'restock';
-          rec.restock = back;
+        // ---- 本轮要不要提醒 ----
+        // 演出：无票 → 有票（回流）。
+        // 机票：不是「有没有票」而是「价格」，两种提醒分开算（见 flightAlert）。
+        rec.alert = null;
+        if (task.adapter === 'flight') {
+          rec.alert = flightAlert(prev, rec, task.params, rec.name);
+          if (rec.alert) rec.transition = rec.alert.kind === 'target' ? 'target' : 'priceDrop';
+        } else {
+          const back = diffRestock(prev, rec);
+          if (back.length) {
+            rec.transition = 'restock';
+            rec.restock = back;
+            const backItems = (rec.items || []).filter((i) => i && back.indexOf(i.label) >= 0);
+            // 余票张数只有猫眼登录通道给得准（item.count），其余平台恒 0。
+            // 拿不到张数就退回档位数——都比原来那句固定话术有信息量。
+            const stock = backItems.reduce((s, i) => s + (Number(i.count) || 0), 0);
+            const tipTxt =
+              stock > 0 ? '剩 ' + stock + ' 张，尽快下单' : backItems.length + ' 个档位有票了';
+            const hit = backItems[0] || {};
+            const isTravel = task.adapter === 'rail12306';
+            const destCn = (String(rec.name || '').split('→')[1] || '')
+              .split('·')[0]
+              .trim()
+              .slice(0, 20);
+            rec.alert = {
+              kind: 'restock',
+              // 火车票和演出共用这条回流判定，但模板口径完全不同：
+              // 车票走「出行提醒」（目的地 / 出行日期），演出走「余票提醒」（场次）
+              cat: isTravel ? 'travel' : 'show',
+              title: String(rec.name || '你盯的项目').slice(0, 20),
+              // 用**本次回流**的那一档，不是本轮所有可购里的第一个（后者可能早就可购）
+              status: String(hit.label || back[0] || '有票了').slice(0, 20),
+              org: LABEL_CN[task.adapter] || task.adapter,
+              tip: tipTxt.slice(0, 20),
+              // 下面三个是给新模板用的（各模板字段名不同，见 TMPL_MAP）
+              session: String(hit.label || back[0] || '').slice(0, 20),
+              when: hit.when || '',
+              place: hit.place || '',
+              price: hit.price != null ? '¥' + hit.price : '',
+              dest: destCn,
+              svc: (isTravel ? '火车票盯票 · ' : '票务盯票 · ') + (LABEL_CN[task.adapter] || ''),
+              page: 'pages/monitor/monitor',
+            };
+          }
         }
 
         // history 从上一轮接续（旧实现每次都是新对象，曲线永远只有一根柱——bug）
@@ -3154,49 +4079,35 @@ async function handleAction(event, action, db) {
         if (rec.ok) history = history.concat([{ t: now, n: rec.available || 0 }]).slice(-30);
         rec.history = history;
 
-        // 回流推送：一次性订阅，发一条扣一条额度
+        // 推送：外部通道 + 微信订阅消息，统一走 sendAlert。
+        // 不再直接 subscribeMessage.send —— 那样绑了企业微信/Server酱的用户
+        // 在微信额度用完后会静默漏掉提醒，而他们本来不缺额度。
         rec.notify = null;
-        if (rec.transition === 'restock' && task._openid) {
-          rec.notify = { attempted: true, sent: false };
+        if (rec.alert && task._openid) {
+          rec.notify = { attempted: true, sent: false, kind: rec.alert.kind };
           try {
-            if (await takeSubQuota(db, task._openid)) {
-              const first = (rec.items || []).find((i) => i.available) || {};
-              // 模板字段以小程序后台实际配置为准；thing 类字段限 20 字
-              await cloud.openapi.subscribeMessage.send({
-                touser: task._openid,
-                templateId: NOTIFY_TMPL,
-                page: 'pages/monitor/monitor',
-                data: {
-                  thing6: { value: String(rec.name || '你盯的项目').slice(0, 20) },
-                  // 机票没有「场次」，这里放价格摘要（「最低 ¥520 · 10-31 出发」）
-                  thing8: {
-                    value: String(
-                      task.adapter === 'flight' ? first.status || '已到目标价' : first.label || '有票了',
-                    ).slice(0, 20),
-                  },
-                  time7: { value: new Date().toLocaleString('zh-CN', { hour12: false }) },
-                  thing5: { value: String(LABEL_CN[task.adapter] || task.adapter).slice(0, 20) },
-                  thing4: {
-                    value:
-                      task.adapter === 'flight'
-                        ? '已跌到你的目标价，去同程下单'
-                        : '回流票出现，尽快去官方渠道下单',
-                  },
-                },
-              });
-              rec.notify.sent = true;
-            } else {
-              rec.notify.reason = 'no_quota';
-            }
+            const nr = await sendAlert(task._openid, rec.alert, db, false);
+            rec.notify.wx = nr.wx;
+            rec.notify.ext = nr.ext;
+            rec.notify.sent = nr.wx === 'ok' || nr.ext.some((x) => x.ok);
+            if (!rec.notify.sent) rec.notify.reason = 'no_quota';
           } catch (e) {
             rec.notify.error = String((e && e.errMsg) || (e && e.message) || e);
           }
         }
 
-        await db.collection(DB_STATE).doc(task._id).set({ data: rec });
+        // 无状态调用（小程序自己带基线来）不写库：
+        //   1. 省资源点——用户每 30 秒刷新一次就写一条，量不小；
+        //   2. 多个用户盯同一场时 doc id 会互相覆盖，把别人的基线冲掉。
+        // 只有定时器（不带 prevStates）才是真正需要持久化基线的一方。
+        if (!prevStates) {
+          await db.collection(DB_STATE).doc(task._id).set({ data: rec });
+        }
         results.push({
           _id: rec._id, ok: rec.ok,
           restock: (rec.restock || []).length,
+          // 本轮提醒（kind = target / drop / restock）。本地 watcher 靠它决定发不发、发哪套文案。
+          alert: rec.alert,
           notify: rec.notify,
           error: rec.error,
           // 无状态模式（第二十四轮）：云库是 no-op，客户端要拿全量记录
@@ -3477,28 +4388,50 @@ async function handleAction(event, action, db) {
     // --- 讨论区帖子列表 ---------------------------------------------
     if (action === 'listPosts') {
       const keyword = String((event && event.keyword) || '').trim();
+      const type = String((event && event.type) || '').trim();
       const offset = Math.max(0, Number((event && event.offset) || 0));
       const limit = Math.min(50, Math.max(1, Number((event && event.limit) || 20)));
+      const onlyMine = !!(event && event.mine);
+      const { OPENID } = cloud.getWXContext();
+
+      // 条件拼装：关键词走正则 or，类型/只看自己走等值，最后用 and 串起来。
+      // 云数据库的 where 只接受一个条件对象，多个条件必须自己 and。
+      const conds = [];
+      if (keyword) {
+        // 转义正则元字符：用户搜「(」不该让整个查询抛异常
+        const safe = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const reg = db.RegExp({ regexp: safe, options: 'i' });
+        conds.push(db.command.or([{ content: reg }, { nickname: reg }]));
+      }
+      if (type) conds.push({ type: type });
+      if (onlyMine) conds.push({ openid: OPENID || '__none__' });
 
       let query = db.collection(DB_POSTS);
-      if (keyword) {
-        // 简单搜索：内容或标签包含关键词。云数据库不支持全文检索，
-        // 这里用正则做模糊匹配；帖子量不大时够用了。
-        const reg = db.RegExp({ regexp: keyword, options: 'i' });
-        query = query.where(
-          db.command.or([
-            { content: reg },
-            { tags: keyword },
-            { nickname: reg },
-          ])
-        );
-      }
+      if (conds.length === 1) query = query.where(conds[0]);
+      else if (conds.length > 1) query = query.where(db.command.and(conds));
+
       const { data: posts } = await query
         .orderBy('createdAt', 'desc')
         .skip(offset)
         .limit(limit)
         .get();
-      return { ok: true, posts: posts || [] };
+
+      // 不把 openid 发回前端：那是用户唯一标识，给出去等于泄露。
+      // 只给一个 mine 布尔值，界面据此决定显示不显示「删除」。
+      const list = (posts || []).map((p) => ({
+        _id: p._id,
+        nickname: p.nickname || '匿名狐友',
+        avatar: p.avatar || '',
+        content: p.content || '',
+        tags: p.tags || [],
+        type: p.type || '',
+        sticker: p.sticker || '',
+        createdAt: p.createdAt || '',
+        likes: p.likes || 0,
+        replies: p.replies || 0,
+        mine: !!OPENID && p.openid === OPENID,
+      }));
+      return { ok: true, posts: list, count: list.length };
     }
 
     // --- 讨论区发帖 -------------------------------------------------
@@ -3507,35 +4440,260 @@ async function handleAction(event, action, db) {
       if (!content) return { ok: false, error: '内容不能为空' };
       if (content.length > 500) return { ok: false, error: '内容超过 500 字' };
 
-      const tags = Array.isArray(event && event.tags) ? event.tags : [];
-      const nickname = String((event && event.nickname) || '匿名狐友').trim();
+      const tags = Array.isArray(event && event.tags) ? event.tags.slice(0, 5) : [];
+      const nickname = String((event && event.nickname) || '匿名狐友').trim().slice(0, 20);
       const avatar = String((event && event.avatar) || '').trim();
-      // type：问题反馈/建议留言/求助求助；sticker：留言墙素材 id（白名单校验防路径注入）
+      // type：聊票 / 提问 / 避坑；sticker：便签纸 id（白名单校验防路径注入）
       const type = String((event && event.type) || '').trim().slice(0, 10);
       const sticker = String((event && event.sticker) || '').trim();
-      if (sticker && !/^(note[1-8]|apple|starPurple|leaf|dolls|puzzle|twins|ice)$/.test(sticker)) {
+      if (sticker && !/^(note[1-8])$/.test(sticker)) {
         return { ok: false, error: '素材不合法' };
       }
 
-      // 简单内容审核：禁止常见广告/引流关键词
+      // 本地关键词黑名单：既拦广告引流，也拦「代拍 / 黄牛 / 出票」这类词。
+      // 个人主体做票务，小程序里出现这些词很容易被审核判定成抢票工具。
       const forbidden = /(加微信|加v|转账|二维码|代拍|黄牛|票贩子|出票.*先款)/i;
       if (forbidden.test(content)) {
-        return { ok: false, error: '检测到广告/引流内容，已拦截。请发与场次相关的交流信息。' };
+        return { ok: false, error: '检测到广告/引流内容，已拦截。请发与购票、场次相关的交流。' };
       }
 
       const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid，请重新进入小程序' };
+
+      // 微信强制要求 UGC 接内容安全检测（不做的话社区功能过不了审核）。
+      // 走「云调用」，不需要自己换 access_token，但必须在云函数目录的
+      // config.json 里声明 permissions.openapi.security.msgSecCheck。
+      // 检测服务本身抖动 / 额度用完时一律放行：因为安全接口挂了就让人发不出帖，
+      // 是更糟的体验；真正的兜底是作者能在「我的」页删帖。
+      let secSuggest = 'pass';
+      try {
+        const sec = await cloud.openapi.security.msgSecCheck({
+          content: content,
+          version: 2,
+          scene: 2,
+          openid: OPENID,
+        });
+        secSuggest = (sec && sec.result && sec.result.suggest) || 'pass';
+      } catch (e) {
+        // 41001 之类（权限没配）也会走到这里，静默放行
+      }
+      if (secSuggest !== 'pass') {
+        return { ok: false, error: '内容可能不适合公开展示，改一下再发吧' };
+      }
+
       const doc = {
-        openid: OPENID || '',
+        openid: OPENID,
         nickname,
         avatar,
         content,
         tags,
+        // 这两个字段旧版漏存了：结果就是所有帖子分类标签都空、选的纸也全变成默认纸
+        type,
+        sticker,
         createdAt: new Date().toISOString(),
         likes: 0,
         replies: 0,
       };
       const { _id } = await db.collection(DB_POSTS).add({ data: doc });
-      return { ok: true, _id };
+      return { ok: true, _id, post: Object.assign({ _id }, doc) };
+    }
+
+    // --- 删自己的帖子 --------------------------------------------------
+    // 只按 openid 判权：云数据库的安全规则允许所有人读，但删除必须过这一层。
+    // 不能信任客户端传上来的 uid —— 那玩意儿是随便改的。
+    if (action === 'postDel') {
+      const id = String((event && event.id) || '').trim();
+      if (!id) return { ok: false, error: '缺少帖子 id' };
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid' };
+      try {
+        const r = await db.collection(DB_POSTS).doc(id).get();
+        const post = r && r.data;
+        if (!post) return { ok: false, error: '帖子不存在' };
+        if (post.openid !== OPENID) return { ok: false, error: '只能删自己的帖子' };
+        await db.collection(DB_POSTS).doc(id).remove();
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String((e && e.message) || e) };
+      }
+    }
+
+    // --- 推送任务同步：小程序把「要盯哪些票」交上来 --------------------
+    // 一条文档 = 一个用户，tasks 存在数组里。不按任务拆文档，是因为
+    // 定时器每轮要读全量任务，拆开就变成 N 次查询，白白烧资源点。
+    if (action === 'pushSync') {
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid，请重新进入小程序' };
+      const raw = Array.isArray(event.tasks) ? event.tasks : [];
+      // 只留轮询用得上的字段：params 里可能塞了长 URL，全量存会让文档膨胀
+      const slim = raw
+        .filter((t) => t && t._id && t.adapter)
+        .slice(0, 60)
+        .map((t) => ({
+          _id: String(t._id),
+          adapter: String(t.adapter),
+          name: t.name || '',
+          poster: t.poster || '',
+          enabled: t.enabled !== false,
+          params: t.params || {},
+          price_labels: t.price_labels || t.price_label || [],
+          session_filter: t.session_filter || '',
+        }));
+      const pushOn = !!event.pushOn;
+      const nowIso = new Date().toISOString();
+
+      const col = db.collection(DB_TASKS);
+      const exist = await col.where({ openid: OPENID }).limit(1).get().catch(() => ({ data: [] }));
+      const row = (exist.data || [])[0];
+      if (row) {
+        await col.doc(row._id).update({
+          data: { tasks: slim, pushOn: pushOn, updatedAt: nowIso },
+        });
+      } else {
+        await col.add({
+          data: { openid: OPENID, tasks: slim, pushOn: pushOn, updatedAt: nowIso, cursor: 0 },
+        });
+      }
+      return { ok: true, count: slim.length, pushOn: pushOn };
+    }
+
+    // --- 服务端状态：监控页/我的页要显示「云端在盯」--------------------
+    if (action === 'pushStatus') {
+      const { OPENID } = cloud.getWXContext();
+      const out = {
+        ok: true,
+        mode: 'cloud',
+        // 云函数由定时触发器驱动，不受「小程序有没有打开」「电脑有没有开机」影响
+        watching: true,
+        interval: 60,
+        tasks: 0,
+        pushOn: false,
+        syncedAt: '',
+        quota: 0,
+        extKind: '',
+        extLabel: '',
+      };
+      if (!OPENID) return out;
+      try {
+        const t = await db.collection(DB_TASKS).where({ openid: OPENID }).limit(1).get();
+        const row = (t.data || [])[0] || {};
+        out.tasks = Array.isArray(row.tasks) ? row.tasks.length : 0;
+        out.pushOn = !!row.pushOn;
+        out.syncedAt = row.updatedAt || '';
+        const s = await db.collection(DB_SUBS).where({ openid: OPENID }).limit(1).get();
+        const sub = (s.data || [])[0] || {};
+        out.quota = sub.quota || 0;
+        out.extKind = (sub.ext && sub.ext.kind) || '';
+        out.extLabel = out.extKind ? EXT_LABELS[out.extKind] || out.extKind : '';
+      } catch (e) {
+        /* 集合还没建，按空处理 */
+      }
+      return out;
+    }
+
+    // --- 身份自检：云端不需要 wx.login 换 openid ------------------------
+    // 云函数每次被调用，微信都会在上下文里塞好 OPENID，直接用就行。
+    // 小程序端调这个只是为了确认「拿得到」，拿不到说明环境/基础库有问题。
+    if (action === 'whoami') {
+      const ctx = cloud.getWXContext();
+      return { ok: !!ctx.OPENID, openid: ctx.OPENID || '' };
+    }
+
+    // --- 外部提醒通道：绑定 / 查看 / 解绑 -------------------------------
+    // 微信一次性订阅一天只有 4 条额度，且得用户先去攒。企业微信机器人 /
+    // Server酱 / ntfy 不占额度、不限条数，绑一个地址就能「有变化就收到」。
+    if (action === 'extGet') {
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid' };
+      const ext = await getExt(db, OPENID);
+      if (!ext) return { ok: true, kind: '', label: '', masked: '' };
+      return {
+        ok: true,
+        kind: ext.kind,
+        label: EXT_LABELS[ext.kind] || ext.kind,
+        masked: maskTarget(ext.target),
+      };
+    }
+
+    if (action === 'extSet') {
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid，请重新进入小程序' };
+      const parsed = parseExt(event && event.target);
+      if (!parsed) {
+        return {
+          ok: false,
+          error:
+            '认不出这个地址。支持：邮箱（xxx@126.com）、企业微信机器人 webhook、' +
+            'Server酱 SendKey、ntfy 主题地址、PushPlus token',
+        };
+      }
+      await saveSub(db, OPENID, { ext: parsed, extAt: new Date().toISOString() });
+      // 存完当场发一条：用户立刻知道通没通，不用等下一次降价才发现坏了
+      let tested = [];
+      try {
+        tested = await sendExternal(db, OPENID, {
+          kind: 'test',
+          // 邮件通道只认机票（chan=mail），测试消息得自己带上，否则会被 sendExternal 挡掉
+          chan: parsed.kind === 'mail' ? 'mail' : undefined,
+          title: '外部提醒已绑定',
+          status: parsed.kind === 'mail' ? '以后机票降价会发到这个邮箱' : '这条到了就说明以后降价能收到',
+          tip: '测试消息，可忽略',
+        });
+      } catch (e) {
+        tested = [{ kind: parsed.kind, ok: false, error: String((e && e.message) || e) }];
+      }
+      const one = tested[0] || {};
+      return {
+        ok: true,
+        kind: parsed.kind,
+        label: EXT_LABELS[parsed.kind] || parsed.kind,
+        masked: maskTarget(parsed.target),
+        tested: !!one.ok,
+        testError: one.ok ? '' : one.error || '',
+      };
+    }
+
+    if (action === 'extClear') {
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid' };
+      const { data } = await db.collection(DB_SUBS).where({ openid: OPENID }).limit(1).get();
+      if (data && data.length) {
+        await db.collection(DB_SUBS).doc(data[0]._id).update({
+          data: { ext: null, updatedAt: new Date().toISOString() },
+        });
+      }
+      return { ok: true };
+    }
+
+    // --- 立刻发一条测试消息 -------------------------------------------
+    // 不扣额度：用户刚点「开启推送」就测试，扣掉唯一那一份额度会让人以为坏了。
+    if (action === 'pushTest') {
+      const { OPENID } = cloud.getWXContext();
+      if (!OPENID) return { ok: false, error: '拿不到 openid，请重新进入小程序' };
+      try {
+        const r = await sendAlert(
+          OPENID,
+          {
+            kind: 'test',
+            title: event.title || '推送测试',
+            status: '能收到就说明链路通了',
+            org: 'ticket-radar',
+            tip: '测试消息，可忽略',
+            page: 'pages/monitor/monitor',
+          },
+          db,
+          true
+        );
+        // wx / ext 分别告诉用户哪条路通了，排查时不用猜
+        return { ok: true, sent: true, wx: r.wx, ext: r.ext };
+      } catch (e) {
+        return { ok: false, error: String((e && e.errMsg) || (e && e.message) || e) };
+      }
+    }
+
+    // --- 手动触发一轮（调试用，正常由定时触发器自己跑）------------------
+    if (action === 'watchTick') {
+      return await runWatch(db, { openid: event && event.openid });
     }
 
     // --- 订阅额度云端记账 ---------------------------------------------
@@ -3614,6 +4772,21 @@ exports._internals = {
   fwdGetPerforms: fwdGetPerforms,
   extractFwdId: extractFwdId,
   detailShow: detailShow,
+  // 外部推送通道：本地用假 webhook 端到端验一遍，比只检查语法可靠
+  parseExt: parseExt,
+  sendExternal: sendExternal,
+  sendAlert: sendAlert,
+  maskTarget: maskTarget,
+  // 多模板字段映射：5 个模板字段名各不同，配错了微信直接 47003
+  TMPL_IDS: TMPL_IDS,
+  TMPL_MAP: TMPL_MAP,
+  TMPL_PREF: TMPL_PREF,
+  tmplOrder: tmplOrder,
+  tmplData: tmplData,
+  normTime: normTime,
+  // 机票提醒模式（both / drop / target）的判定，三种模式都要能被单测覆盖
+  flightAlert: flightAlert,
+  PRICE_LOGIC_V: PRICE_LOGIC_V,
 };
 
 // ===========================================================================
@@ -3656,6 +4829,28 @@ function normalizePosters(out) {
 }
 
 exports.main = async (event) => {
+  // 云数据库不会因为「往里写」而自动建集合，写不存在的集合直接报 -502005。
+  // 用户第一次用的时候什么集合都没有，全靠这里补。已存在会抛错，忽略即可；
+  // 同一个实例只跑一次（ensuredCollections 是模块级标志）。
+  try {
+    await ensureCollections(cloud.database());
+  } catch (e) {
+    /* 建不了就让后面的调用自己报错，至少错误是具体的 */
+  }
+
+  // 定时触发器进来的是 {Type:'Timer', TriggerName:'...'}，没有 action。
+  // 这一支就是「关掉小程序、电脑关机也照样盯票」的全部实现。
+  if (event && event.Type === 'Timer') {
+    try {
+      const r = await runWatch(cloud.database());
+      // 云函数日志里留一行，出问题在控制台能看到具体是哪个用户没推出去
+      console.log('[watch] ' + JSON.stringify(r).slice(0, 900));
+      return r;
+    } catch (e) {
+      console.error('[watch] 失败', e);
+      return { ok: false, error: String((e && e.message) || e) };
+    }
+  }
   try {
     return normalizePosters(
       await handleAction(event, (event && event.action) || 'query', cloud.database())

@@ -11,7 +11,7 @@ const PREV_KEY = 'radar_prev_states';
 const PLATFORM_LABEL = {
   damai: '大麦', bilibili: 'B站会员购', maoyan: '猫眼',
   moretickets: '摩天轮', piaoxingqiu: '票星球', rail12306: '12306',
-  fenwandao: '纷玩岛',
+  fenwandao: '纷玩岛', taopiaopiao: '淘票票', flight: '机票',
 };
 
 Page({
@@ -61,8 +61,9 @@ Page({
         adapter: t.adapter || '',
         params: t.params || {},
         poster: t.poster || '',
-        status,
-        statusText,
+        enabled: t.enabled !== false,
+        status: t.enabled === false ? 'pause' : status,
+        statusText: t.enabled === false ? '已暂停' : statusText,
         offline,
         rel: (s && s.relTime) || '',
       };
@@ -84,6 +85,18 @@ Page({
         from: p.from || '',
         to: p.to || '',
         date: p.date || '',
+      });
+      wx.switchTab({ url: '/pages/shows/shows' });
+      return;
+    }
+    // 机票也没有演出详情：回「找票」页，把航线填进机票面板（跟首页卡片一致）
+    if (it.adapter === 'flight') {
+      const p = it.params || {};
+      wx.setStorageSync('shows_prefill_flight', {
+        from: p.from || '',
+        to: p.to || '',
+        fromName: p.fromName || '',
+        toName: p.toName || '',
       });
       wx.switchTab({ url: '/pages/shows/shows' });
       return;

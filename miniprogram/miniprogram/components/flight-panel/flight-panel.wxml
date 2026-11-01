@@ -96,25 +96,30 @@
           <view class="watch-s">
             <text class="watch-now" wx:if="{{item.lastMin}}">¥{{item.lastMin}}</text>
             <text class="watch-delta {{item.deltaCls}}" wx:if="{{item.deltaText}}">{{item.deltaText}}</text>
-            <text class="watch-b {{item.budget ? 'watch-b-on' : ''}}">{{item.budget ? '目标 ¥' + item.budget : '不提醒'}}</text>
+            <text class="watch-b {{item.budget ? 'watch-b-on' : ''}}">{{item.enabled ? item.modeText : '已暂停'}}</text>
           </view>
         </view>
         <view class="watch-x" data-id="{{item.id}}" catchtap="removeWatch">✕</view>
       </view>
     </block>
 
-    <!-- 平台比价：三家各自的最低价，谁最低谁标绿（口径是「起价」，不是同班价） -->
+    <!-- 平台比价：三家各自 30 天内的最低价 + 是哪天 + 比最低贵多少。
+         只给三个价格数字等于让用户自己猜，那正是上一版看不懂的原因 -->
     <block wx:if="{{plats.length}}">
       <view class="sec-h">
-        <text class="sec-t">各平台最低</text>
+        <text class="sec-t">平台比价</text>
         <text class="sec-s">{{platTip}}</text>
       </view>
       <view class="plats">
         <view class="plat {{item.low ? 'plat-low' : ''}}" wx:for="{{plats}}" wx:key="plat">
           <text class="plat-n">{{item.plat}}</text>
           <text class="plat-p">¥{{item.min}}</text>
+          <text class="plat-d">{{item.dateShort || '—'}}{{item.noTax ? ' · 不含税' : ''}}</text>
+          <text class="plat-g plat-g-best" wx:if="{{item.low}}">最低</text>
+          <text class="plat-g" wx:else>贵 ¥{{item.gap}}</text>
         </view>
       </view>
+      <view class="plat-concl" wx:if="{{platBest}}">{{platBest}}</view>
     </block>
 
     <view class="sec-h">

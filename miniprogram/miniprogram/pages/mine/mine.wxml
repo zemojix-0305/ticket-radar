@@ -62,6 +62,70 @@
     <text class="quota-msg" wx:if="{{srvMsg}}">{{srvMsg}}</text>
   </view>
 
+  <!-- 温馨提示：必看。放在外部提醒上面，先解释「为什么机票要走邮箱」 -->
+  <view class="card notice">
+    <view class="notice-hd" bindtap="toggleTips" hover-class="press-hover">
+      <text class="notice-ic">!</text>
+      <text class="notice-t">温馨提示 · 必看</text>
+      <text class="notice-free">免费</text>
+      <text class="notice-replay" catchtap="replayIntro">再看一次</text>
+      <text class="bind-arrow {{tipsOpen ? 'bind-arrow-open' : ''}}">▾</text>
+    </view>
+    <view class="notice-bd" wx:if="{{tipsOpen}}">
+      <view class="notice-item" wx:for="{{tips}}" wx:key="t">
+        <text class="notice-i-t">{{index + 1}}. {{item.t}}</text>
+        <text class="notice-i-d">{{item.d}}</text>
+        <text class="notice-i-hi" wx:if="{{item.hi}}">{{item.hi}}</text>
+      </view>
+    </view>
+    <text class="notice-mini" wx:else>免费 · 机票走邮箱不占额度 · 微信一天最多 20 条</text>
+  </view>
+
+  <!-- 外部提醒：微信之外的一条路。不占订阅额度、不限条数 -->
+  <!-- 这里最容易踩的坑：收起状态下只显示一个「外部提醒」标题，用户压根不知道
+       点进去能填邮箱。所以未绑定时默认展开，并且标题右侧直接写「去绑定」。 -->
+  <view class="card ext {{extKind ? '' : 'ext-off'}}">
+    <view class="ext-head" bindtap="toggleExt" hover-class="press-hover">
+      <view class="ext-head-l">
+        <text class="t1">外部提醒</text>
+        <text class="ext-badge" wx:if="{{extKind}}">已绑 {{extLabel}}</text>
+        <text class="ext-badge ext-badge-off" wx:else>还没绑</text>
+      </view>
+      <view class="ext-cta press" wx:if="{{!extOpen}}">
+        <text class="ext-cta-t">{{extKind ? '管理' : '去填邮箱'}}</text>
+        <text class="bind-arrow">▾</text>
+      </view>
+      <text class="bind-arrow {{extOpen ? 'bind-arrow-open' : ''}}" wx:else>▾</text>
+    </view>
+
+    <text class="ext-sub" wx:if="{{!extOpen}}">{{extKind ? '机票提醒走这里，不占微信额度' : '点「去填邮箱」，机票提醒就不再抢微信额度'}}</text>
+
+    <view wx:if="{{extOpen}}">
+      <text class="ext-hint">微信订阅消息是「授权一次收一条」，额度得省给演唱会回流票。这里绑一个通道之后：<text class="ext-strong">机票提醒走这个通道，演出提醒继续走微信</text>，两条互不抢额度。</text>
+
+      <block wx:if="{{extKind}}">
+        <view class="ext-bound">
+          <view class="t2">{{extLabel}}</view>
+          <text class="ext-mask">{{extMasked}}</text>
+        </view>
+        <view class="acts">
+          <view class="btn btn-ghost" bindtap="clearExt" hover-class="press-hover">解绑</view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <textarea class="ext-input" value="{{extInput}}" bindinput="onExtInput" placeholder="粘邮箱或推送地址，自动识别" placeholder-class="ext-ph" maxlength="300" auto-height></textarea>
+        <view class="acts">
+          <view class="btn {{extBusy ? 'btn-wait' : ''}}" bindtap="saveExt" hover-class="press-hover">{{extBusy ? '正在验证…' : '绑定并测试'}}</view>
+        </view>
+        <text class="ext-hint2">邮箱（推荐）：填 xxx@126.com 这样的地址，机票提醒发这里，不限条数、不用额外花钱</text>
+        <text class="ext-hint2">企业微信：群 → 右上角 → 群机器人 → 添加 → 复制 webhook（不限量）</text>
+        <text class="ext-hint2">Server酱：sct.ftqq.com 微信扫码 → SendKey（SCT 开头，免费 5 条/天）</text>
+        <text class="ext-hint2">ntfy：App 内订阅 topic，粘 https://ntfy.sh/主题名</text>
+      </block>
+    </view>
+  </view>
+
   <!-- 正在盯：入口按钮，点进独立页看列表 -->
   <view class="card watched-entry" bindtap="goWatched" hover-class="press-hover">
     <view class="watched-entry-main">
@@ -215,4 +279,7 @@
   <view class="safe"></view>
 
   <van-toast id="van-toast" />
+  <!-- 这页有 4 处 Dialog.alert / Dialog.confirm，但之前只挂了 toast 没挂 dialog，
+       所以点了完全没反应（删除留言「点不下去」就是这个原因）。 -->
+  <van-dialog id="van-dialog" />
 </view>

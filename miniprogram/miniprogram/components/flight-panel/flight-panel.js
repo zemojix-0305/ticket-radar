@@ -33,6 +33,14 @@ function flightTasks() {
   return Array.isArray(list) ? list.filter((t) => t && t.adapter === 'flight' && t._id) : [];
 }
 
+/** 提醒方式 → 一句话。wxml 只渲染字符串，不在这里拼三元 */
+function modeLabel(mode, budget) {
+  const m = String(mode || 'both');
+  if (m === 'drop') return '只报降价';
+  if (m === 'target') return budget ? '跌到 ¥' + budget + ' 才报' : '只报到价';
+  return budget ? '¥' + budget + ' 或降价都报' : '降价 + 到价';
+}
+
 /** 任务 → 面板里「在盯的」那一行 */
 function toWatch(t) {
   const p = t.params || {};
@@ -49,7 +57,12 @@ function toWatch(t) {
     toName: p.toName || p.to,
     // 航班级只有同程有逐航班明细；航线级是同程/飞猪/途牛三家一起比
     plat: isFlight ? '同程' : '比三家',
-    budget: Number(p.budget) || 0, // 0 = 只看不提醒
+    budget: Number(p.budget) || 0, // 心理价；0 = 不设
+    // 提醒方式：both / drop / target。老任务没这个字段 → both，跟以前一致
+    mode: String(p.alert_mode || 'both'),
+    modeText: modeLabel(p.alert_mode, Number(p.budget) || 0),
+    // 「暂停」只看这一条，不影响别的任务
+    enabled: t.enabled !== false,
     lastMin: Number(p.lastMin) || 0,
     prevMin: Number(p.prevMin) || 0,
     delta: delta,
@@ -109,6 +122,7 @@ Component({
     plats: [],
     platNote: '',
     platTip: '',
+    platBest: '',
     intl: false,
     // 城市选择
     cityOpen: false,
@@ -129,10 +143,10 @@ Component({
     sortBy: 'time',
     // 监控
     watches: [],
-    // 当前这条航线有没有在盯、目标价多少（按钮上直接显示，不用滑到底看列表）
+    // 当前这条航线有没有在盯、心理价多少（按钮上直接显示，不用滑到底看列表）
     watching: false,
     watchBudget: 0,
-    watchText: '盯这条航线 · 到价提醒你',
+    watchText: '盯这条航线 · 降价/到价都提醒',
     dropTip: null,
   },
 
@@ -223,10 +237,10 @@ Component({
       const cur = id ? list.filter((w) => w.id === id)[0] : null;
       const budget = cur ? Number(cur.budget) || 0 : 0;
       // 按钮文案在 js 里拼好：多层三元 + 字符串拼接塞进 wxml 在一些基础库上会解析歪
-      let watchText = '盯这条航线 · 到价提醒你';
+      let watchText = '盯这条航线 · 选提醒方式';
       if (!id) watchText = '先选出发地和目的地';
       else if (cur) {
-        watchText = budget ? '已在盯 · 低于 ¥' + budget + ' 提醒 · 点这里改' : '已在盯 · 只记价 · 点这里改';
+        watchText = (cur.enabled ? '已在盯 · ' : '已暂停 · ') + cur.modeText + ' · 点这里改';
       }
       this.setData({
         watches: list,
@@ -363,21 +377,35 @@ Component({
         ];
       }
 
-      // 平台行情：三家各自的最低价，谁最低谁标绿。没出数的那家不列（不拿「暂无」占位）
+      // 平台行情：三家各自的最低价，便宜的排前面，每张卡说清「哪一天、比最低贵多少」。
+      // 只甩三个数字（¥330 / ¥350 / ¥540）等于让用户自己去猜——那正是上一版
+      // 「三家各是多少」看不懂的原因：不知道是哪天、也不知道差在哪。
       const plats = (r.plats || [])
         .filter((p) => p.ok && p.min > 0)
+        .sort((a, b) => a.min - b.min)
         .map((p) => ({
           plat: p.plat,
           min: p.min,
           span: p.span || 0,
+          date: p.date || '',
+          dateShort: String(p.date || '').slice(5),  // '11-02'
+          gap: p.min - min,                          // 比最低贵多少，0 = 就是最低
           low: p.min === min,
+          // 途牛只给裸票价，跟含税价并排比会被误读成「它便宜」
+          noTax: p.taxIncluded === false,
         }));
       const platNote = (r.plats || [])
         .filter((p) => !p.ok || !p.min)
         .map((p) => p.plat)
         .join('/');
       // 提示语在 js 里拼好：wxml 里叠三元 + 字符串拼接在部分基础库上会解析歪
-      const platTip = platNote ? platNote + ' 这次没出数' : r.intl ? '国际线' : '';
+      let platTip = '各家 30 天内最低（未必同一天）';
+      if (platNote) platTip = platNote + ' 这次没出数';
+      else if (r.intl) platTip = '各家 90 天内最低（未必同一天）';
+      // 一句结论，省得用户自己比
+      const platBest = plats.length
+        ? plats[0].plat + ' 最便宜' + (plats[0].dateShort ? ' · ' + plats[0].dateShort + ' 出发' : '')
+        : '';
 
       // 记住这条航线（存用户选的城市名，不存后端机场全名，否则第二次进来
       // 卡片上会顶出「上海虹桥国际机场」这种超长标题）
@@ -403,6 +431,7 @@ Component({
         plats: plats,
         platNote: platNote,
         platTip: platTip,
+        platBest: platBest,
         intl: !!r.intl,
         savePct: Math.round(((avg - min) / avg) * 100),
         fromName: r.fromName || from.name,
@@ -473,7 +502,7 @@ Component({
         f.watched = !!t;
         f.watchBudget = t ? Number(t.params && t.params.budget) || 0 : 0;
         // 文案在 js 里拼好：多层三元塞进 wxml 在部分基础库会解析歪
-        f.watchLabel = f.watched ? (f.watchBudget ? '在盯 ¥' + f.watchBudget : '在盯') : '盯这班';
+        f.watchLabel = f.watched ? (f.watchBudget ? '心理价 ¥' + f.watchBudget : '在盯 · 降价提醒') : '盯这班';
       });
       const LIMIT = 5;
       this.setData({
@@ -557,13 +586,37 @@ Component({
       this.setData({ dropTip: null });
     },
 
+    /**
+     * 选提醒方式。以前只有一个「填心理价 / 留空」的输入框，用户压根不知道
+     * 「留空 = 只报降价」，等于把功能藏起来了。现在明确三选一。
+     */
+    pickMode(curMode, cb) {
+      const MODES = [
+        { k: 'both', t: '降价 + 跌破心理价（推荐）' },
+        { k: 'drop', t: '只报降价（不用填心理价）' },
+        { k: 'target', t: '只报到价（跌到心理价才提醒）' },
+      ];
+      const cur = String(curMode || 'both');
+      wx.showActionSheet({
+        itemList: MODES.map((m) => (m.k === cur ? '✓ ' : '') + m.t),
+        success: (r) => {
+          const m = MODES[r.tapIndex];
+          if (m) cb(m.k);
+        },
+        // 用户点了取消：静默返回，不能当成「选了第一个」
+        fail: () => {},
+      });
+    },
+
+    /** 提醒方式 → 一句话，按钮和 toast 共用，避免两处各写一遍走偏 */
+    modeText(mode, budget) {
+      return modeLabel(mode, budget);
+    },
+
     // 盯一条航线 = 往监控任务表里加一条 adapter='flight' 的任务。
-    // 这样首页「监控」列表能看到它、能被 poll 轮询、跌破目标价能走订阅消息推送——
+    // 这样首页「监控」列表能看到它、能被 poll 轮询、到价/降价都能走订阅消息推送——
     // 上一版只写在本地的 radar_flight_watch 里，关掉小程序就什么都不会发生。
-    // 盯一条航线 = 往监控任务表里加一条 adapter='flight' 的任务。
-    // 这样首页「监控」列表能看到它、能被 poll 轮询、跌破目标价能走订阅消息推送——
-    // 上一版只写在本地的 radar_flight_watch 里，关掉小程序就什么都不会发生。
-    // 已经盯着的再点一次 = 改目标价（不用先删再加）。
+    // 已经盯着的再点一次 = 改提醒方式 / 改心理价（不用先删再加）。
     addWatch() {
       const { res, from, to } = this.data;
       if (!from || !to) return wx.showToast({ title: '先选出发地和目的地', icon: 'none' });
@@ -571,25 +624,19 @@ Component({
       const id = TASK_PREFIX + from.code + '-' + to.code;
       const tasks = loadTasks() || [];
       const exists = tasks.filter((t) => t && t._id === id)[0] || null;
+      const curMode = String((exists && exists.params && exists.params.alert_mode) || 'both');
       const curBudget = exists ? Number(exists.params && exists.params.budget) || 0 : 0;
       const min = Number(res.stats && res.stats.min) || 0;
       const cheap = (res.stats && res.stats.cheapest) || {};
-      // 默认建议价：当前最低价再低 10%，取到十位（¥360 → ¥320）。
-      // 只是预填，用户可以改成任何数；留空则「只看不提醒」。
+      // 默认建议的心理价：当前最低价再低 10%，取到十位（¥360 → ¥320）。
       const suggest = min ? Math.floor((min * 0.9) / 10) * 10 : '';
-      wx.showModal({
-        title: (exists ? '改目标价 · ' : '盯 ') + from.name + ' → ' + to.name,
-        editable: true,
-        placeholderText: '低于多少提醒你，留空就只看不提醒',
-        content: curBudget ? String(curBudget) : suggest ? String(suggest) : '',
-        confirmText: exists ? '保存' : '开始盯',
-        success: (r) => {
-          if (!r.confirm) return;
-          const n = Number(String(r.content || '').replace(/[^0-9.]/g, ''));
-          const budget = n > 0 ? Math.round(n) : 0;
+
+      this.pickMode(curMode, (mode) => {
+        const save = (budget) => {
           if (exists) {
             exists.params = Object.assign({}, exists.params, {
               budget: budget,
+              alert_mode: mode,
               lastMin: min,
               lastDate: cheap.date || '',
             });
@@ -606,6 +653,7 @@ Component({
                 toName: to.name,
                 days: 30,
                 budget: budget,
+                alert_mode: mode,
                 lastMin: min,
                 lastDate: cheap.date || '',
               },
@@ -614,26 +662,40 @@ Component({
               created_at: Date.now(),
             });
             saveTasks(tasks);
-            // 机票的「到价」推送走的是同一条一次性订阅，加完顺手静默续一条
+            // 机票的两种提醒都走同一条一次性订阅，加完顺手静默续一条
             renewAfterAdd().catch(() => {});
           }
           this.setWatches();
           wx.showToast({
-            title: exists
-              ? budget
-                ? '目标价改成 ¥' + budget
-                : '已取消价格提醒'
-              : budget
-                ? '已盯上，低于 ¥' + budget + ' 提醒你'
-                : '已盯上，只记价不提醒',
+            title: (exists ? '已更新：' : '已盯上：') + this.modeText(mode, budget),
             icon: 'none',
           });
-        },
+        };
+
+        // 只报降价：不需要心理价，直接落库
+        if (mode === 'drop') return save(0);
+        wx.showModal({
+          title: (exists ? '改心理价 · ' : '心理价 · ') + from.name + ' → ' + to.name,
+          editable: true,
+          placeholderText: '跌到这个数就提醒你',
+          content: curBudget ? String(curBudget) : suggest ? String(suggest) : '',
+          confirmText: exists ? '保存' : '开始盯',
+          success: (r) => {
+            if (!r.confirm) return;
+            const n = Number(String(r.content || '').replace(/[^0-9.]/g, ''));
+            const budget = n > 0 ? Math.round(n) : 0;
+            // 选了「只报到价」却没填数字：等于啥都不会提醒，必须挡住
+            if (mode === 'target' && !budget) {
+              return wx.showToast({ title: '只报到价必须填心理价', icon: 'none' });
+            }
+            save(budget);
+          },
+        });
       });
     },
 
-    // 盯某一个航班（不是整条航线）：任务 id 带航班号 + 日期，
-    // 这一班自己的价格跌到目标价才提醒，跟「这条航线的最低价」是两回事。
+    // 盯某一个航班（不是整条航线）：任务 id 带航班号 + 日期。
+    // 这一班有两条提醒线：跌进心理价 / 比上次便宜，跟「这条航线的最低价」是两回事。
     watchFlight(e) {
       const i = Number(e.currentTarget.dataset.i);
       const f = this.data.flView[i];
@@ -642,21 +704,19 @@ Component({
       const id = TASK_PREFIX + from.code + '-' + to.code + '-' + f.no + '-' + flDate;
       const tasks = loadTasks() || [];
       const exists = tasks.filter((t) => t && t._id === id)[0] || null;
+      const curMode = String((exists && exists.params && exists.params.alert_mode) || 'both');
       const curBudget = exists ? Number(exists.params && exists.params.budget) || 0 : 0;
       const low = Number(f.showLow) || 0;
       const suggest = low ? Math.floor((low * 0.9) / 10) * 10 : '';
-      wx.showModal({
-        title: (exists ? '改目标价 · ' : '盯 ') + f.no,
-        editable: true,
-        placeholderText: '低于多少提醒你，留空就只看不提醒',
-        content: curBudget ? String(curBudget) : suggest ? String(suggest) : '',
-        confirmText: exists ? '保存' : '开始盯',
-        success: (r) => {
-          if (!r.confirm) return;
-          const n = Number(String(r.content || '').replace(/[^0-9.]/g, ''));
-          const budget = n > 0 ? Math.round(n) : 0;
+
+      this.pickMode(curMode, (mode) => {
+        const save = (budget) => {
           if (exists) {
-            exists.params = Object.assign({}, exists.params, { budget: budget, lastMin: low });
+            exists.params = Object.assign({}, exists.params, {
+              budget: budget,
+              alert_mode: mode,
+              lastMin: low,
+            });
             saveTasks(tasks);
           } else {
             tasks.unshift({
@@ -672,6 +732,7 @@ Component({
                 flightNo: f.no,
                 plat: f.plat || '同程',
                 budget: budget,
+                alert_mode: mode,
                 lastMin: low,
               },
               poster: '',
@@ -684,16 +745,30 @@ Component({
           this.buildView();
           this.setWatches();
           wx.showToast({
-            title: exists
-              ? budget
-                ? '目标价改成 ¥' + budget
-                : '已取消价格提醒'
-              : budget
-                ? '已盯上 ' + f.no + '，低于 ¥' + budget + ' 提醒你'
-                : '已盯上 ' + f.no,
+            title: (exists ? '已更新：' : '已盯上：') + this.modeText(mode, budget),
             icon: 'none',
           });
-        },
+        };
+
+        if (mode === 'drop') return save(0);
+        wx.showModal({
+          // 预填了建议值，placeholder 的说明就不显示了，所以把「填的是什么」
+          // 写进标题：这个数字是**心理价**（跌到它就提醒），不是当前票价。
+          title: (exists ? '改心理价 · ' : '心理价 · ') + f.no,
+          editable: true,
+          placeholderText: '跌到这个数就提醒你',
+          content: curBudget ? String(curBudget) : suggest ? String(suggest) : '',
+          confirmText: exists ? '保存' : '开始盯',
+          success: (r) => {
+            if (!r.confirm) return;
+            const n = Number(String(r.content || '').replace(/[^0-9.]/g, ''));
+            const budget = n > 0 ? Math.round(n) : 0;
+            if (mode === 'target' && !budget) {
+              return wx.showToast({ title: '只报到价必须填心理价', icon: 'none' });
+            }
+            save(budget);
+          },
+        });
       });
     },
 
@@ -743,7 +818,7 @@ Component({
             fromName: w.fromName || w.from,
             toName: w.toName || w.to,
             days: 30,
-            // 旧记录没有目标价，不替用户瞎设一个——当「只看不提醒」搬过来
+            // 旧记录本来就没有心理价，不替用户瞎设一个——搬过来继续只报降价
             budget: 0,
             lastMin: Number(w.best) || 0,
             lastDate: w.bestDate || '',

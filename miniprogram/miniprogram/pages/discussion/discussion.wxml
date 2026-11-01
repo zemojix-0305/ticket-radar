@@ -1,4 +1,4 @@
-<!-- 讨论区：问题反馈白板 + 留言墙 -->
+<!-- 社区：大家的便签墙（聊票 / 提问 / 避坑） -->
 <view class="page">
 
   <!-- 我的留言墙模式横条 -->
@@ -18,7 +18,9 @@
   <!-- 顶部标题区 -->
   <view class="board-header">
     <view class="board-head-l">
-      <view class="board-title title-strong">问题反馈</view>
+      <!-- 大标题别再写「问题反馈」：下面分类栏第一格就是「问题反馈」，
+           同一个词在一屏里出现两次，会让人以为这一页只放问题反馈 -->
+      <view class="board-title title-strong">社区</view>
       <view class="board-line"></view>
     </view>
     <view class="board-stks">
@@ -31,9 +33,9 @@
     color="#445C38" title-active-color="#2A2620" title-inactive-color="#6E6558"
     line-width="26px" line-height="3px">
     <van-tab title="全部"></van-tab>
-    <van-tab title="问题反馈"></van-tab>
-    <van-tab title="建议留言"></van-tab>
-    <van-tab title="求助留言"></van-tab>
+    <van-tab title="聊票"></van-tab>
+    <van-tab title="提问"></van-tab>
+    <van-tab title="避坑"></van-tab>
   </van-tabs>
 
   <!-- 搜索栏 -->
@@ -59,12 +61,12 @@
     <view class="fail-b">{{fail}}</view>
   </view>
 
-  <!-- 空状态 -->
+  <!-- 空状态：文案跟着「搜索 / 分类 / 我的留言墙」走，别一律说「还没有」 -->
   <view class="card empty" wx:if="{{!loading && !posts.length && !fail}}">
     <view class="empty-mark"></view>
-    <view class="empty-title">还没有反馈</view>
-    <view class="empty-sub">第一条你来写。</view>
-    <view class="stitch-hint">点击右下角 ✍ 发布</view>
+    <view class="empty-title">{{empty.title}}</view>
+    <view class="empty-sub">{{empty.sub}}</view>
+    <view class="stitch-hint">点右下角 ✍ 发布</view>
   </view>
 
   <!-- 帖子流 - 留言墙：小便签两列排布，点击放大看全文 -->
@@ -72,8 +74,10 @@
     <view class="post-board press-card" wx:for="{{posts}}" wx:key="_id"
           bindtap="onNoteTap" data-index="{{index}}" hover-class="press-card-hover">
     <view class="note-wrap" style="transform: rotate({{item.rot}}deg);">
-      <!-- 便签纸背景（8 种轮换，含自带的小夹子） -->
-      <image class="note-bg" src="/images/board/note{{item.noteIdx}}.png" mode="widthFix" />
+      <!-- 便签纸背景：**用用户选的那张**（item.bg）。
+           以前这里写死的是 /images/board/note{{item.noteIdx}}.png，
+           所以无论发帖时挑了什么纸，列表里永远是轮换的默认纸。 -->
+      <image class="note-bg" src="{{item.bg}}" mode="aspectFill" />
       <!-- 顶部装饰小夹子（13 种轮换），盖在便签上沿 -->
       <image class="note-clip" src="/images/board/clip{{item.clipIdx}}.png" mode="aspectFit" />
       <view class="note-body">
@@ -94,17 +98,15 @@
   </view>
   </view>
 
-  <!-- 加载更多 -->
-  <view class="load-more" wx:if="{{posts.length && hasMore}}" bindtap="loadMore" hover-class="press-hover">
-    <text class="t3">{{loading ? '加载中…' : '加载更多'}}</text>
-  </view>
-  <view class="load-more" wx:if="{{posts.length && !hasMore}}">
-    <text class="t3">没有更多了</text>
+  <!-- 到底了就说清「一共几条」，别写「没有更多了」——
+       只有两条留言时那句话会被读成「没有留言了」 -->
+  <view class="load-more" wx:if="{{posts.length}}">
+    <text class="t3">共 {{posts.length}} 条帖子</text>
   </view>
 
   <!-- 底部说明 -->
   <view class="board-footer">
-    <text class="t3 stitch-text">每五分钟刷新</text>
+    <text class="t3 stitch-text">大家都能看到 · 请勿发布广告和代拍信息</text>
   </view>
 
   <!-- 发帖悬浮按钮 -->
@@ -154,9 +156,9 @@
   <view class="field">
     <view class="field-lbl">类型</view>
     <view class="type-selector">
-      <view class="type-opt {{postType===0?'active':''}}" data-type="0" bindtap="onType">问题反馈</view>
-      <view class="type-opt {{postType===1?'active':''}}" data-type="1" bindtap="onType">建议留言</view>
-      <view class="type-opt {{postType===2?'active':''}}" data-type="2" bindtap="onType">求助留言</view>
+      <view class="type-opt {{postType===0?'active':''}}" data-type="0" bindtap="onType">聊票</view>
+      <view class="type-opt {{postType===1?'active':''}}" data-type="1" bindtap="onType">提问</view>
+      <view class="type-opt {{postType===2?'active':''}}" data-type="2" bindtap="onType">避坑</view>
     </view>
   </view>
 
@@ -179,7 +181,7 @@
     <view class="zoom-close press" bindtap="closeZoom" hover-class="press-hover">×</view>
     <view class="zoom-note-wrap" wx:if="{{posts[zoomIdx]}}">
       <image class="zoom-note-bg" src="{{posts[zoomIdx].bg}}" mode="widthFix" />
-      <image class="note-clip" wx:if="{{!posts[zoomIdx].onSticker}}" src="/images/board/clip{{posts[zoomIdx].clipIdx}}.png" mode="aspectFit" />
+      <image class="note-clip" src="/images/board/clip{{posts[zoomIdx].clipIdx}}.png" mode="aspectFit" />
       <view class="zoom-note-body">
         <view class="note-head">
           <image class="note-avatar" src="{{posts[zoomIdx].avatar || '/images/avatar_fox.png'}}" mode="aspectFill" />
@@ -189,7 +191,7 @@
           </view>
           <view class="post-type-tag" wx:if="{{posts[zoomIdx].type}}">{{posts[zoomIdx].type}}</view>
         </view>
-        <view class="zoom-note-text {{posts[zoomIdx].dark ? 'note-text-dark' : ''}}">{{posts[zoomIdx].content}}</view>
+        <view class="zoom-note-text">{{posts[zoomIdx].content}}</view>
         <view class="post-tags" wx:if="{{posts[zoomIdx].tags && posts[zoomIdx].tags.length}}">
           <text class="post-tag" wx:for="{{posts[zoomIdx].tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</text>
         </view>

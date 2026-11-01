@@ -27,6 +27,10 @@
   color: var(--ink3);
 }
 .w-ok { background: var(--accent-weak); color: var(--accent); }
+/* 暂停 / 抓取失败 / 已下架：跟默认灰底区分开，不然四种状态长得一样 */
+.w-pause { background: var(--none-weak); color: var(--ink3); }
+.w-bad { background: var(--stamp-weak); color: var(--stamp); }
+.w-off { background: var(--none-weak); color: var(--ink3); }
 .watched-off .w-name { color: var(--ink3); text-decoration: line-through; }
 .w-del {
   flex-shrink: 0;

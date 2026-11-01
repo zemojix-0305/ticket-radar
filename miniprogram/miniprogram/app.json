@@ -44,7 +44,7 @@
       },
       {
         "pagePath": "pages/discussion/discussion",
-        "text": "反馈",
+        "text": "社区",
         "iconPath": "images/tab_discuss.png",
         "selectedIconPath": "images/tab_discuss_on.png"
       },

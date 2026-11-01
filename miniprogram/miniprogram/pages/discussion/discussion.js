@@ -8,9 +8,9 @@
 
 import Toast from '../../vant/toast/toast';
 import Dialog from '../../vant/dialog/dialog';
-// 免费架构（第二十六轮）：帖子存本地 storage，不再走服务端
-// （云库已 no-op，listPosts/createPost 拿到的永远是空表）
-import { loadPosts as readLocalPosts, addPost, removePost, savePosts } from '../../utils/posts';
+// 第二十五轮：帖子改为云端共享。cachedPosts 只用于首屏秒出（弱网不白屏），
+// 真数据一律以 fetchPosts 拉的为准。
+import { cachedPosts, fetchPosts, addPost, removePost, TYPE_LABELS, normalizeType } from '../../utils/posts';
 
 const USER_KEY = 'radar_user_profile';
 const POSTS_DB = 'radar_posts';
@@ -19,8 +19,11 @@ const PAGE_SIZE = 20;
 const NOTE_COUNT = 8;   // images/board/note1..8.png
 const CLIP_COUNT = 13;  // images/board/clip1..13.png
 
-// 发帖可选素材：8 张便签纸 + 6 张浅色贴纸卡（深色贴纸写字看不清，不收）。
-// key 会存进帖子字段 sticker，渲染时按 key 找背景图。
+// 发帖可选素材：只保留 8 张手账便签纸。
+// 原来后面还跟了一串「贴纸卡」（苹果/星星/叶子/娃娃/格纹星/双星/冰块），
+// 那些图是插画不是纸，铺到卡片上字压不住、比例也对不齐，2026-10-30 按用户要求砍掉。
+// key 会存进帖子字段 sticker，渲染时按 key 找背景图；老帖子里的贴纸 key 找不到图，
+// 会自动回落到按 _id 轮换的便签纸（见 loadPosts）。
 const STICKERS = [
   { key: 'note1', label: '黄纸', bg: '/images/board/note1.png', dark: false },
   { key: 'note2', label: '粉纸', bg: '/images/board/note2.png', dark: false },
@@ -30,32 +33,16 @@ const STICKERS = [
   { key: 'note6', label: '紫纸', bg: '/images/board/note6.png', dark: false },
   { key: 'note7', label: '白纸', bg: '/images/board/note7.png', dark: false },
   { key: 'note8', label: '米纸', bg: '/images/board/note8.png', dark: false },
-  { key: 'apple', label: '苹果', bg: '/images/board2/cartoon4.png', dark: false },
-  { key: 'starPurple', label: '星星', bg: '/images/board2/cartoon8.png', dark: false },
-  { key: 'leaf', label: '叶子', bg: '/images/board2/collage12.png', dark: true },
-  { key: 'dolls', label: '娃娃', bg: '/images/board2/collage14.png', dark: true },
-  { key: 'puzzle', label: '格纹星', bg: '/images/board2/origami7.png', dark: false },
-  { key: 'twins', label: '双星', bg: '/images/board2/cartoon11.png', dark: false },
-  { key: 'ice', label: '冰块', bg: '/images/board2/cartoon3.png', dark: false },
 ];
 function stickerBg(key) {
   const s = STICKERS.find((x) => x.key === key);
   return s ? s.bg : '';
 }
 
-// 设备 uid：发帖时标记发布者（删除权判定用「我的/管理员」）
-function deviceUid() {
-  try {
-    let u = wx.getStorageSync('radar_uid');
-    if (!u) {
-      u = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      wx.setStorageSync('radar_uid', u);
-    }
-    return u;
-  } catch (e) {
-    return 'anon';
-  }
-}
+// 留言类型（下标即 postType）统一从 utils/posts 取，见那边的注释
+
+// 删帖权限不再靠本机 uid 判断了：那是随便能改的本地变量，而且换手机就失效。
+// 现在由云函数用 getWXContext 拿真实 openid 比对，前端只消费 listPosts 回传的 mine。
 
 // 把任意字符串 hash 成 0..n-1。同一个 _id 永远拿到同一个素材编号。
 function stableHash(str) {
@@ -84,6 +71,21 @@ function relTime(iso) {
   return Math.floor(h / 24) + ' 天前';
 }
 
+/** 给一条帖子套上便签视觉：时间、纸型、夹子、微旋转。云端和缓存两条路共用。 */
+function decoratePost(p) {
+  return Object.assign({}, p, {
+    type: normalizeType(p.type),
+    rel: relTime(p.createdAt),
+    noteIdx: noteIndex(p._id),
+    clipIdx: clipIndex(p._id),
+    // 用户选过纸就用选的；老帖子的贴纸 key 已经没有图了（贴纸卡已下线），
+    // 自动回落到按 _id 稳定轮换的便签纸
+    bg: stickerBg(p.sticker) || '/images/board/note' + noteIndex(p._id) + '.png',
+    // 微旋转 -1.2°~1.2°：让便签墙不至于太机械
+    rot: ((stableHash(p._id + 'r') % 25) - 12) / 10,
+  });
+}
+
 Page({
   data: {
     posts: [],
@@ -104,6 +106,8 @@ Page({
     hasMore: true,
     offset: 0,
     currentTab: 0,
+    // 空状态文案（按「搜索/分类/我的留言墙」三种原因分别给，别一律说「还没有」）
+    empty: { title: '还没有留言', sub: '第一条你来写。' },
   },
 
   onLoad() {
@@ -145,47 +149,63 @@ Page({
 
   loadPosts(reset) {
     const self = this;
-    const kw = (this.data.kw || '').trim().toLowerCase();
-    // tab 筛选：0=全部，1/2/3 对应帖子上的 type 标签
-    const typeMap = ['', '问题反馈', '建议留言', '求助求助'];
-    const typeFilter = this.data.currentTab ? typeMap[this.data.currentTab] : '';
+    const kw = (this.data.kw || '').trim();
+    // tab 筛选：0=全部，1/2/3 依次对应 TYPE_LABELS
+    const typeFilter = this.data.currentTab ? TYPE_LABELS[this.data.currentTab - 1] || '' : '';
+    const offset = reset ? 0 : (this.data.posts || []).length;
 
     self.setData({ loading: true, fail: '' });
-    // 本地帖子按时间倒序读出，关键词 + 类型在前端过滤
-    Promise.resolve()
-      .then(() => {
-        let list = (readLocalPosts() || []).slice();
-        if (kw) {
-          list = list.filter((p) =>
-            ((p.content || '') + ' ' + (p.tags || []).join(' ') + ' ' + (p.nickname || ''))
-              .toLowerCase()
-              .indexOf(kw) >= 0
-          );
-        }
-        if (typeFilter) list = list.filter((p) => p.type === typeFilter);
-        // 我的留言墙模式：只看本机发的（按设备 uid 判定）
-        if (self.data.mineWall) list = list.filter((p) => p.uid && p.uid === deviceUid());
-        list = list.map((p) => Object.assign({}, p, {
-          rel: relTime(p.createdAt),
-          noteIdx: noteIndex(p._id),
-          clipIdx: clipIndex(p._id),
-          // 用户选过素材就用选的，没选（历史帖）按 _id 稳定轮换便签
-          bg: stickerBg(p.sticker) || '/images/board/note' + noteIndex(p._id) + '.png',
-          onSticker: !!p.sticker,   // 贴纸卡类没有自带夹子，渲染时不再叠 clip
-          // 微旋转 -1.2°~1.2°：让便签墙不至于太机械
-          rot: ((stableHash(p._id + 'r') % 25) - 12) / 10,
-        }));
-        const posts = reset ? list : self.data.posts.concat(list);
+
+    // 先把本地缓存铺出来：云端第一次拉要几百毫秒，弱网更久，
+    // 不铺缓存就是一片空白，用户会以为社区坏了。
+    if (reset) {
+      const cached = cachedPosts();
+      if (cached.length) {
+        self.setData({
+          posts: cached.map(decoratePost),
+          loading: false,
+          empty: self.emptyCopy(kw, typeFilter),
+        });
+      }
+    }
+
+    // 搜索、分类、「只看我的」都交给云端做：本地只有缓存（最多 100 条），
+    // 拿它当数据源会漏掉别人的帖子——那正是上一版「社区只有自己」的原因。
+    return fetchPosts({
+      keyword: kw,
+      type: typeFilter,
+      offset: offset,
+      limit: PAGE_SIZE,
+      mine: self.data.mineWall,
+    })
+      .then((list) => {
+        const rendered = list.map(decoratePost);
+        const posts = reset ? rendered : self.data.posts.concat(rendered);
         self.setData({
           posts,
           loading: false,
-          hasMore: false,   // 本地全量读，没有分页
           searching: false,
+          hasMore: list.length >= PAGE_SIZE,
+          empty: self.emptyCopy(kw, typeFilter),
         });
       })
       .catch((e) => {
-        self.setData({ loading: false, fail: String(e.message || e), searching: false });
+        // 拉不到时保留缓存内容，只在顶部给一行提示，不要整页清空
+        self.setData({
+          loading: false,
+          searching: false,
+          fail: String((e && e.message) || e),
+        });
       });
+  },
+
+  /** 空状态文案要分场景：以前不管什么原因都写「还没有反馈」，
+   *  于是用户在「求助留言」分类下看到一句「还没有反馈」，以为留言全丢了 */
+  emptyCopy(kw, typeFilter) {
+    if (kw) return { title: '没搜到相关内容', sub: '换个关键词，或点搜索框右侧「清除」。' };
+    if (typeFilter) return { title: '「' + typeFilter + '」还没有留言', sub: '切到「全部」看看，或者你来发第一条。' };
+    if (this.data.mineWall) return { title: '你还没发过留言', sub: '点右下角 ✍ 写一条。' };
+    return { title: '还没有留言', sub: '第一条你来写。' };
   },
 
   // 分类切换：van-tabs 用 e.detail.index；回退 dataset.tab（旧写法兼容）
@@ -274,18 +294,27 @@ Page({
     const idx = this.data.zoomIdx;
     const p = this.data.posts[idx];
     if (!p) return;
-    const mine = !p.uid || p.uid === deviceUid();
+    // 权限由云函数判（它拿得到真实 openid，前端传什么都不可信）。
+    // 这里只是提前给个提示，省一次注定失败的请求。
+    if (p.mine === false) {
+      return Toast({ message: '只能删自己的帖子', type: 'none' });
+    }
     wx.showModal({
-      title: '删除这条留言',
-      content: mine ? '删了就找不回来了，确定？' : '确定以管理员身份删除这条留言？',
+      title: '删除这条帖子',
+      content: '删了就找不回来了，确定？',
       confirmText: '删除',
       confirmColor: '#C0655A',
       success: (res) => {
         if (!res.confirm) return;
-        const removed = removePost(p._id);
-        this.setData({ zoomIdx: -1 });
-        this.loadPosts(true);
-        Toast({ message: removed ? '已删除' : '这条不在本机留言墙里', type: removed ? 'success' : 'text' });
+        removePost(p._id)
+          .then(() => {
+            this.setData({ zoomIdx: -1 });
+            Toast({ message: '已删除', type: 'success' });
+            this.loadPosts(true);
+          })
+          .catch((e) => {
+            Toast({ message: String((e && e.message) || '删除失败'), type: 'none' });
+          });
       },
     });
   },
@@ -304,29 +333,25 @@ Page({
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 3);
-    const typeLabels = ['', '问题反馈', '建议留言', '求助求助'];
-
+    // _id / 作者 / 时间全由云端生成，前端不再自己编（编了也对不上真实记录）
     const post = {
-      _id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
-      // 设备 uid：标记发布者。「我的」页管理列表和删除权判定都用它
-      uid: deviceUid(),
       content,
       tags,
-      type: typeLabels[this.data.postType] || '',
+      // postType 0/1/2 直接对应 TYPE_LABELS，不会再有空 type
+      type: TYPE_LABELS[this.data.postType] || TYPE_LABELS[0],
       sticker: this.data.postSticker,
       nickname: u.nickname || '匿名狐友',
       avatar: u.avatar || '',
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      replies: 0,
     };
-    try {
-      addPost(post);
-      Toast({ message: '已发布', type: 'success' });
-      this.setData({ showPost: false, postContent: '', postTags: '', postType: 0 });
-      this.loadPosts(true);
-    } catch (e) {
-      Dialog.alert({ title: '发布失败', message: String((e && e.message) || e) });
-    }
+    addPost(post)
+      .then(() => {
+        Toast({ message: '已发布', type: 'success' });
+        this.setData({ showPost: false, postContent: '', postTags: '', postType: 0 });
+        this.loadPosts(true);
+      })
+      .catch((e) => {
+        // 云函数会给出人话原因（内容不合规 / 超长 / 网络），原样展示
+        Dialog.alert({ title: '发布失败', message: String((e && e.message) || e) });
+      });
   },
 });

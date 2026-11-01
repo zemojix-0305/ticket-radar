@@ -374,17 +374,18 @@ Page({
     if (p === 'rail12306') docId += '-' + String(this.data.railDate || '').replace(/[^0-9]/g, '');
     this.setData({ adding: true });
     try {
-      saveTasks([
-        ...loadTasks(),
-        {
-          _id: docId,
-          adapter: p,
-          name: this.data.name || '#' + this.data.id,
-          params,
-          enabled: true,
-          poster: this.data.poster || '',
-        },
-      ]);
+      // 同一场重复点「开始盯」不能再 push 一条同 _id 的任务：
+      // 列表 wx:key 会撞、poll 会把同一场查两遍。按 _id 覆盖。
+      const list = loadTasks().filter((t) => t && t._id !== docId);
+      list.push({
+        _id: docId,
+        adapter: p,
+        name: this.data.name || '#' + this.data.id,
+        params,
+        enabled: true,
+        poster: this.data.poster || '',
+      });
+      saveTasks(list);
       Toast({ type: 'success', message: '已开始盯' });
       // 第一次加监控的时刻顺手拿一次推送授权（之后不会再弹）；
       // 用户自己按过「暂停推送」的话，这里不会打扰他。

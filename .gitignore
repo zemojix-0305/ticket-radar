@@ -11,6 +11,9 @@ tasks.yaml
 .env
 .env.local
 
+# 云函数的邮件发件账号（授权码）。随云函数上传到云环境，但不进仓库
+miniprogram/cloudfunctions/radar/secret.js
+
 # Python
 __pycache__/
 *.py[cod]
@@ -58,3 +61,6 @@ server/server.log
 server/state/
 server/.wx_token.json
 server/config.json
+
+# 本地图表备份，不进仓库
+_backup/

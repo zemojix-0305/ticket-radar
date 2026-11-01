@@ -1,6 +1,6 @@
 // 监控页：首屏回答三个问题——我在盯几个、现在有没有票、上次什么时候查的。
 import Toast from '../../vant/toast/toast';
-import { request } from '../../utils/api';
+import { request, extGet } from '../../utils/api';
 import Dialog from '../../vant/dialog/dialog';
 import {
   isOn as pushIsOn,
@@ -9,7 +9,8 @@ import {
   renewAfterAdd as pushRenewAfterAdd,
   topUp as pushTopUp,
 } from '../../utils/push';
-import { loadTasks, removeTask } from '../../utils/tasks';
+import { loadTasks, removeTask, saveTasks } from '../../utils/tasks';
+import { TIPS, INTRO } from '../../utils/notice';
 //
 // 两条原则（跟 Python 那边保持一致）：
 //   1. 结论先行——卡片第一眼告诉你「有票还是没票」，不是先列车次；
@@ -31,13 +32,15 @@ const RAIL_SEATS = ['二等座', '一等座', '商务座', '特等座', '无座'
 
 const BANNER_CLOSED_KEY = 'home_banner_closed';
 const FAQ_KEY = 'home_faq_open';
+const NOTICE_KEY = 'home_notice_open';         // 温馨提示展开状态（默认展开）
+const INTRO_KEY = 'radar_intro_v1';            // 首次进入的三句话弹窗，看过就不再弹
 const PREV_KEY = 'radar_prev_states';          // 上一轮轮询快照（回流判定基线）
 const LAST_STATES_KEY = 'radar_last_states';   // 最近一轮结果（「我的」页展示用）
 
 const FAQ_LIST = [
   {
     q: '盯的是什么？会怎么提醒我？',
-    a: '盯的是「回流票」：售罄的场次因为退票、锁票释放、分批放库存，票会突然回来一瞬间。我们每五分钟查一次，一旦从「无票」翻回「有票」，立刻微信推消息喊你。你只需要在第一次授权时勾上「总是保持以上选择」，之后加监控会自动续期，不用再手动领。',
+    a: '盯的是「回流票」：售罄的场次因为退票、锁票释放、分批放库存，票会突然回来一瞬间。云端每分钟查一次，一旦从「无票」翻回「有票」就推消息给你。演出/火车走微信订阅消息，机票走你绑的邮箱。整个查询跑在云函数上，关掉电脑、关掉小程序都照常。',
   },
   {
     q: '什么叫回流票？',
@@ -45,7 +48,7 @@ const FAQ_LIST = [
   },
   {
     q: '为什么有票了没收到推送？',
-    a: '① 推送关了：首页那条点「恢复推送」；② 监控没在跑：打开小程序才会查。',
+    a: '按这个顺序查：① 首页推送开关是不是「已暂停」；② 这条任务是不是被单独暂停了（卡片上有「继续盯」）；③ 微信额度用完了——它得靠你打开小程序攒，见上面「温馨提示」；④ 这条是机票但没绑邮箱，微信额度又刚好用光。',
   },
   {
     q: '大麦能监控吗？',
@@ -113,6 +116,8 @@ Page({
     states: [],
     filtered: [],
     okCount: 0,
+    noneCount: 0,
+    pausedCount: 0,
     // 推送开关（只有开 / 关，不再有「还剩几条」）
     pushOn: false,
     loading: true,
@@ -126,6 +131,15 @@ Page({
     bannerText: '只监控、不下单。购票请认准官方渠道。',
     faqOpen: false,
     faqList: FAQ_LIST,
+    // 温馨提示：内容来自 utils/notice.js，默认展开、可收起但标题永远在
+    tips: TIPS,
+    tipsOpen: true,
+    // 首次进入的三句话弹窗。只弹一次（radar_intro_v1），关掉就再也不出现
+    intro: INTRO,
+    introOpen: false,
+    // 有机票任务却没绑邮箱：提示一句，否则用户不知道机票本该走邮箱、白白占微信额度
+    extKind: '',
+    flightNoMail: false,
     usageOpen: false,
     filter: 'all',
     // 建任务第二步：勾场次与价位（不勾＝整场任何价位回流都提醒）
@@ -141,6 +155,10 @@ Page({
   onLoad() {
     this.setData({
       bannerClosed: wx.getStorageSync(BANNER_CLOSED_KEY) || false,
+      // 没存过就展开——第一次用的人必须看见
+      tipsOpen: wx.getStorageSync(NOTICE_KEY) === false ? false : true,
+      // 首次进入的三句话：先把最容易被误解的地方说掉，再让他看首页
+      introOpen: !wx.getStorageSync(INTRO_KEY),
     });
     this.refresh();
   },
@@ -148,8 +166,13 @@ Page({
   onShow() {
     // 从「找票/详情」盯完回来要立刻刷出新任务
     this.setData({ pushOn: pushIsOn() });
+    this.loadExtHint();
     if (typeof this.refreshedOnce !== 'undefined') this.refresh();
     this.refreshedOnce = true;
+    // 「我的」页点过「再看一次」会把标记清成空串，这里补一次判断
+    if (!wx.getStorageSync(INTRO_KEY) && !this.data.introOpen) {
+      this.setData({ introOpen: true });
+    }
   },
 
   onPullDownRefresh() {
@@ -159,10 +182,21 @@ Page({
   refresh() {
     const self = this;
     self.setData({ loading: true, fail: '' });
-    const tasks = loadTasks().filter((t) => t && t._id && t.adapter);
-    if (!tasks.length) {
+    const all = loadTasks().filter((t) => t && t._id && t.adapter);
+    if (!all.length) {
       // 一个任务都没有：直接给空态，不打接口
       self.setData({ loading: false, states: [], okCount: 0 });
+      self.applyFilter();
+      return Promise.resolve();
+    }
+    // 暂停的任务不参与轮询：既省一次平台请求，也不会因为它继续报警
+    const tasks = all.filter((t) => t.enabled !== false);
+    const pausedStates = all
+      .filter((t) => t.enabled === false)
+      .map((t) => self.decoratePaused(t));
+    if (!tasks.length) {
+      // 全暂停了：列表照常显示（不然用户以为任务被删了），但不打接口
+      self.setData({ loading: false, states: pausedStates, okCount: 0 });
       self.applyFilter();
       return Promise.resolve();
     }
@@ -187,9 +221,12 @@ Page({
             Object.assign({}, f, {
               params: t.params || {},
               adapter: t.adapter || f.platform,
+              enabled: true,
             }),
           );
         });
+        // 暂停的排在后面：正在盯的永远是第一眼看到的
+        const merged = list.concat(pausedStates);
         const okCount = list.filter((s) => s.ok && s.available > 0).length;
         // 存下一轮基线：只留 ok + items 的 label/available
         const next = {};
@@ -201,9 +238,9 @@ Page({
           };
         }
         wx.setStorageSync(PREV_KEY, next);
-        wx.setStorageSync(LAST_STATES_KEY, list);
+        wx.setStorageSync(LAST_STATES_KEY, merged);
         self.setData({
-          states: list,
+          states: merged,
           okCount,
           pushOn: pushIsOn(),
           loading: false,
@@ -213,13 +250,41 @@ Page({
       .catch((e) => {
         self.setData({
           loading: false,
+          states: pausedStates,
           fail:
             String(e.message || e) +
             '\n\n两种常见原因：\n' +
-            '· 本地服务没开：在 server/ 目录跑 node api.js\n' +
-            '· 平台接口超时或被风控（只影响抓取那一项，其他项正常）',
+            '· 云函数没部署：开发者工具右键 radar →「上传并部署」\n' +
+            '· 平台接口超时或被风控（只影响抓取那一项，其他项照常）',
         });
+        self.applyFilter();
       });
+  },
+
+  /** 暂停的任务：只显示它暂停了、上次查过什么，不再打接口 */
+  decoratePaused(t) {
+    const s = (wx.getStorageSync(LAST_STATES_KEY) || []).filter((x) => x && x._id === t._id)[0];
+    return {
+      _id: t._id,
+      adapter: t.adapter,
+      platform: LABEL[t.adapter] || t.adapter,
+      name: t.name || '监控',
+      params: t.params || {},
+      poster: t.poster || '',
+      ok: true,
+      enabled: false,
+      available: 0,
+      total: 0,
+      show: [],
+      items: [],
+      head: '已暂停',
+      headClass: 'tag-pause',
+      barClass: 'task-bar-none',
+      relTime: (s && s.relTime) || '',
+      sub2: (s && s.sub2) || '',
+      smartTip: '',
+      more: 0,
+    };
   },
 
   // 把云函数的原始记录整理成「能给人看」的样子
@@ -246,18 +311,29 @@ Page({
       cls = 'tag-none';
       bar = 'task-bar-none';
     } else if (isFlight) {
-      // 机票没有「有没有票」，只有「有没有跌到目标价」，标签别照搬演出那套
+      // 机票没有「有没有票」，只有价格：跌进心理价 = 到价了。
+      // 提醒方式是用户自己选的（降价 / 到价 / 两个都要），卡片照实说，
+      // 别让「只报降价」的用户以为自己漏收到了到价消息。
       const tgt = Number((s.params || {}).budget) || 0;
+      const mode = String((s.params || {}).alert_mode || 'both');
       if (avail > 0) {
-        head = '到价了';
+        head = '到心理价';
         cls = 'tag-ok';
         bar = 'task-bar-ok';
+      } else if (mode === 'target' && tgt) {
+        head = '未到心理价';
+        cls = 'tag-none';
+        bar = 'task-bar-none';
+      } else if (mode === 'drop') {
+        head = '只报降价';
+        cls = 'tag-none';
+        bar = 'task-bar-none';
       } else if (tgt) {
-        head = '未到价';
+        head = '未到心理价';
         cls = 'tag-none';
         bar = 'task-bar-none';
       } else {
-        head = '只看价';
+        head = '只报降价';
         cls = 'tag-none';
         bar = 'task-bar-none';
       }
@@ -291,7 +367,10 @@ Page({
       head,
       headClass: cls,
       barClass: bar,
-      platform: LABEL[s.platform] || s.platform,
+      enabled: s.enabled !== false,
+      // 云函数回的是 adapter，本地补的也是 adapter；只认 s.platform 会让
+      // 机票卡片显示成空白（LABEL 里没有 undefined 这一项）
+      platform: LABEL[s.platform] || LABEL[s.adapter] || s.platform || s.adapter,
       // 机票的 when 只是一个日期，把价格摘要放上去更有用
       sub2: isFlight ? first.status || '' : first.when || '',
       total,
@@ -370,10 +449,69 @@ Page({
   applyFilter() {
     const f = this.data.filter;
     const all = this.data.states;
+    // 暂停的不参与「有票 / 无票」：它的 available 恒 0，混进去会把「无票」数算多
+    const live = all.filter((s) => s.enabled !== false);
     let out = all;
-    if (f === 'ok') out = all.filter((s) => s.ok && s.available > 0);
-    else if (f === 'none') out = all.filter((s) => !s.ok || s.available === 0);
-    this.setData({ filtered: out });
+    if (f === 'ok') out = live.filter((s) => s.ok && s.available > 0);
+    else if (f === 'none') out = live.filter((s) => !s.ok || s.available === 0);
+    this.setData({
+      filtered: out,
+      okCount: live.filter((s) => s.ok && s.available > 0).length,
+      noneCount: live.filter((s) => !s.ok || s.available === 0).length,
+      pausedCount: all.length - live.length,
+    });
+    this.syncFlightHint();
+  },
+
+  /**
+   * 有机票任务但没绑邮箱 → 首页给一条提示。
+   * 这不是装饰：机票的降价提醒本来就设计成走邮件（不限条数），
+   * 没绑就退回微信那点额度，用户会以为「到价没提醒 = 坏了」。
+   */
+  syncFlightHint() {
+    const hasFlight = (this.data.states || []).some((s) => s.adapter === 'flight');
+    const kind = this.data.extKind || wx.getStorageSync('radar_ext_kind') || '';
+    const show = hasFlight && kind !== 'mail';
+    if (show !== this.data.flightNoMail) this.setData({ flightNoMail: show });
+  },
+
+  /** 读一次外部提醒绑定情况（只为了上面那条提示，失败不影响主流程） */
+  loadExtHint() {
+    extGet()
+      .then((res) => {
+        const r = (res && res.result) || {};
+        const kind = r.ok ? r.kind || '' : '';
+        wx.setStorageSync('radar_ext_kind', kind);
+        this.setData({ extKind: kind });
+        this.syncFlightHint();
+      })
+      .catch(() => this.syncFlightHint());
+  },
+
+  /**
+   * 单条任务暂停 / 继续。
+   * 暂停后这条不再参与轮询、也不会推送，但任务本身还在列表里（不是删除），
+   * 随时能开回来。写回会同时同步给云函数，定时器那侧也按 enabled 过滤。
+   */
+  toggleTask(e) {
+    const id = e.currentTarget.dataset.id;
+    const tasks = loadTasks();
+    const t = tasks.filter((x) => x && x._id === id)[0];
+    if (!t) return;
+    const next = t.enabled === false;
+    t.enabled = next;
+    saveTasks(tasks);
+    // 丢掉这条的上一轮基线：暂停期间的价没人看，恢复时拿一个月前的价来比
+    // 会当场报一条「暴跌」的假提醒。第一次恢复只沉淀基线，不判定。
+    try {
+      const prev = wx.getStorageSync(PREV_KEY) || {};
+      delete prev[id];
+      wx.setStorageSync(PREV_KEY, prev);
+    } catch (err) {
+      /* 本地存储满了也不该挡住开关 */
+    }
+    Toast({ type: 'text', message: next ? '已继续盯' : '已暂停这一条' });
+    this.refresh();
   },
 
   // --- 分享卡片 -------------------------------------------------------------
@@ -487,6 +625,29 @@ Page({
     wx.switchTab({ url: '/pages/shows/shows' });
   },
 
+  /** 关掉首次进入的弹窗。存了标记＝以后不再弹，别拿它反复骚扰老用户 */
+  closeIntro() {
+    wx.setStorageSync(INTRO_KEY, 1);
+    this.setData({ introOpen: false });
+  },
+
+  /** 弹窗里的「去绑邮箱」：和首页那条提示走同一条路，跳到「我的」并把外部提醒撑开 */
+  /** 弹窗里原来的「去绑邮箱」按钮，2026-11-01 换成一句指路说明，这里留着备用 */
+  goBindMailFromIntro() {
+    this.closeIntro();
+    this.goMine();
+  },
+
+  /** 遮罩上拦 touchmove，否则弹窗打开时底下的页面还能跟着滚 */
+  noop() {},
+
+  goMine() {
+    // 这个入口只在「机票还在走微信额度」时出现，用户点它的意图很明确：去绑邮箱。
+    // switchTab 不能带参数，用 storage 传个一次性标记，让「我的」页把外部提醒那张卡撑开。
+    wx.setStorageSync('mine_ext_force_open', 1);
+    wx.switchTab({ url: '/pages/mine/mine' });
+  },
+
   goCompare() {
     wx.navigateTo({ url: '/pages/compare/compare' });
   },
@@ -520,6 +681,13 @@ Page({
 
   toggleUsage() {
     this.setData({ usageOpen: !this.data.usageOpen });
+  },
+
+  // 温馨提示：能收起（挡着列表时烦），但标题条一直在，随时能点开
+  toggleTips() {
+    const open = !this.data.tipsOpen;
+    wx.setStorageSync(NOTICE_KEY, open);
+    this.setData({ tipsOpen: open });
   },
 
   toggleFaq() {

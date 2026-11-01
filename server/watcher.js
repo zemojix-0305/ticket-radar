@@ -30,9 +30,17 @@ const PUSH_FILE = path.join(STATE_DIR, 'push.json');
 
 /** 合规下限，别改小 */
 const MIN_INTERVAL = 60;
-const DEFAULT_INTERVAL = 120;
+/**
+ * 默认轮询间隔。2026-10-30 用户要求「一天二十四小时、快准狠」，压到合规下限 60s。
+ * 再快就是秒级轮询 + 换 IP = 自动刷票，明令禁止，不碰。
+ * 「快」的真正含义：回流/降价发生后**一轮之内**就推出去，不是比谁手速快。
+ */
+const DEFAULT_INTERVAL = 60;
 /** 同一个任务两次推送的最小间隔（毫秒），防止平台数据抖动导致连环推 */
 const PUSH_COOLDOWN = 10 * 60 * 1000;
+/** 「到心理价」的冷却要长得多：价格在心理价上下反复横跳时，
+ *  每次穿线都提醒一遍会把人逼疯，而且一次性订阅额度经不起这么烧 */
+const TARGET_COOLDOWN = 6 * 60 * 60 * 1000;
 
 let pollFn = null; // (event) => Promise<result>，由 api.js 注入
 let timer = null;
@@ -142,44 +150,52 @@ async function tick(opts) {
     }
     writeJson(PREV_FILE, nextPrev);
 
-    // 有回流就发微信。pushOn=false（用户按了暂停）时一条都不发。
+    // 有提醒就发微信。pushOn=false（用户按了暂停）时一条都不发。
+    // 提醒分三类，文案在 index.js 的 flightAlert / pollOne 里就拼好了，
+    // 这里只管「发哪条、要不要被冷却挡住」：
+    //   target   跌进心理价（最重要，冷却 6 小时）
+    //   drop     比上次便宜（冷却 10 分钟，允许短时间多次降价各报一次）
+    //   restock  演出回流票
     let pushed = 0;
     const details = [];
     if (pushOn) {
       const pushLog = readJson(PUSH_FILE, {});
       for (const r of res) {
         const full = r.full || r;
-        const labels = Array.isArray(full.restock) ? full.restock : [];
-        if (!labels.length) continue;
+        const alert = full.alert || r.alert || null;
+        if (!alert) continue;
         const key = r._id;
-        const last = Number(pushLog[key] || 0);
-        if (Date.now() - last < PUSH_COOLDOWN) {
-          details.push({ id: key, name: full.name, skipped: 'cooldown' });
+        const kind = alert.kind || 'restock';
+        // 冷却按「任务 + 类型」分别记：降价被挡不该连累到价那条，
+        // 反过来到价推过之后，同一班的降价消息照旧可以发。
+        const logKey = kind === 'restock' ? key : key + ':' + kind;
+        const cool = kind === 'target' ? TARGET_COOLDOWN : PUSH_COOLDOWN;
+        const last = Number(pushLog[logKey] || 0);
+        if (Date.now() - last < cool) {
+          details.push({ id: key, name: full.name, kind, skipped: 'cooldown' });
           continue;
         }
         try {
-          // 多通道分发：小程序订阅 / pushplus / 企业微信 谁通算谁。
-          // 只靠小程序订阅的话，用户没续额度就一条都收不到。
           const notify = require('./notify');
           const out = await notify.send({
-            title: full.name || '你盯的票',
-            event: labels.join('/') + ' 回流',
-            org: PLATFORM_CN[full.platform] || full.platform || 'ticket-radar',
-            tip: '回流票出现，尽快去官方渠道下单',
-            page: 'pages/monitor/monitor',
+            title: alert.title || full.name || '你盯的票',
+            event: alert.status || '',
+            org: alert.org || PLATFORM_CN[full.platform] || full.platform || 'ticket-radar',
+            tip: alert.tip || '',
+            page: alert.page || 'pages/monitor/monitor',
           });
           if (!out.ok) {
             const why = (out.failed && out.failed[0] && out.failed[0].error) || out.error || '所有通道都没发出去';
             lastError = why;
-            details.push({ id: key, name: full.name, sent: false, error: why, failed: out.failed });
+            details.push({ id: key, name: full.name, kind, sent: false, error: why, failed: out.failed });
             continue;
           }
-          pushLog[key] = Date.now();
+          pushLog[logKey] = Date.now();
           pushed++;
-          details.push({ id: key, name: full.name, sent: true, labels, via: out.sent });
+          details.push({ id: key, name: full.name, kind, sent: true, via: out.sent });
         } catch (e) {
           lastError = String((e && e.message) || e);
-          details.push({ id: key, name: full.name, sent: false, error: lastError });
+          details.push({ id: key, name: full.name, kind, sent: false, error: lastError });
         }
       }
       if (pushed) writeJson(PUSH_FILE, pushLog);

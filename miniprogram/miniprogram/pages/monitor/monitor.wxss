@@ -258,6 +258,91 @@
   color: var(--warn);
 }
 
+/* ---------- 温馨提示（必看） ---------- */
+/* 比普通纸卡更硬：左侧一道实心竖条 + 暖底，扫一眼就知道这不是内容而是说明 */
+.notice {
+  margin: 12px 12px 0;
+  background: var(--warn-weak);
+  border-radius: var(--r);
+  border-left: 4px solid var(--warn);
+  overflow: hidden;
+}
+.notice-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+}
+.notice-ic {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  line-height: 17px;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--warn);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+}
+.notice-t {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+  letter-spacing: 0.3px;
+}
+.notice-arrow {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--warn);
+  transition: transform 0.15s;
+}
+.notice-arrow.open { transform: rotate(180deg); }
+.notice-bd { padding: 0 13px 12px 13px; }
+.notice-item { margin-bottom: 10px; }
+.notice-item:last-child { margin-bottom: 0; }
+.notice-i-t {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.notice-i-d {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.62;
+}
+/* 标题栏里的「全免费」小标签：不用点开就能看到最要紧的那个事实 */
+.notice-free {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #2E7D32;
+  background: rgba(46, 125, 50, 0.12);
+  border-radius: 999px;
+  padding: 1px 7px;
+  line-height: 1.6;
+}
+/* 每条里加粗的那一句。整段加粗等于没加粗，所以正文不动、只给这一句上重量 */
+.notice-i-hi {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn, #8D6308);
+  line-height: 1.6;
+}
+.notice-mini {
+  display: block;
+  padding: 0 13px 11px 13px;
+  font-size: 11.5px;
+  color: var(--warn);
+  line-height: 1.5;
+}
 /* ---------- 失败卡片 ---------- */
 .fail { padding: 16px; }
 .fail-t { font-size: 15px; color: var(--stamp); margin-bottom: 6px; }
@@ -286,6 +371,8 @@
   height: 4px;
   width: 100%;
 }
+/* 暂停的卡片整体压暗一点，一眼能跟「正在盯」的区分开 */
+.task-card.task-paused { opacity: 0.62; }
 .task-topline.task-bar-ok { background: var(--accent); }
 .task-topline.task-bar-none { background: var(--bar-idle); }
 .task-topline.task-bar-bad { background: var(--stamp); }
@@ -503,8 +590,10 @@
   color: var(--ink4, #C7C2D2);
   margin-top: 2px;
 }
-/* 三个操作链接挤在一行时把间距收一点，避免换行 */
-.task-foot-r { gap: 10px; }
+/* 四个操作链接（暂停/分享/详情/展开）挤在一行时把间距和字号收一点，避免换行
+   把卡片撑高——之前只有三个链接，加了「暂停」之后必须收 */
+.task-foot-r { gap: 8px; }
+.task-foot-r .link { font-size: 11px; white-space: nowrap; }
 
 /* ---------- 抢票时机智能提示 ---------- */
 .smart-tip {
@@ -518,4 +607,142 @@
   font-size: 12px;
   color: var(--warn);
   line-height: 1.5;
+}
+
+/* ---------- 机票未绑邮箱提示 ---------- */
+.mail-hint {
+  margin: 10px 12px 0;
+  padding: 10px 13px;
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: var(--r);
+}
+.mail-hint-t {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.mail-hint-d {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--accent);
+  line-height: 1.5;
+}
+
+/* ---------- 首次进入的三句话弹窗（radar_intro_v1） ---------- */
+/* 用居中卡片而不是底部抽屉：它要的是「被读到」，不是「被划走」 */
+.intro-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 26px;
+  box-sizing: border-box;
+  background: rgba(20, 18, 16, 0.52);
+}
+.intro-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 22px 20px 18px;
+  background: var(--card, #FFFFFF);
+  border-radius: 18px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+.intro-t {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink, #1C1C1E);
+  letter-spacing: 0.3px;
+}
+.intro-sub {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink3, #6C6C75);
+  line-height: 1.6;
+}
+.intro-list { margin-top: 14px; }
+.intro-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+}
+.intro-item:first-child { border-top: none; padding-top: 2px; }
+.intro-n {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  margin-top: 1px;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--brand-weak, rgba(107, 79, 168, 0.1));
+  color: var(--brand, #6B4FA8);
+  font-size: 11px;
+  font-weight: 700;
+}
+.intro-b { flex: 1; min-width: 0; }
+.intro-i-t {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink, #1C1C1E);
+  line-height: 1.45;
+}
+.intro-i-d {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink2, #5A5A60);
+  line-height: 1.6;
+}
+.intro-foot {
+  display: block;
+  margin-top: 14px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--warn-weak, #FFF7E0);
+  color: var(--warn, #8D6308);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.intro-note {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--brand-weak, rgba(107, 79, 168, 0.08));
+  color: var(--brand, #6B4FA8);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.intro-acts {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.intro-btn {
+  height: 42px;
+  line-height: 42px;
+  text-align: center;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.intro-ghost {
+  flex: 0 0 38%;
+  color: var(--ink2, #5A5A60);
+  background: var(--card2, #F7F7F8);
+}
+.intro-main {
+  flex: 1;
+  color: #FFFFFF;
+  background: var(--brand, #6B4FA8);
 }

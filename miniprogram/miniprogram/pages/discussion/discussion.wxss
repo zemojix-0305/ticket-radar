@@ -104,15 +104,17 @@
 .note-wrap {
   position: relative;
   margin: 12px 0 0;
-  padding: 20px 11px 14px;
-  min-height: 108px;
+  /* 统一成 1:1.28 的卡片。原来是靠文字撑高 + 背景图 height:100% 拉伸：
+     字多的卡片长、字少的短，两列永远参差，纸的撕边也被拉成一块纯色。 */
+  height: 0;
+  padding-bottom: 128%;
 }
 .note-bg {
   position: absolute;
   left: 0;
   top: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   z-index: 0;
 }
 .note-clip {
@@ -124,9 +126,15 @@
   height: 34px;
   z-index: 2;
 }
+/* 字落在纸的可写区里：四周内缩，超出的截掉（点开放大看全文） */
 .note-body {
-  position: relative;
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 21%;
+  bottom: 11%;
   z-index: 1;
+  overflow: hidden;
 }
 .note-head {
   display: flex;
@@ -383,7 +391,9 @@
 .zoom-mask {
   position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(26, 26, 26, 0.55);
+  /* 浅色遮罩，不用深灰：纸图带透明撕边，深底会把纸「染黑」。
+     浅底 + 深色关闭按钮，同样能把注意力拉到便签上，且物理上不会发黑。 */
+  background: rgba(233, 233, 238, 0.96);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -412,8 +422,8 @@
   line-height: 32px;
   text-align: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--t1);
+  background: #1C1C1E;
+  color: #FFFFFF;
   font-size: 22px;
   z-index: 2;
 }
@@ -421,9 +431,12 @@
   position: relative;
   transform: rotate(0deg);
 }
+/* 白底兜底：纸图是带透明撕边的 PNG，一旦图片还没解码完 / 解码失败，
+   底下就是遮罩的深灰，整张纸看起来「变黑」。给个白底就不会有这个中间态。 */
 .zoom-note-bg {
   width: 100%;
   display: block;
+  background: #FFFFFF;
 }
 .zoom-note-body {
   position: absolute;

@@ -305,3 +305,174 @@
   background: var(--brand-weak, rgba(107, 79, 168, 0.06));
 }
 .mypost-wall-t { font-size: 13px; font-weight: 500; color: var(--brand, #6B4FA8); }
+
+/* ---- 外部提醒（企业微信 / Server酱 / ntfy）---- */
+/* .card 本身不带 padding，ext 这张卡的内容全靠这里撑开，漏了就变成贴边的裸标题 */
+.card.ext { padding: 14px 16px 16px; }
+/* 未绑定：左边一条强调色，让它在整页白卡里一眼能被挑出来 */
+.card.ext.ext-off {
+  border-left: 3px solid var(--brand, #6B4FA8);
+  background: linear-gradient(90deg, rgba(107, 79, 168, 0.06), var(--card) 42%);
+}
+.ext-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ext-head-l { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ext-badge {
+  font-size: 11px;
+  color: var(--brand, #6B4FA8);
+  background: var(--brand-weak, rgba(107, 79, 168, 0.08));
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+.ext-badge-off { color: var(--ink3, #8A8378); background: rgba(0, 0, 0, 0.05); }
+/* 收起时的「去填邮箱」小按钮：真正的行动指引，不能只是个箭头 */
+.ext-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  background: var(--brand, #6B4FA8);
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+.ext-cta-t { font-size: 12px; color: #fff; font-weight: 500; }
+.ext-cta .bind-arrow { color: rgba(255, 255, 255, 0.85); font-size: 11px; }
+.ext-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--ink3, #8A8378);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.ext-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--ink3, #8A8378);
+  line-height: 1.7;
+  margin-top: 10px;
+}
+.ext-strong { color: var(--brand, #6B4FA8); font-weight: 500; }
+.ext-hint2 {
+  display: block;
+  font-size: 11px;
+  color: var(--ink3, #8A8378);
+  line-height: 1.8;
+  margin-top: 6px;
+}
+.ext-input {
+  width: 100%;
+  min-height: 72px;
+  box-sizing: border-box;
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink, #2A2620);
+  background: rgba(0, 0, 0, 0.025);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+}
+.ext-ph { color: var(--ink3, #B0A99E); font-size: 13px; }
+.ext-bound {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.025);
+}
+.ext-mask {
+  display: block;
+  font-size: 11px;
+  color: var(--ink3, #8A8378);
+  margin-top: 4px;
+  word-break: break-all;
+}
+.btn-wait { opacity: 0.6; }
+
+/* ---------- 温馨提示（必看） ---------- */
+/* 与首页同款：左侧实心竖条 + 暖底，跟普通纸卡区分开 */
+.notice {
+  border-left: 4px solid var(--warn);
+}
+.notice-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  background: var(--warn-weak);
+}
+.notice-ic {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  line-height: 17px;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--warn);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+}
+.notice-t {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+  letter-spacing: 0.3px;
+}
+.notice-bd { padding: 12px 16px 14px; }
+.notice-item { margin-bottom: 10px; }
+.notice-item:last-child { margin-bottom: 0; }
+.notice-i-t {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.notice-i-d {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.62;
+}
+/* 标题栏里的「全免费」小标签：不用点开就能看到最要紧的那个事实 */
+.notice-free {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #2E7D32;
+  background: rgba(46, 125, 50, 0.12);
+  border-radius: 999px;
+  padding: 1px 7px;
+  line-height: 1.6;
+}
+.notice-replay {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--warn, #8D6308);
+  text-decoration: underline;
+  opacity: 0.8;
+}
+/* 每条里加粗的那一句。整段加粗等于没加粗，所以正文不动、只给这一句上重量 */
+.notice-i-hi {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn, #8D6308);
+  line-height: 1.6;
+}
+.notice-mini {
+  display: block;
+  padding: 0 16px 13px;
+  font-size: 11.5px;
+  color: var(--warn);
+  line-height: 1.5;
+}

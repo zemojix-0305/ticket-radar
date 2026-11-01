@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "openapi": [
+      "subscribeMessage.send",
+      "security.msgSecCheck"
+    ]
+  },
+  "triggers": [
+    {
+      "name": "watchEveryMinute",
+      "type": "timer",
+      "config": "0 * * * * * *"
+    }
+  ]
+}
